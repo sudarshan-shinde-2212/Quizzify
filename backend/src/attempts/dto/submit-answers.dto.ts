@@ -1,0 +1,19 @@
+import { IsArray, ValidateNested, IsUUID, IsEnum, ArrayMinSize } from 'class-validator';
+import { Type } from 'class-transformer';
+import { CorrectOption } from '../../common/enums/option.enum';
+
+export class AnswerItemDto {
+  @IsUUID()
+  questionId: string;
+
+  @IsEnum(CorrectOption)
+  selectedOption: CorrectOption;
+}
+
+export class SubmitAnswersDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => AnswerItemDto)
+  answers: AnswerItemDto[];
+}
