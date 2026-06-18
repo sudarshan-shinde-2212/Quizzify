@@ -6,7 +6,7 @@ import { GoogleAuthGuard } from '../common/guards/google-auth.guard';
 
 /** URL of the frontend – used for the post-OAuth redirect */
 const FRONTEND_URL =
-  process.env.FRONTEND_URL || 'http://localhost:5173';
+  process.env.FRONTEND_URL || 'https://quizzify-liart.vercel.app';
 
 @Controller()
 export class AuthController {
