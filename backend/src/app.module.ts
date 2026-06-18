@@ -24,16 +24,20 @@ import { QuizResult } from './entities/quiz-result.entity';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get<string>('database.host'),
-        port: config.get<number>('database.port'),
-        username: config.get<string>('database.username'),
-        password: config.get<string>('database.password'),
-        database: config.get<string>('database.name'),
-        entities: [Admin, Student, Quiz, Question, QuizAttempt, QuizAnswer, QuizResult],
-        synchronize: false, // set false in prod, use migrations
-        logging: false,
-      }),
+  type: 'postgres',
+  host: config.get<string>('database.host'),
+  port: config.get<number>('database.port'),
+  username: config.get<string>('database.username'),
+  password: config.get<string>('database.password'),
+  database: config.get<string>('database.name'),
+  entities: [Admin, Student, Quiz, Question, QuizAttempt, QuizAnswer, QuizResult],
+  synchronize: false,
+  logging: false,
+
+  ssl: {
+    rejectUnauthorized: false,
+  },
+})
     }),
     AuthModule,
     StudentsModule,
