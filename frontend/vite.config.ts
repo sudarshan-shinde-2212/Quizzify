@@ -38,7 +38,7 @@ export default defineConfig({
     proxy: {
       // All /api/* requests → NestJS backend on port 3000 (matches .env)
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'https://quizzify-fya6.onrender.com',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api/, ''),
       },
