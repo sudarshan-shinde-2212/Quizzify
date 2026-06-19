@@ -1,4 +1,7 @@
-import { useState } from "react";
+"use client";
+
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { AdminLayout } from "./admin-sidebar";
 
 export function AdminSettings() {
@@ -11,6 +14,20 @@ export function AdminSettings() {
     emailNotifications: true,
     maintenanceMode: false,
   });
+
+  const [saving, setSaving] = useState(false);
+
+  // Load saved settings from localStorage on component mount
+  useEffect(() => {
+    const saved = localStorage.getItem("adminSettings");
+    if (saved) {
+      try {
+        setForm(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse saved settings", e);
+      }
+    }
+  }, []);
 
   const toggle = (key: keyof typeof form) =>
     setForm((f) => ({ ...f, [key]: !f[key] }));
@@ -26,6 +43,20 @@ export function AdminSettings() {
       />
     </button>
   );
+
+  const saveSettings = async () => {
+    setSaving(true);
+    try {
+      // Simulate API call delay
+      await new Promise((res) => setTimeout(res, 500));
+      localStorage.setItem("adminSettings", JSON.stringify(form));
+      toast.success("Settings saved successfully");
+    } catch (err) {
+      toast.error("Failed to save settings");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <AdminLayout>
@@ -65,19 +96,17 @@ export function AdminSettings() {
         <div className="bg-white border border-gray-100 rounded-xl p-5">
           <h3 className="text-sm font-semibold text-black mb-4">Quiz Configuration</h3>
           <div className="space-y-4">
-            {[
-              { key: "negativeMarking" as const, label: "Enable Negative Marking", desc: "Deduct marks for wrong answers" },
+            {[{ key: "negativeMarking" as const, label: "Enable Negative Marking", desc: "Deduct marks for wrong answers" },
               { key: "autoSubmit" as const, label: "Auto-Submit on Timeout", desc: "Automatically submit when timer ends" },
-              { key: "allowRetakes" as const, label: "Allow Retakes", desc: "Users can retake the same quiz" },
-            ].map(({ key, label, desc }) => (
-              <div key={key} className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-black">{label}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
+              { key: "allowRetakes" as const, label: "Allow Retakes", desc: "Users can retake the same quiz" }].map(({ key, label, desc }) => (
+                <div key={key} className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-black">{label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
+                  </div>
+                  <Toggle id={key} value={form[key] as boolean} />
                 </div>
-                <Toggle id={key} value={form[key] as boolean} />
-              </div>
-            ))}
+              ))}
           </div>
         </div>
 
@@ -85,23 +114,25 @@ export function AdminSettings() {
         <div className="bg-white border border-gray-100 rounded-xl p-5">
           <h3 className="text-sm font-semibold text-black mb-4">System</h3>
           <div className="space-y-4">
-            {[
-              { key: "emailNotifications" as const, label: "Email Notifications", desc: "Send result emails to users" },
-              { key: "maintenanceMode" as const, label: "Maintenance Mode", desc: "Temporarily disable the platform for users" },
-            ].map(({ key, label, desc }) => (
-              <div key={key} className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-black">{label}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
+            {[{ key: "emailNotifications" as const, label: "Email Notifications", desc: "Send result emails to users" },
+              { key: "maintenanceMode" as const, label: "Maintenance Mode", desc: "Temporarily disable the platform for users" }].map(({ key, label, desc }) => (
+                <div key={key} className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-black">{label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
+                  </div>
+                  <Toggle id={key} value={form[key] as boolean} />
                 </div>
-                <Toggle id={key} value={form[key] as boolean} />
-              </div>
-            ))}
+              ))}
           </div>
         </div>
 
-        <button className="w-full bg-black text-white py-3 rounded-xl text-sm font-medium hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors">
-          Save Settings
+        <button
+          onClick={saveSettings}
+          disabled={saving}
+          className={`w-full bg-black text-white py-3 rounded-xl text-sm font-medium hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors ${saving ? "opacity-70 cursor-not-allowed" : ""}`}
+        >
+          {saving ? "Saving..." : "Save Settings"}
         </button>
       </div>
     </AdminLayout>

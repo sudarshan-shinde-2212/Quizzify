@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { UserLayout } from "./user-layout";
 import { apiGetStudentResults, QuizResult } from "./api";
@@ -46,7 +48,7 @@ export function HistoryPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-50">
-                {["Quiz Name", "Score", "Percentage", "Date", "Status"].map((h) => (
+                {["Quiz Name", "Score", "Percentage", "Correct", "Wrong", "Date", "Status"].map((h) => (
                   <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-5 py-3.5">
                     {h}
                   </th>
@@ -74,6 +76,12 @@ export function HistoryPage() {
                     </td>
                     <td className="px-5 py-4">
                       <span className="text-sm text-gray-700 font-semibold">{item.percentage}%</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="text-sm text-green-600 font-medium">{item.correctAnswers}</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="text-sm text-red-500 font-medium">{item.wrongAnswers}</span>
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-1.5 text-sm text-gray-500">
@@ -127,10 +135,14 @@ export function HistoryPage() {
                   <span className="text-xs text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full shrink-0">Failed</span>
                 )}
               </div>
-              <div className="flex items-center gap-4 text-xs text-gray-500">
+              <div className="flex items-center gap-4 text-xs text-gray-500 mb-1">
                 <span>Score: <span className="font-medium text-black">{item.score}/{item.quiz?.totalMarks}</span></span>
                 <span>Percentage: <span className="font-medium text-black">{item.percentage}%</span></span>
                 <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+              </div>
+              <div className="flex items-center gap-4 text-xs text-gray-500">
+                <span>Correct: <span className="font-medium text-green-600">{item.correctAnswers}</span></span>
+                <span>Wrong: <span className="font-medium text-red-500">{item.wrongAnswers}</span></span>
               </div>
             </motion.div>
           );

@@ -1,10 +1,10 @@
 // ---------------------------------------------------------------------------
 // API service — all backend communication goes through here
-// Base URL is resolved via Vite dev proxy (/api → http://localhost:3000)
-// In production set VITE_API_BASE_URL to your deployed backend URL
+// Base URL is resolved via Next.js rewrites (/api → backend)
+// In production set NEXT_PUBLIC_API_BASE_URL to your deployed backend URL
 // ---------------------------------------------------------------------------
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api';
 
 // ── Session & Storage Keys ───────────────────────────────────────────────────
 

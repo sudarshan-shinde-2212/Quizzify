@@ -1,3 +1,5 @@
+"use client";
+
 import { useAuth } from "./auth-context";
 import { UserLayout } from "./user-layout";
 import { apiGetStudentResults, QuizResult } from "./api";

@@ -1,5 +1,7 @@
+"use client";
+
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useRouter, useParams } from "next/navigation";
 import { UserLayout } from "./user-layout";
 import { apiGetStudentQuiz, Quiz } from "./api";
 import { motion } from "motion/react";
@@ -20,8 +22,9 @@ const rules = [
 ];
 
 export function InstructionsPage() {
-  const { quizId } = useParams<{ quizId: string }>();
-  const navigate = useNavigate();
+  const params = useParams();
+  const quizId = params?.quizId as string;
+  const router = useRouter();
   const [agreed, setAgreed] = useState(false);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,7 +63,7 @@ export function InstructionsPage() {
         <div className="max-w-2xl mx-auto py-12 text-center">
           <p className="text-red-500 font-medium mb-4">{error || "Quiz not found."}</p>
           <button
-            onClick={() => navigate("/dashboard")}
+            onClick={() => router.push("/dashboard")}
             className="inline-flex items-center gap-1.5 text-sm text-black underline"
           >
             <ArrowLeft size={14} /> Back to Dashboard
@@ -74,7 +77,7 @@ export function InstructionsPage() {
     <UserLayout>
       <div className="max-w-2xl mx-auto">
         <button
-          onClick={() => navigate("/dashboard")}
+          onClick={() => router.push("/dashboard")}
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-black transition-colors mb-5"
         >
           <ArrowLeft size={14} /> Back to Dashboard
@@ -161,7 +164,7 @@ export function InstructionsPage() {
 
           <button
             disabled={!agreed}
-            onClick={() => navigate(`/quiz/${quizId}`)}
+            onClick={() => router.push(`/quiz/${quizId}`)}
             className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all ${
               agreed
                 ? "bg-black text-white hover:bg-gray-900 shadow-sm"

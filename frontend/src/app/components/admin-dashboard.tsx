@@ -10,7 +10,6 @@ import {
   QuizResult,
 } from "./api";
 import { Users, BookOpen, BarChart2, Trophy, CheckCircle2, Clock, Loader2 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export function AdminDashboard() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -45,22 +44,6 @@ export function AdminDashboard() {
     totalAttempts > 0
       ? Math.round(results.reduce((sum, r) => sum + Number(r.percentage), 0) / totalAttempts)
       : 0;
-  const monthlyAttempts = Array.from(
-    results.reduce((months, result) => {
-      const date = new Date(result.createdAt);
-      if (Number.isNaN(date.getTime())) return months;
-
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      const existing = months.get(key);
-      months.set(key, {
-        month: date.toLocaleDateString(undefined, { month: "short", year: "2-digit" }),
-        attempts: (existing?.attempts ?? 0) + 1,
-      });
-      return months;
-    }, new Map<string, { month: string; attempts: number }>()),
-  )
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([, value]) => value);
 
   if (loading) {
     return (
@@ -108,30 +91,6 @@ export function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        {/* Chart */}
-        <div className="bg-white border border-gray-100 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-black mb-4">Monthly Attempts</h3>
-          {monthlyAttempts.length > 0 ? (
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={monthlyAttempts} barSize={24}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{ border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: 12 }}
-                  cursor={{ fill: "#f9fafb" }}
-                />
-                <Bar dataKey="attempts" fill="#000000" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex h-[180px] items-center justify-center text-sm text-gray-400">
-              No analytics available yet.
-            </div>
-          )}
-        </div>
-
-        {/* Active quizzes */}
         <div className="bg-white border border-gray-100 rounded-xl p-5">
           <h3 className="text-sm font-semibold text-black mb-4">Quiz Overview</h3>
           <div className="space-y-3">

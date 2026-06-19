@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { AdminLayout } from "./admin-sidebar";
 import {
@@ -12,7 +14,7 @@ import {
 } from "./api";
 import { motion, AnimatePresence } from "motion/react";
 import { Plus, Edit2, Trash2, X, Loader2 } from "lucide-react";
-import { useSearchParams } from "react-router";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 type QuestionOption = "A" | "B" | "C" | "D";
 type QuestionOptionField = "optionA" | "optionB" | "optionC" | "optionD";
@@ -187,8 +189,10 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
 }
 
 export function AdminQuestions() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const selectedQuizId = searchParams.get("quizId") || "";
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const selectedQuizId = searchParams?.get("quizId") || "";
 
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -204,7 +208,9 @@ export function AdminQuestions() {
         const data = await apiAdminGetQuizzes();
         setQuizzes(data);
         if (data.length > 0 && !selectedQuizId) {
-          setSearchParams({ quizId: data[0].id });
+          const params = new URLSearchParams(searchParams?.toString() || "");
+          params.set("quizId", data[0].id);
+          router.push(`${pathname}?${params.toString()}`);
         }
       } catch (err) {
         console.error("Failed to load quizzes", err);
@@ -213,7 +219,7 @@ export function AdminQuestions() {
       }
     }
     loadQuizzes();
-  }, [selectedQuizId, setSearchParams]);
+  }, [selectedQuizId, searchParams, router, pathname]);
 
   // Load questions for the currently selected quiz
   const loadQuestions = async () => {
@@ -259,7 +265,11 @@ export function AdminQuestions() {
           {!loadingQuizzes && quizzes.length > 0 && (
             <select
               value={selectedQuizId}
-              onChange={(e) => setSearchParams({ quizId: e.target.value })}
+              onChange={(e) => {
+                const params = new URLSearchParams(searchParams?.toString() || "");
+                params.set("quizId", e.target.value);
+                router.push(`${pathname}?${params.toString()}`);
+              }}
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-black"
             >
               {quizzes.map((quiz) => (

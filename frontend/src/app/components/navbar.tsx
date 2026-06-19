@@ -1,26 +1,27 @@
+"use client";
+
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "./auth-context";
 import { BookOpen, Menu, X, LogOut, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 const navLinks = [
   { label: "Quiz", href: "/dashboard" },
-  { label: "Results", href: "/results" },
   { label: "History", href: "/history" },
-  { label: "Profile", href: "/profile" },
+  { label: "Profile", href: "/profile" }
 ];
 
 export function Navbar() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
-    navigate("/");
+    router.push("/");
   };
 
   return (
@@ -28,7 +29,7 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/dashboard")}>
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/dashboard")}>
             <BookOpen size={18} className="text-black" />
             <span className="font-semibold text-base tracking-tight">Quizzify</span>
           </div>
@@ -36,11 +37,11 @@ export function Navbar() {
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
-              const active = location.pathname === link.href;
+              const active = pathname === link.href;
               return (
                 <button
                   key={link.href}
-                  onClick={() => navigate(link.href)}
+                  onClick={() => router.push(link.href)}
                   className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
                     active ? "bg-black text-white" : "text-gray-600 hover:text-black hover:bg-gray-50"
                   }`}
@@ -87,12 +88,6 @@ export function Navbar() {
                       <p className="text-xs text-gray-400 mt-0.5 truncate">{user?.email}</p>
                     </div>
                     <button
-                      onClick={() => { setProfileOpen(false); navigate("/profile"); }}
-                      className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
-                    >
-                      Profile
-                    </button>
-                    <button
                       onClick={handleLogout}
                       className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                     >
@@ -125,9 +120,9 @@ export function Navbar() {
               {navLinks.map((link) => (
                 <button
                   key={link.href}
-                  onClick={() => { navigate(link.href); setMobileOpen(false); }}
+                  onClick={() => { router.push(link.href); setMobileOpen(false); }}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm ${
-                    location.pathname === link.href ? "bg-black text-white" : "text-gray-600 hover:bg-gray-50"
+                    pathname === link.href ? "bg-black text-white" : "text-gray-600 hover:bg-gray-50"
                   }`}
                 >
                   {link.label}

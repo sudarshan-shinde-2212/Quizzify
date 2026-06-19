@@ -1,12 +1,14 @@
+"use client";
+
 import { useState } from "react";
 import { motion } from "motion/react";
 import { useAuth } from "./auth-context";
-import { useNavigate } from "react-router";
+import { useRouter } from "next/navigation";
 import { BookOpen, ArrowRight, Shield, Loader2 } from "lucide-react";
 
 export function LoginPage() {
   const { loginWithGoogle } = useAuth();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleGoogleLogin = () => {
@@ -93,7 +95,7 @@ export function LoginPage() {
           <div className="text-center">
             <button
               id="admin-login-link"
-              onClick={() => navigate("/admin/login")}
+              onClick={() => router.push("/admin/login")}
               className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black transition-colors"
             >
               <Shield size={14} />

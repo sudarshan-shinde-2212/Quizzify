@@ -1,12 +1,14 @@
+"use client";
+
 import { useState } from "react";
 import { motion } from "motion/react";
 import { useAuth } from "./auth-context";
-import { useNavigate } from "react-router";
+import { useRouter } from "next/navigation";
 import { BookOpen, Shield, Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
 
 export function AdminLoginPage() {
   const { adminLogin } = useAuth();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [email, setEmail]               = useState("");
   const [password, setPassword]         = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -19,7 +21,7 @@ export function AdminLoginPage() {
     setError("");
     try {
       await adminLogin(email, password);
-      navigate("/admin");
+      router.push("/admin");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Invalid credentials. Please try again.";
@@ -40,7 +42,7 @@ export function AdminLoginPage() {
         {/* Back link */}
         <button
           id="back-to-login"
-          onClick={() => navigate("/")}
+          onClick={() => router.push("/")}
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-black transition-colors mb-8"
         >
           <ArrowLeft size={14} /> Back to login

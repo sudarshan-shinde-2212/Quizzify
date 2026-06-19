@@ -1,3 +1,5 @@
+"use client";
+
 import {
   createContext,
   useContext,
@@ -132,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── Google OAuth (student) ────────────────────────────────────────────────
   const loginWithGoogle = () => {
-    const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
+    const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api";
     window.location.href = `${BASE_URL}/auth/google`;
   };
 

@@ -1,5 +1,7 @@
+"use client";
+
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useRouter } from "next/navigation";
 import { useAuth } from "./auth-context";
 import { UserLayout } from "./user-layout";
 import { apiGetStudentQuizzes, apiGetStudentResults, Quiz, QuizResult } from "./api";
@@ -20,7 +22,7 @@ const statusConfig: Record<QuizStatus | "attempted", { label: string; color: str
 
 export function Dashboard() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [quizzes, setQuizzes] = useState<(Quiz & { status: QuizStatus; attempted?: boolean; score?: number })[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -172,7 +174,7 @@ export function Dashboard() {
                 {/* CTA */}
                 <button
                   disabled={!canStart}
-                  onClick={() => canStart && navigate(`/quiz/${quiz.id}/instructions`)}
+                  onClick={() => canStart && router.push(`/quiz/${quiz.id}/instructions`)}
                   className={`w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     canStart
                       ? "bg-black text-white hover:bg-gray-900"

@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { AdminLayout } from "./admin-sidebar";
 import { apiAdminGetStudents, apiAdminGetResults, StoredUser, QuizResult } from "./api";

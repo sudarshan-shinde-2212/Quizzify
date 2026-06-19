@@ -1,5 +1,7 @@
+"use client";
+
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useRouter, useParams } from "next/navigation";
 import {
   apiGetStudentQuiz,
   apiStartQuizAttempt,
@@ -98,8 +100,8 @@ function Modal({ type, tabCount, onClose, onSubmit }: {
       icon: <CheckSquare size={24} className="text-green-500" />,
       bg: "bg-green-50",
       border: "border-green-200",
-      body: "Your responses have been recorded successfully. You will be redirected to your results shortly.",
-      action: "View Results",
+      body: "Your responses have been recorded successfully. You will be redirected to your history shortly.",
+      action: "View History",
       actionFn: onSubmit,
       showClose: false,
     },
@@ -143,8 +145,9 @@ function Modal({ type, tabCount, onClose, onSubmit }: {
 }
 
 export function QuizPage() {
-  const { quizId } = useParams<{ quizId: string }>();
-  const navigate = useNavigate();
+  const params = useParams();
+  const quizId = params?.quizId as string;
+  const router = useRouter();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,25 +202,25 @@ export function QuizPage() {
 
       const res = await apiSubmitQuizAttempt(quizId, formattedAnswers);
 
-      navigate("/results", {
-        state: {
-          score: res.score,
-          total: quiz.totalMarks,
-          correct: res.correctAnswers,
-          incorrect: res.wrongAnswers,
-          skipped: res.totalQuestions - res.correctAnswers - res.wrongAnswers,
-          timeTaken,
-          quizTitle: quiz.title,
-          percentage: res.percentage,
-        },
-      });
+      sessionStorage.setItem("quizResult", JSON.stringify({
+        score: res.score,
+        total: quiz.totalMarks,
+        correct: res.correctAnswers,
+        incorrect: res.wrongAnswers,
+        skipped: res.totalQuestions - res.correctAnswers - res.wrongAnswers,
+        timeTaken,
+        quizTitle: quiz.title,
+        percentage: res.percentage,
+      }));
+
+      router.push("/history");
     } catch (err) {
       console.error("Failed to submit quiz", err);
       alert("Submission failed. Please try again or check your internet connection.");
     } finally {
       setSubmitting(false);
     }
-  }, [answers, navigate, quiz, quizId, startTime]);
+  }, [answers, router, quiz, quizId, startTime]);
 
   // Tab visibility monitoring
   useEffect(() => {
@@ -265,7 +268,7 @@ export function QuizPage() {
           <AlertTriangle className="text-red-500 mx-auto mb-3" size={32} />
           <p className="text-sm font-semibold text-black mb-4">{error}</p>
           <button
-            onClick={() => navigate("/dashboard")}
+            onClick={() => router.push("/dashboard")}
             className="w-full bg-black text-white rounded-lg py-2 text-sm font-medium hover:bg-gray-950 transition-colors"
           >
             Return to Dashboard

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { AdminLayout } from "./admin-sidebar";
 import {
@@ -11,7 +13,7 @@ import {
 } from "./api";
 import { motion, AnimatePresence } from "motion/react";
 import { Calendar, Plus, Edit2, Trash2, Eye, Clock, Trophy, X, Loader2, Play, PowerOff } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useRouter } from "next/navigation";
 
 interface QuizFormModalProps {
   quiz?: Quiz;
@@ -240,7 +242,7 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
 }
 
 export function AdminQuizzes() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -365,7 +367,7 @@ export function AdminQuizzes() {
                     {quiz.isPublished ? <PowerOff size={15} /> : <Play size={15} />}
                   </button>
                   <button
-                    onClick={() => navigate(`/admin/questions?quizId=${quiz.id}`)}
+                    onClick={() => router.push(`/admin/questions?quizId=${quiz.id}`)}
                     title="Manage Questions"
                     className="p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded-lg transition-colors"
                   >
