@@ -34,7 +34,9 @@ import { QuizResult } from './entities/quiz-result.entity';
   synchronize: false,
   logging: false,
 
-  ssl:false
+  ssl: {
+  rejectUnauthorized: false,
+ },
 })
     }),
     AuthModule,
