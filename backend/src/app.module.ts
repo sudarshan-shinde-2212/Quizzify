@@ -9,6 +9,7 @@ import { QuestionsModule } from './questions/questions.module';
 import { AttemptsModule } from './attempts/attempts.module';
 import { ResultsModule } from './results/results.module';
 import { StudentPortalModule } from './student-portal/student-portal.module';
+import { AiChatModule } from './ai-chat/ai-chat.module';
 import { Admin } from './entities/admin.entity';
 import { Student } from './entities/student.entity';
 import { Quiz } from './entities/quiz.entity';
@@ -34,9 +35,7 @@ import { QuizResult } from './entities/quiz-result.entity';
   synchronize: false,
   logging: false,
 
-  ssl: {
-  rejectUnauthorized: false,
- },
+  ssl: false
 })
     }),
     AuthModule,
@@ -46,6 +45,7 @@ import { QuizResult } from './entities/quiz-result.entity';
     AttemptsModule,
     ResultsModule,
     StudentPortalModule,
+    AiChatModule,
   ],
 })
 export class AppModule {}

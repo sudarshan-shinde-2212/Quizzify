@@ -337,4 +337,13 @@ export async function apiAdminGetStudents(): Promise<StoredUser[]> {
   return request<StoredUser[]>('/students/admin/list');
 }
 
+export async function apiAdminAiChat(
+  messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
+): Promise<{ response: string }> {
+  return request<{ response: string }>('/admin/ai-chat', {
+    method: 'POST',
+    body: JSON.stringify({ messages }),
+  });
+}
+
 export { request };

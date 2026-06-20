@@ -6,7 +6,8 @@ import { useAuth } from "./auth-context";
 import {
   BookOpen, LayoutDashboard, FileQuestion, Users,
   Settings, LogOut, Trophy, Menu, X
-} from "lucide-react";
+} from 'lucide-react';
+import { AdminAiChat } from './admin-ai-chat';
 
 const sidebarLinks = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },

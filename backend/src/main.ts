@@ -8,7 +8,7 @@ async function bootstrap() {
 
   // ── CORS ────────────────────────────────────────────────────────────────
   // Allow the Vite dev server (port 5173) and any FRONTEND_URL in production.
-  const frontendUrl = process.env.FRONTEND_URL || 'https://quizzify-liart.vercel.app';
+  const frontendUrl = process.env.FRONTEND_URL || 'https://quizzify-hkak.vercel.app';
   app.enableCors({
     origin: [frontendUrl, 'http://localhost:5173', 'http://localhost:3001'],
     credentials: true,

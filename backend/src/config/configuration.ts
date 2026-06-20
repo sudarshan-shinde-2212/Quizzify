@@ -16,4 +16,7 @@ export default () => ({
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
     callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/auth/google/callback',
   },
+  groq: {
+    apiKey: process.env.GROQ_API_KEY || '',
+  },
 });
