@@ -6,15 +6,18 @@ import { AuthService } from './auth/auth.service';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // CORS
-  const allowedOrigins = [
+  // CORS – dev origins are always included; production frontend is set via FRONTEND_URL env var
+  const frontendUrl = process.env.FRONTEND_URL;
+  const corsOrigins: string[] = [
     'http://localhost:3000',
     'http://localhost:5173',
-    'https://quizzify-hkak.vercel.app',
   ];
+  if (frontendUrl && !corsOrigins.includes(frontendUrl)) {
+    corsOrigins.push(frontendUrl);
+  }
 
   app.enableCors({
-    origin: allowedOrigins,
+    origin: corsOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

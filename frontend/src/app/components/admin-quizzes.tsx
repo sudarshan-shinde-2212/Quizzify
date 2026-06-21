@@ -133,14 +133,15 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4 overflow-y-auto py-8">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4">
       <motion.div
         initial={{ scale: 0.97, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.97, opacity: 0 }}
-        className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6"
+        className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6"
+        style={{ maxHeight: "calc(100vh - 48px)", overflowY: "auto" }}
       >
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold text-black">{quiz ? "Edit Quiz" : "Create New Quiz"}</h2>
           <button onClick={onClose} className="p-1 text-gray-400 hover:text-black">
             <X size={18} />
@@ -154,16 +155,17 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
             { label: "Total Marks", value: form.totalMarks },
             { label: "Marks / Q", value: marksPerQ },
           ].map(({ label, value }) => (
-            <div key={label} className="flex-1 bg-gray-50 border border-gray-100 rounded-lg p-2.5 text-center">
+            <div key={label} className="flex-1 bg-gray-50 border border-gray-100 rounded-lg p-2 text-center">
               <p className="text-xs text-gray-400">{label}</p>
               <p className="text-sm font-bold text-black">{value}</p>
             </div>
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {/* Row 1: Title (full width) */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-medium text-gray-700">Quiz Title <span className="text-red-500">*</span></label>
               <span className="text-[10px] text-gray-400">{form.title.length}/100</span>
             </div>
@@ -172,12 +174,14 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
               maxLength={100}
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black"
               placeholder="e.g. JavaScript Advanced Concepts"
             />
           </div>
+
+          {/* Row 2: Description (full width) */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-medium text-gray-700">Description <span className="text-red-500">*</span></label>
               <span className="text-[10px] text-gray-400">{form.description.length}/500</span>
             </div>
@@ -186,13 +190,15 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
               maxLength={500}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black resize-none"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black resize-none"
               rows={2}
               placeholder="Brief description of the quiz..."
             />
           </div>
+
+          {/* Row 3: Instructions (full width, optional) */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-medium text-gray-700">Instructions <span className="text-gray-400 font-normal">(Optional)</span></label>
               <span className="text-[10px] text-gray-400">{form.instructions.length}/1000</span>
             </div>
@@ -200,25 +206,51 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
               maxLength={1000}
               value={form.instructions}
               onChange={(e) => setForm({ ...form, instructions: e.target.value })}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black resize-none"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black resize-none"
               rows={2}
               placeholder="Directions for candidate..."
             />
           </div>
+
+          {/* Row 4: Start Date | End Date */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Start Date <span className="text-red-500">*</span></label>
+              <input
+                type="date"
+                required
+                value={form.startDate}
+                onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">End Date <span className="text-red-500">*</span></label>
+              <input
+                type="date"
+                required
+                value={form.endDate}
+                onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black"
+              />
+            </div>
+          </div>
+
+          {/* Row 5: Duration | Total Marks | No. of Questions */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Duration (min) <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Duration (min) <span className="text-red-500">*</span></label>
               <input
                 type="number"
                 required
                 min={1}
                 value={form.duration}
                 onChange={(e) => setForm({ ...form, duration: +e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Total Marks <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Total Marks <span className="text-red-500">*</span></label>
               <input
                 type="number"
                 required
@@ -226,11 +258,11 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
                 step="0.01"
                 value={form.totalMarks}
                 onChange={(e) => setForm({ ...form, totalMarks: +e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">No. of Questions <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">No. of Questions <span className="text-red-500">*</span></label>
               <input
                 type="number"
                 required
@@ -238,29 +270,7 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
                 step={1}
                 value={form.questionCount}
                 onChange={(e) => setForm({ ...form, questionCount: Math.floor(+e.target.value) })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Start Date <span className="text-red-500">*</span></label>
-              <input
-                type="date"
-                required
-                value={form.startDate}
-                onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">End Date <span className="text-red-500">*</span></label>
-              <input
-                type="date"
-                required
-                value={form.endDate}
-                onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black"
               />
             </div>
           </div>
@@ -271,7 +281,8 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
             </div>
           )}
 
-          <div className="flex gap-3 mt-6">
+          {/* Buttons */}
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}

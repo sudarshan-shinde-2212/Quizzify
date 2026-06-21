@@ -1,0 +1,24 @@
+name: Keep Render Alive
+
+on:
+  schedule:
+    # Runs every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  ping:
+    name: Ping Health Endpoint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping Render backend health endpoint
+        run: |
+          echo "Pinging https://quizzify-fya6.onrender.com/health ..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://quizzify-fya6.onrender.com/health)
+          echo "HTTP Status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "WARNING: Health endpoint returned $STATUS"
+            exit 1
+          fi
+          echo "Backend is alive."

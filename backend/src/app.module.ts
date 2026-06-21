@@ -7,6 +7,7 @@ import { StudentsModule } from './students/students.module';
 import { QuizzesModule } from './quizzes/quizzes.module';
 import { QuestionsModule } from './questions/questions.module';
 import { AttemptsModule } from './attempts/attempts.module';
+import { HealthController } from './health.controller';
 import { ResultsModule } from './results/results.module';
 import { StudentPortalModule } from './student-portal/student-portal.module';
 import { AiChatModule } from './ai-chat/ai-chat.module';
@@ -38,7 +39,7 @@ import { AiQuizModule } from './ai-quiz/ai-quiz.module';
   synchronize: true,
   logging: false,
 
-  sl: true,
+  ssl: true,
   extra: {
     ssl: {
       rejectUnauthorized: false,
@@ -57,5 +58,6 @@ import { AiQuizModule } from './ai-quiz/ai-quiz.module';
     SettingsModule,
     AiQuizModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}
