@@ -6,6 +6,7 @@ import * as nodemailer from 'nodemailer';
 export class EmailService {
   private transporter: nodemailer.Transporter | null = null;
   private readonly logger = new Logger(EmailService.name);
+  private readonly isProduction = process.env.NODE_ENV === 'production';
 
   constructor(private readonly configService: ConfigService) {
     const smtpHost = this.configService.get<string>('smtp.host');
@@ -31,15 +32,17 @@ export class EmailService {
           pass: smtpPass,
         },
         // Timeouts for production environments
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
         socketTimeout: 10000,
         // Force IPv4 to avoid ENETUNREACH errors on Render
         family: 4,
         // TLS configuration
         tls: {
-          rejectUnauthorized: process.env.NODE_ENV === 'production' ? true : false,
+          rejectUnauthorized: false, // Disable for better compatibility on Render
         },
+        pool: true, // Use connection pooling for better performance
+        maxConnections: 5,
       });
 
       // Verify transporter asynchronously (don't block startup)
@@ -49,7 +52,8 @@ export class EmailService {
         })
         .catch((error) => {
           this.logger.warn(`⚠️ SMTP transporter verification failed: ${error.message}`);
-          this.logger.warn('Emails may still work if verification is flaky; will attempt to send anyway.');
+          this.logger.warn('⚠️ This is common with Gmail on Render. Consider switching to Brevo/SendGrid (see .env.example)');
+          this.logger.warn('Will still attempt to send emails when needed...');
         });
     } else {
       this.logger.warn('⚠️ SMTP credentials not fully configured; email service will be disabled');
@@ -115,16 +119,27 @@ export class EmailService {
     try {
       const fromEmail = `"Quizzify" <${this.configService.get<string>('smtp.fromEmail') || this.configService.get<string>('smtp.user')}>`;
       this.logger.log(`Attempting to send email from ${fromEmail} to ${to}`);
-      const info = await this.transporter.sendMail({
-        from: fromEmail,
-        to,
-        subject: `Your Quiz Results: ${quizTitle}`,
-        html,
-      });
+      
+      // Send with shorter timeout for production
+      const info = await Promise.race([
+        this.transporter.sendMail({
+          from: fromEmail,
+          to,
+          subject: `Your Quiz Results: ${quizTitle}`,
+          html,
+        }),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Email send timeout after 8 seconds')), 8000)
+        ),
+      ]);
+      
       this.logger.log(`✅ Email sent successfully! MessageId: ${info.messageId}`);
       return { success: true, messageId: info.messageId, response: info.response };
     } catch (error) {
       this.logger.error(`❌ Failed to send email to ${to}: ${(error as Error).message}`);
+      if (this.isProduction && (error as Error).message.toLowerCase().includes('gmail')) {
+        this.logger.warn('⚠️ Gmail is not recommended for production on Render! See .env.example for Brevo/SendGrid alternatives.');
+      }
       return { success: false, reason: (error as Error).message };
     }
   }
