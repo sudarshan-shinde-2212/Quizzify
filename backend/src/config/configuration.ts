@@ -19,6 +19,9 @@ export default () => ({
   groq: {
     apiKey: process.env.GROQ_API_KEY || '',
   },
+  email: {
+    enabled: process.env.EMAIL_ENABLED !== 'false', // Default to true
+  },
   smtp: {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT || '587', 10),

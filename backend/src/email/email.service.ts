@@ -10,19 +10,21 @@ export class EmailService {
   private readonly isProduction = process.env.NODE_ENV === 'production';
 
   constructor(private readonly configService: ConfigService) {
+    const emailEnabled = this.configService.get<boolean>('email.enabled');
     const smtpHost = this.configService.get<string>('smtp.host');
     const smtpPort = this.configService.get<number>('smtp.port');
     const smtpUser = this.configService.get<string>('smtp.user');
     const smtpPass = this.configService.get<string>('smtp.pass');
 
     // Log presence of SMTP variables (without exposing sensitive data)
+    this.logger.log(`EMAIL_ENABLED: ${emailEnabled}`);
     this.logger.log(`SMTP_HOST configured: ${!!smtpHost}`);
     this.logger.log(`SMTP_PORT configured: ${!!smtpPort}`);
     this.logger.log(`SMTP_USER configured: ${!!smtpUser}`);
     this.logger.log(`SMTP_PASS configured: ${!!smtpPass}`);
     this.logger.log(`SMTP_FROM_EMAIL configured: ${!!this.configService.get<string>('smtp.fromEmail')}`);
 
-    if (smtpHost && smtpPort && smtpUser && smtpPass) {
+    if (emailEnabled && smtpHost && smtpPort && smtpUser && smtpPass) {
       this.logger.log('Initializing SMTP transporter...');
       const options = {
         host: smtpHost,
@@ -54,9 +56,11 @@ export class EmailService {
         })
         .catch((error) => {
           this.logger.warn(`⚠️ SMTP transporter verification failed: ${error.message}`);
-          this.logger.warn('⚠️ This is common with Gmail on Render. Consider switching to Brevo/SendGrid (see .env.example)');
+          this.logger.warn('⚠️ This is common with Gmail on Render. Switch to Brevo (see .env.example) for free, reliable emails!');
           this.logger.warn('Will still attempt to send emails when needed...');
         });
+    } else if (!emailEnabled) {
+      this.logger.warn('⚠️ Email service disabled via EMAIL_ENABLED flag; skipping initialization');
     } else {
       this.logger.warn('⚠️ SMTP credentials not fully configured; email service will be disabled');
     }
@@ -73,6 +77,12 @@ export class EmailService {
     wrongAnswers: number,
     submissionDate: Date,
   ) {
+    const emailEnabled = this.configService.get<boolean>('email.enabled');
+    if (!emailEnabled) {
+      this.logger.log('Email service disabled via EMAIL_ENABLED flag; skipping email');
+      return { success: false, reason: 'Email service disabled' };
+    }
+    
     if (!this.transporter) {
       this.logger.warn('Email service not configured; skipping email');
       return { success: false, reason: 'Email service not configured' };
