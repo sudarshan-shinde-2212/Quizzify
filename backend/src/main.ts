@@ -6,8 +6,7 @@ import { AuthService } from './auth/auth.service';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // ── CORS ────────────────────────────────────────────────────────────────
-  // Allow explicit origins only: localhost:3000, localhost:5173, and Vercel.
+  // CORS
   const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:5173',
@@ -21,7 +20,7 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  // ── Global validation ────────────────────────────────────────────────────
+  // Global Validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -30,18 +29,28 @@ async function bootstrap() {
     }),
   );
 
-  // ── Seed default admin ───────────────────────────────────────────────────
-  // Remove or move this to a dedicated seeder script in production.
+  // Seed Admin
   const authService = app.get(AuthService);
+
+  if (!process.env.ADMIN_EMAIL) {
+    throw new Error('ADMIN_EMAIL environment variable is missing');
+  }
+
+  if (!process.env.ADMIN_PASSWORD) {
+    throw new Error('ADMIN_PASSWORD environment variable is missing');
+  }
+
   await authService.seedAdmin(
-    process.env.ADMIN_EMAIL    || 'admin@quizapp.com',
-    process.env.ADMIN_PASSWORD || 'Admin@123',
+    process.env.ADMIN_EMAIL,
+    process.env.ADMIN_PASSWORD,
   );
 
   const port = Number(process.env.PORT) || 3000;
 
   await app.listen(port);
+
   console.log(`Quiz backend running on http://localhost:${port}`);
-  console.log(`CORS enabled for explicitly allowed origins.`);
+  console.log('CORS enabled for explicitly allowed origins.');
 }
+
 bootstrap();
