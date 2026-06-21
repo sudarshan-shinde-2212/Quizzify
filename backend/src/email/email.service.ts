@@ -34,6 +34,8 @@ export class EmailService {
         connectionTimeout: 10000,
         greetingTimeout: 10000,
         socketTimeout: 10000,
+        // Force IPv4 to avoid ENETUNREACH errors on Render
+        family: 4,
         // TLS configuration
         tls: {
           rejectUnauthorized: process.env.NODE_ENV === 'production' ? true : false,
