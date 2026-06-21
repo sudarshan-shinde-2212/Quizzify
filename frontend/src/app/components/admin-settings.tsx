@@ -7,10 +7,10 @@ import { apiGetSettings, apiSaveSettings } from "./api";
 
 export function AdminSettings() {
   const [form, setForm] = useState({
-    platformName: "Quizzify",
+    // platformName intentionally excluded from UI – stored in DB, read by Navbar
+    // autoSubmit intentionally excluded from UI – stored in DB, read by quiz engine
+    // negativeMarking intentionally excluded from UI – stored in DB, read by scoring engine
     maxTabSwitches: 3,
-    // negativeMarking intentionally excluded from UI – logic handled in quiz engine
-    autoSubmit: true,
     allowRetakes: false,
     questionShuffle: true,
     emailNotifications: true,
@@ -25,13 +25,12 @@ export function AdminSettings() {
       try {
         const data = await apiGetSettings();
         if (data && Object.keys(data).length > 0) {
-          // Spread only the fields we manage in the UI; negativeMarking is
-          // preserved in the DB but not exposed here.
+          // Only update the fields this UI manages.
+          // platformName, autoSubmit, and negativeMarking are preserved in the
+          // DB via the merge-patch in SettingsService but not exposed here.
           setForm((prev) => ({
             ...prev,
-            platformName: data.platformName ?? prev.platformName,
             maxTabSwitches: data.maxTabSwitches ?? prev.maxTabSwitches,
-            autoSubmit: data.autoSubmit ?? prev.autoSubmit,
             allowRetakes: data.allowRetakes ?? prev.allowRetakes,
             questionShuffle: data.questionShuffle ?? prev.questionShuffle,
             emailNotifications: data.emailNotifications ?? prev.emailNotifications,
@@ -80,25 +79,14 @@ export function AdminSettings() {
       </div>
 
       <div className="max-w-xl space-y-4">
-        {/* General */}
+        {/* General – Platform Name removed (stored in DB, displayed in Navbar) */}
         <div className="bg-white border border-gray-100 rounded-xl p-5">
           <h3 className="text-sm font-semibold text-black mb-4">General</h3>
           <div className="space-y-4">
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-medium text-gray-700">Platform Name <span className="text-red-500">*</span></label>
-                <span className="text-[10px] text-gray-400">{form.platformName.length}/50</span>
-              </div>
-              <input
-                required
-                maxLength={50}
-                value={form.platformName}
-                onChange={(e) => setForm({ ...form, platformName: e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Max Tab Switches Allowed <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                Max Tab Switches Allowed <span className="text-red-500">*</span>
+              </label>
               <input
                 type="number"
                 required
@@ -112,12 +100,13 @@ export function AdminSettings() {
           </div>
         </div>
 
-        {/* Quiz settings – negativeMarking removed from UI */}
+        {/* Quiz Configuration
+            – negativeMarking removed (handled by quiz engine)
+            – autoSubmit removed (stored in DB, read by quiz-page & instructions-page) */}
         <div className="bg-white border border-gray-100 rounded-xl p-5">
           <h3 className="text-sm font-semibold text-black mb-4">Quiz Configuration</h3>
           <div className="space-y-4">
             {([
-              { key: "autoSubmit" as const, label: "Auto-Submit on Timeout", desc: "Automatically submit when timer ends" },
               { key: "allowRetakes" as const, label: "Allow Retakes", desc: "Users can retake the same quiz" },
               { key: "questionShuffle" as const, label: "Shuffle Questions", desc: "Randomize question order for each attempt" },
             ]).map(({ key, label, desc }) => (
