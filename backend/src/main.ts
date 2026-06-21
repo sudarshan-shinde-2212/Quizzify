@@ -52,7 +52,7 @@ async function bootstrap() {
 
   await app.listen(port);
 
-  console.log(`Quiz backend running on http://localhost:${port}`);
+  console.log(`Quiz backend running on port${port}`);
   console.log('CORS enabled for explicitly allowed origins.');
 }
 
