@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 @Injectable()
 export class EmailService {
@@ -23,7 +24,7 @@ export class EmailService {
 
     if (smtpHost && smtpPort && smtpUser && smtpPass) {
       this.logger.log('Initializing SMTP transporter...');
-      this.transporter = nodemailer.createTransport({
+      const options = {
         host: smtpHost,
         port: smtpPort,
         secure: smtpPort === 465, // true for 465, false for other ports
@@ -43,7 +44,8 @@ export class EmailService {
         },
         pool: true, // Use connection pooling for better performance
         maxConnections: 5,
-      });
+      } as SMTPTransport.Options;
+      this.transporter = nodemailer.createTransport(options);
 
       // Verify transporter asynchronously (don't block startup)
       this.transporter.verify()
