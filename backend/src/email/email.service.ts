@@ -4,7 +4,7 @@ import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class EmailService {
-  private transporter: nodemailer.Transporter;
+  private transporter: nodemailer.Transporter | null = null;
   private readonly logger = new Logger(EmailService.name);
 
   constructor(private readonly configService: ConfigService) {
@@ -13,46 +13,44 @@ export class EmailService {
     const smtpUser = this.configService.get<string>('smtp.user');
     const smtpPass = this.configService.get<string>('smtp.pass');
 
-    // Log presence of SMTP variables
-    this.logger.log(`SMTP_HOST loaded: ${!!smtpHost}`);
-    this.logger.log(`SMTP_PORT loaded: ${!!smtpPort}`);
-    this.logger.log(`SMTP_USER loaded: ${!!smtpUser}`);
-    this.logger.log(`SMTP_PASS loaded: ${!!smtpPass}`);
-    this.logger.log(`SMTP_FROM_EMAIL loaded: ${!!this.configService.get<string>('smtp.fromEmail')}`);
+    // Log presence of SMTP variables (without exposing sensitive data)
+    this.logger.log(`SMTP_HOST configured: ${!!smtpHost}`);
+    this.logger.log(`SMTP_PORT configured: ${!!smtpPort}`);
+    this.logger.log(`SMTP_USER configured: ${!!smtpUser}`);
+    this.logger.log(`SMTP_PASS configured: ${!!smtpPass}`);
+    this.logger.log(`SMTP_FROM_EMAIL configured: ${!!this.configService.get<string>('smtp.fromEmail')}`);
 
-    this.logger.log(`SMTP_HOST: ${smtpHost}`);
-this.logger.log(`SMTP_PORT actual value: ${smtpPort}`);
-this.logger.log(`SMTP_USER loaded: ${!!smtpUser}`);
-this.logger.log(`SMTP_PASS loaded: ${!!smtpPass}`);
+    if (smtpHost && smtpPort && smtpUser && smtpPass) {
+      this.logger.log('Initializing SMTP transporter...');
+      this.transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465, // true for 465, false for other ports
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+        // Timeouts for production environments
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 10000,
+        // TLS configuration
+        tls: {
+          rejectUnauthorized: process.env.NODE_ENV === 'production' ? true : false,
+        },
+      });
 
-this.transporter = nodemailer.createTransport({
-  host: smtpHost,
-  port: smtpPort,
-  secure: smtpPort === 465,
-
-  auth: {
-    user: smtpUser,
-    pass: smtpPass,
-  },
-
-  connectionTimeout: 30000,
-  greetingTimeout: 30000,
-  socketTimeout: 30000,
-
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
-
-    // Verify transporter on startup if credentials are available
-    if (smtpUser && smtpPass) {
+      // Verify transporter asynchronously (don't block startup)
       this.transporter.verify()
-  .then(() => {
-    this.logger.log('SMTP verification successful');
-  })
-  .catch((error) => {
-    this.logger.error(`SMTP verification failed: ${error.message}`);
-  });
+        .then(() => {
+          this.logger.log('✅ SMTP transporter verified and ready');
+        })
+        .catch((error) => {
+          this.logger.warn(`⚠️ SMTP transporter verification failed: ${error.message}`);
+          this.logger.warn('Emails may still work if verification is flaky; will attempt to send anyway.');
+        });
+    } else {
+      this.logger.warn('⚠️ SMTP credentials not fully configured; email service will be disabled');
     }
   }
 
@@ -67,13 +65,12 @@ this.transporter = nodemailer.createTransport({
     wrongAnswers: number,
     submissionDate: Date,
   ) {
-    this.logger.log(`[DEBUG] sendQuizResult called. to: ${to}, studentName: ${studentName}, quizTitle: ${quizTitle}, score: ${score}`);
-    const smtpUser = this.configService.get<string>('smtp.user');
-    const smtpPass = this.configService.get<string>('smtp.pass');
-    if (!smtpUser || !smtpPass) {
-      this.logger.warn('[DEBUG] SMTP credentials not configured, skipping email.');
-      return { success: false, reason: 'SMTP credentials missing' };
+    if (!this.transporter) {
+      this.logger.warn('Email service not configured; skipping email');
+      return { success: false, reason: 'Email service not configured' };
     }
+
+    this.logger.log(`sendQuizResult called for: ${to} (${studentName})`);
 
     const passFailStatus = percentage >= 50 ? 'Passed' : 'Failed';
     const statusColor = percentage >= 50 ? '#10B981' : '#EF4444';
@@ -114,19 +111,19 @@ this.transporter = nodemailer.createTransport({
     `;
 
     try {
-      const fromEmail = `"Quizzify" <${this.configService.get<string>('smtp.fromEmail') || smtpUser}>`;
-      this.logger.log(`[DEBUG] Attempting to sendMail. From: ${fromEmail}, To: ${to}, Subject: Your Quiz Results: ${quizTitle}`);
+      const fromEmail = `"Quizzify" <${this.configService.get<string>('smtp.fromEmail') || this.configService.get<string>('smtp.user')}>`;
+      this.logger.log(`Attempting to send email from ${fromEmail} to ${to}`);
       const info = await this.transporter.sendMail({
         from: fromEmail,
         to,
         subject: `Your Quiz Results: ${quizTitle}`,
         html,
       });
-      this.logger.log(`[DEBUG] sendMail succeeded. MessageId: ${info.messageId}, Response: ${info.response}`);
+      this.logger.log(`✅ Email sent successfully! MessageId: ${info.messageId}`);
       return { success: true, messageId: info.messageId, response: info.response };
     } catch (error) {
-      this.logger.error(`[DEBUG] sendMail failed for ${to}: ${(error as Error).message}`, (error as Error).stack);
-      throw error;
+      this.logger.error(`❌ Failed to send email to ${to}: ${(error as Error).message}`);
+      return { success: false, reason: (error as Error).message };
     }
   }
 }
