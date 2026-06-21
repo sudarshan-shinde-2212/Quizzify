@@ -7,16 +7,14 @@ import {
   BookOpen, LayoutDashboard, FileQuestion, Users,
   Settings, LogOut, Trophy, Menu, X
 } from 'lucide-react';
+import { LogoutConfirmationModal } from "./logout-confirmation-modal";
 
 const sidebarLinks = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Quizzes", href: "/admin/quizzes", icon: BookOpen },
   { label: "Questions", href: "/admin/questions", icon: FileQuestion },
   { label: "Users", href: "/admin/users", icon: Users },
-
-  // { label: "Analytics", href: "/admin/analytics", icon: BarChart3 }, // Removed per request
   { label: "Settings", href: "/admin/settings", icon: Settings },
-
 ];
 
 export function AdminSidebar({
@@ -30,9 +28,17 @@ export function AdminSidebar({
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  const handleLogout = () => {
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogoutConfirm = async () => {
+    setLoggingOut(true);
+    // Small delay for UX polish (shows loading state briefly)
+    await new Promise((r) => setTimeout(r, 400));
     logout();
     router.push("/");
+    setLoggingOut(false);
+    setShowLogoutModal(false);
   };
 
   return (
@@ -86,7 +92,7 @@ export function AdminSidebar({
           })}
         </nav>
 
-        {/* User */}
+        {/* User + Logout */}
         <div className="border-t border-gray-100 p-3">
           <div className="flex items-center gap-2.5 px-2 py-1.5 mb-1">
             {user?.avatar ? (
@@ -102,7 +108,7 @@ export function AdminSidebar({
             </div>
           </div>
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutModal(true)}
             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
             <LogOut size={14} />
@@ -110,6 +116,14 @@ export function AdminSidebar({
           </button>
         </div>
       </aside>
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmationModal
+        isOpen={showLogoutModal}
+        onCancel={() => setShowLogoutModal(false)}
+        onConfirm={handleLogoutConfirm}
+        isLoading={loggingOut}
+      />
     </>
   );
 }
