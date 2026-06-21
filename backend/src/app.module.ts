@@ -35,7 +35,7 @@ import { AiQuizModule } from './ai-quiz/ai-quiz.module';
   password: config.get<string>('database.password'),
   database: config.get<string>('database.name'),
   entities: [Admin, Student, Quiz, Question, QuizAttempt, QuizAnswer, QuizResult, Setting],
-  synchronize: false,
+  synchronize: true,
   logging: false,
 
   sl: true,
