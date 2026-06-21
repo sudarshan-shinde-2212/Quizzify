@@ -1,0 +1,36 @@
+import { Controller, Post } from '@nestjs/common';
+import { EmailService } from './email.service';
+import { ConfigService } from '@nestjs/config';
+import { Logger } from '@nestjs/common';
+
+@Controller('email')
+export class EmailController {
+  private readonly logger = new Logger(EmailController.name);
+  constructor(
+    private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  @Post('test-email')
+  async sendTestEmail() {
+    const to = this.configService.get<string>('ADMIN_EMAIL');
+    if (!to) {
+      this.logger.warn('ADMIN_EMAIL not configured, cannot send test email');
+      return { success: false, message: 'ADMIN_EMAIL not set' };
+    }
+    try {
+      await this.emailService.sendQuizResult(
+        to,
+        'Admin Test',
+        'Test Email',
+        0,
+        0,
+      );
+      this.logger.log(`Test email sent to ${to}`);
+      return { success: true, message: `Test email sent to ${to}` };
+    } catch (error) {
+      this.logger.error('Failed to send test email', (error as Error).stack);
+      return { success: false, message: (error as Error).message };
+    }
+  }
+}

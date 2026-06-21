@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
@@ -6,22 +7,30 @@ export class EmailService {
   private transporter: nodemailer.Transporter;
   private readonly logger = new Logger(EmailService.name);
 
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
+    // Log presence of SMTP variables
+    this.logger.log(`SMTP_HOST loaded: ${!!this.configService.get<string>('SMTP_HOST')}`);
+    this.logger.log(`SMTP_PORT loaded: ${!!this.configService.get<string>('SMTP_PORT')}`);
+    this.logger.log(`SMTP_USER loaded: ${!!this.configService.get<string>('SMTP_USER')}`);
+    this.logger.log(`SMTP_PASS loaded: ${!!this.configService.get<string>('SMTP_PASS')}`);
+    this.logger.log(`SMTP_FROM_EMAIL loaded: ${!!this.configService.get<string>('SMTP_FROM_EMAIL')}`);
+
     this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: Number(process.env.SMTP_PORT) === 465, // true for 465, false for other ports
+      host: this.configService.get<string>('SMTP_HOST') || 'smtp.gmail.com',
+      port: Number(this.configService.get<string>('SMTP_PORT')) || 587,
+      secure: Number(this.configService.get<string>('SMTP_PORT')) === 465,
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: this.configService.get<string>('SMTP_USER'),
+        pass: this.configService.get<string>('SMTP_PASS'),
       },
     });
 
     // Validate connection on startup but do not crash if it fails
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-      this.transporter.verify().catch((error) => {
-        this.logger.warn(`SMTP connection failed: ${error.message}. Emails will not be sent.`);
-      });
+    // Verify transporter on startup
+    if (this.configService.get<string>('SMTP_USER') && this.configService.get<string>('SMTP_PASS')) {
+      this.transporter.verify()
+        .then(() => this.logger.log('SMTP verification successful'))
+        .catch((error) => this.logger.warn(`SMTP verification failed: ${error.message}`));
     }
   }
 
@@ -32,7 +41,7 @@ export class EmailService {
     score: number,
     percentage: number,
   ) {
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    if (!this.configService.get<string>('SMTP_USER') || !this.configService.get<string>('SMTP_PASS')) {
       this.logger.warn('SMTP credentials not configured, skipping email.');
       return;
     }
@@ -73,7 +82,7 @@ export class EmailService {
 
     try {
       await this.transporter.sendMail({
-        from: `"Quizzify" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+        from: `"Quizzify" <${this.configService.get<string>('SMTP_FROM_EMAIL') || this.configService.get<string>('SMTP_USER')}>`,
         to,
         subject: `Your Quiz Results: ${quizTitle}`,
         html,

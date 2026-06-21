@@ -25,7 +25,7 @@ import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
+    ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: '.env' }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -40,12 +40,8 @@ import { EmailModule } from './email/email.module';
   synchronize: true,
   logging: false,
 
-  ssl: true,
-  extra: {
-    ssl: {
-      rejectUnauthorized: false,
-    },
-  },
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  extra: process.env.NODE_ENV === 'production' ? { ssl: { rejectUnauthorized: false } } : {},
 })
     }),
     AuthModule,
