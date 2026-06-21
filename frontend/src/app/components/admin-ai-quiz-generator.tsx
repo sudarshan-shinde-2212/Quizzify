@@ -30,6 +30,7 @@ export function AdminAiQuizGenerator() {
   const [difficulty, setDifficulty] = useState("Medium");
   const [questionCount, setQuestionCount] = useState<number>(5);
   const [marksPerQuestion, setMarksPerQuestion] = useState<number>(1);
+  const [negativeMarks, setNegativeMarks] = useState<number>(0);
   const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 10); });
   const [durationInMinutes, setDurationInMinutes] = useState<number>(30);
@@ -137,6 +138,7 @@ export function AdminAiQuizGenerator() {
         durationInMinutes,
         totalMarks: parseFloat(totalMarks.toFixed(2)),
         questionCount: generatedQuiz.questions.length,
+        negativeMarks,
       });
 
       for (let i = 0; i < generatedQuiz.questions.length; i++) {
@@ -157,7 +159,6 @@ export function AdminAiQuizGenerator() {
           optionD: q.options[3] || "",
           correctOption: correctOptionLabel,
           marks: parseFloat(Number(q.marks).toFixed(2)),
-          negativeMarks: 0,
         });
       }
 
@@ -324,6 +325,32 @@ export function AdminAiQuizGenerator() {
                   Total marks = {questionCount} × {marksPerQuestion} = {(questionCount * marksPerQuestion).toFixed(2)}
                 </p>
               </div>
+            </div>
+
+            {/* Negative Marks field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Negative Marks Per Wrong Answer
+                <span className="ml-1 text-gray-400 font-normal text-xs">(Optional)</span>
+              </label>
+              <input
+                id="ai-quiz-negative-marks"
+                type="number"
+                min={0}
+                max={99.99}
+                step={0.01}
+                value={negativeMarks}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  setNegativeMarks(isNaN(v) ? 0 : Math.max(0, parseFloat(v.toFixed(2))));
+                }}
+                className="w-full px-3 py-2.5 border rounded-lg focus:border-black outline-none"
+                placeholder="e.g. 0.25"
+                aria-label="Negative marks deducted per wrong answer"
+              />
+              <p className="text-[10px] text-gray-400 mt-1">
+                Marks deducted for each incorrect answer. Use 0 to disable negative marking.
+              </p>
             </div>
 
             {/* Date & Duration row */}
@@ -544,6 +571,7 @@ export function AdminAiQuizGenerator() {
             <div className="flex justify-between"><span className="text-gray-500">Title</span><span className="font-medium text-right max-w-[60%] truncate">{generatedQuiz.title}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Questions</span><span className="font-medium">{generatedQuiz.questions.length}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Total Marks</span><span className="font-medium">{computedTotalMarks}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Negative Marks</span><span className="font-medium">{negativeMarks === 0 ? "None" : `-${negativeMarks} per wrong answer`}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Start Date</span><span className="font-medium">{startDate}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">End Date</span><span className="font-medium">{endDate}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Duration</span><span className="font-medium">{durationInMinutes} min</span></div>

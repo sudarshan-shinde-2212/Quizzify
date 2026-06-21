@@ -52,6 +52,9 @@ createdById: string;
   @Column({ type: 'int', default: 0 })
   questionCount: number;
 
+  @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
+  negativeMarks: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

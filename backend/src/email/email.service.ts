@@ -40,6 +40,10 @@ export class EmailService {
     quizTitle: string,
     score: number,
     percentage: number,
+    totalQuestions: number,
+    correctAnswers: number,
+    wrongAnswers: number,
+    submissionDate: Date,
   ) {
     if (!this.configService.get<string>('SMTP_USER') || !this.configService.get<string>('SMTP_PASS')) {
       this.logger.warn('SMTP credentials not configured, skipping email.');
@@ -67,6 +71,10 @@ export class EmailService {
           <p style="margin: 8px 0; font-size: 16px;"><strong>Score:</strong> ${score}</p>
           <p style="margin: 8px 0; font-size: 16px;"><strong>Percentage:</strong> ${percentage}%</p>
           <p style="margin: 8px 0; font-size: 16px;"><strong>Status:</strong> <span style="color: ${statusColor}; font-weight: bold;">${passFailStatus}</span></p>
+          <p style="margin: 8px 0; font-size: 16px;"><strong>Total Questions:</strong> ${totalQuestions}</p>
+          <p style="margin: 8px 0; font-size: 16px;"><strong>Correct Answers:</strong> ${correctAnswers}</p>
+          <p style="margin: 8px 0; font-size: 16px;"><strong>Wrong Answers:</strong> ${wrongAnswers}</p>
+          <p style="margin: 8px 0; font-size: 16px;"><strong>Submission Date:</strong> ${submissionDate.toLocaleString()}</p>
         </div>
         
         <p style="color: #4b5563; font-size: 14px; line-height: 1.5;">

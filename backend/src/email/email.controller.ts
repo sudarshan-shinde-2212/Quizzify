@@ -25,6 +25,10 @@ export class EmailController {
         'Test Email',
         0,
         0,
+        0, // totalQuestions placeholder
+        0, // correctAnswers placeholder
+        0, // wrongAnswers placeholder
+        new Date(), // submissionDate placeholder
       );
       this.logger.log(`Test email sent to ${to}`);
       return { success: true, message: `Test email sent to ${to}` };

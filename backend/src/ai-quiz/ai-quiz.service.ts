@@ -88,7 +88,8 @@ Return ONLY valid JSON matching this schema exactly, with no markdown formatting
         optionD: q.optionD,
         correctOption: q.correctOption,
         marks: Number(q.marks) || 1,
-        negativeMarks: Number(q.negativeMarks) || 0,
+        // negativeMarks field removed as it is not part of CreateQuestionDto
+
       });
     }
 

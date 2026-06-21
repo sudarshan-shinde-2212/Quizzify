@@ -39,4 +39,9 @@ export class CreateQuizDto {
   @IsOptional()
   @IsBoolean()
   isPublished?: boolean;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  negativeMarks?: number;
 }

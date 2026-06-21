@@ -53,6 +53,7 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
     duration: quiz?.durationInMinutes ?? 30,
     totalMarks: quiz?.totalMarks ?? 10,
     questionCount: quiz?.questionCount ?? 10,
+    negativeMarks: quiz?.negativeMarks ?? 0,
     startDate: toDateInputValue(quiz?.startDate),
     endDate: toDateInputValue(quiz?.endDate),
   });
@@ -72,6 +73,7 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
     const durationInMinutes = Number(form.duration);
     const totalMarks = Number(form.totalMarks);
     const questionCount = Number(form.questionCount);
+    const negativeMarks = Number(form.negativeMarks);
     const startTime = new Date(`${form.startDate}T00:00:00.000Z`).getTime();
     const endTime = new Date(`${form.endDate}T00:00:00.000Z`).getTime();
 
@@ -89,6 +91,12 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
 
     if (!Number.isInteger(questionCount) || questionCount < 1) {
       setError("Number of questions must be a whole number greater than 0.");
+      setLoading(false);
+      return;
+    }
+
+    if (negativeMarks < 0 || negativeMarks > 99.99) {
+      setError("Negative marks must be between 0 and 99.99.");
       setLoading(false);
       return;
     }
@@ -114,6 +122,7 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
       durationInMinutes,
       totalMarks,
       questionCount,
+      negativeMarks,
     };
 
     try {
@@ -273,6 +282,32 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black"
               />
             </div>
+          </div>
+
+          {/* Row 6: Negative Marks Per Wrong Answer */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Negative Marks Per Wrong Answer
+              <span className="ml-1 text-gray-400 font-normal">(Optional)</span>
+            </label>
+            <input
+              id="quiz-negative-marks"
+              type="number"
+              min={0}
+              max={99.99}
+              step={0.01}
+              value={form.negativeMarks}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                setForm({ ...form, negativeMarks: isNaN(v) ? 0 : Math.max(0, parseFloat(v.toFixed(2))) });
+              }}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black"
+              placeholder="e.g. 0.25"
+              aria-label="Negative marks deducted per wrong answer"
+            />
+            <p className="text-[10px] text-gray-400 mt-1">
+              Marks deducted for each incorrect answer. Use 0 to disable negative marking.
+            </p>
           </div>
 
           {error && (
@@ -446,6 +481,9 @@ export function AdminQuizzes() {
                     <span className="text-xs text-gray-400 flex items-center gap-1"><Clock size={11} /> {quiz.durationInMinutes}m</span>
                     <span className="text-xs text-gray-400 flex items-center gap-1"><Trophy size={11} /> {quiz.totalMarks} marks</span>
                     <span className="text-xs text-gray-400 flex items-center gap-1"><FileQuestion size={11} /> {quiz.questionCount} Qs</span>
+                    {quiz.negativeMarks > 0 && (
+                      <span className="text-xs text-red-500 flex items-center gap-1">-{quiz.negativeMarks} neg</span>
+                    )}
                     <span className="text-xs text-gray-400 flex items-center gap-1">
                       <Calendar size={11} /> {formatQuizDate(quiz.startDate)} - {formatQuizDate(quiz.endDate)}
                     </span>

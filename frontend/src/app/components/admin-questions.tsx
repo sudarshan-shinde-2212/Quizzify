@@ -36,7 +36,6 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
     optionD: question?.optionD ?? "",
     correctOption: (question?.correctOption ?? "A") as QuestionOption,
     marks: question?.marks ?? 3,
-    negativeMarks: question?.negativeMarks ?? 0,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -54,7 +53,6 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
       optionD: form.optionD,
       correctOption: form.correctOption,
       marks: Number(form.marks),
-      negativeMarks: Number(form.negativeMarks),
     };
 
     try {
@@ -127,7 +125,7 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
             ))}
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1.5">Correct Answer <span className="text-red-500">*</span></label>
               <select
@@ -149,17 +147,6 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
                 step={0.5}
                 value={form.marks}
                 onChange={(e) => setForm({ ...form, marks: +e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Negative Marks <span className="text-red-500">*</span></label>
-              <input
-                type="number"
-                required
-                min={0}
-                value={form.negativeMarks}
-                onChange={(e) => setForm({ ...form, negativeMarks: +e.target.value })}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
               />
             </div>
@@ -375,9 +362,6 @@ export function AdminQuestions() {
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xs font-semibold text-gray-400">Q{i + 1}</span>
                       <span className="text-xs text-gray-400">{q.marks} marks</span>
-                      {q.negativeMarks > 0 && (
-                        <span className="text-xs text-red-500 font-medium">-{q.negativeMarks} negative</span>
-                      )}
                     </div>
                     <p className="text-sm text-black mb-3 leading-relaxed">{q.questionText}</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">

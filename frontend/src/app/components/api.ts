@@ -70,6 +70,7 @@ export interface Quiz {
   durationInMinutes: number;
   totalMarks: number;
   questionCount: number;
+  negativeMarks: number;
   isPublished: boolean;
   createdById: string;
   createdAt: string;
@@ -87,7 +88,6 @@ export interface Question {
   optionD: string;
   correctOption?: 'A' | 'B' | 'C' | 'D'; // optional for students
   marks: number;
-  negativeMarks: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -285,6 +285,7 @@ export async function apiAdminCreateQuiz(data: {
   durationInMinutes: number;
   totalMarks: number;
   questionCount: number;
+  negativeMarks?: number;
   isPublished?: boolean;
 }): Promise<Quiz> {
   return request<Quiz>('/admin/quizzes', {
@@ -335,7 +336,6 @@ export async function apiAdminCreateQuestion(
     optionD: string;
     correctOption: 'A' | 'B' | 'C' | 'D';
     marks: number;
-    negativeMarks?: number;
   },
 ): Promise<Question> {
   return request<Question>(`/admin/quizzes/${quizId}/questions`, {

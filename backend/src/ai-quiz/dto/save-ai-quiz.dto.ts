@@ -32,11 +32,6 @@ export class SaveAiQuizQuestionDto {
   @IsNumber()
   @Min(0)
   marks?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  negativeMarks?: number;
 }
 
 export class SaveAiQuizDto {

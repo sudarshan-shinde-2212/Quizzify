@@ -103,10 +103,7 @@ export class AttemptsService {
     let wrongAnswers = 0;
     let score = 0;
 
-    const settings = await this.settingsService.getSettings();
-    this.logger.log(`Settings loaded – emailNotifications: ${settings?.emailNotifications}, negativeMarking: ${settings?.negativeMarking}`);
-
-    const useNegativeMarking = settings?.negativeMarking ?? false;
+    const quizNegMark = Number(quiz.negativeMarks ?? 0);
 
     for (const answer of answerEntities) {
       const question = questionMap.get(answer.questionId);
@@ -117,8 +114,9 @@ export class AttemptsService {
         score += Number(question.marks);
       } else {
         wrongAnswers++;
-        if (useNegativeMarking) {
-          score -= Number(question.negativeMarks);
+        // Apply negative marking from quiz level (0 = disabled)
+        if (quizNegMark > 0) {
+          score -= quizNegMark;
         }
       }
     }
@@ -150,6 +148,7 @@ export class AttemptsService {
     await this.resultRepo.save(result);
 
     // ── Email notification ────────────────────────────────────────────────────
+    const settings = await this.settingsService.getSettings();
     if (settings?.emailNotifications) {
       this.logger.log(`emailNotifications: true – looking up student ${studentId}`);
       this.studentsService.findById(studentId).then((student) => {
@@ -161,6 +160,10 @@ export class AttemptsService {
             quiz.title,
             result.score,
             result.percentage,
+            result.totalQuestions,
+            result.correctAnswers,
+            result.wrongAnswers,
+            attempt.submittedAt || new Date(),
           );
         } else {
           this.logger.warn(`Student ${studentId} not found or has no email address`);
