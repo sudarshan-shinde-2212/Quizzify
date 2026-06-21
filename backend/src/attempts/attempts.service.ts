@@ -12,6 +12,8 @@ import { QuizzesService } from '../quizzes/quizzes.service';
 import { SubmitAnswersDto } from './dto/submit-answers.dto';
 
 import { SettingsService } from '../settings/settings.service';
+import { EmailService } from '../email/email.service';
+import { StudentsService } from '../students/students.service';
 
 @Injectable()
 export class AttemptsService {
@@ -22,6 +24,8 @@ export class AttemptsService {
     @InjectRepository(Question) private questionRepo: Repository<Question>,
     private quizzesService: QuizzesService,
     private settingsService: SettingsService,
+    private emailService: EmailService,
+    private studentsService: StudentsService,
   ) {}
 
   async startQuiz(studentId: string, quizId: string): Promise<QuizAttempt> {
@@ -137,6 +141,24 @@ export class AttemptsService {
       percentage: parseFloat(percentage.toFixed(2)),
     });
     await this.resultRepo.save(result);
+
+    // Send email notification asynchronously if enabled
+    if (settings?.emailNotifications) {
+      this.studentsService.findById(studentId).then((student) => {
+        if (student && student.email) {
+          this.emailService.sendQuizResult(
+            student.email,
+            student.fullName || 'Student',
+            quiz.title,
+            result.score,
+            result.percentage
+          );
+        }
+      }).catch((err) => {
+        // Log silently, do not fail submission
+        console.error('Failed to fetch student for email notification:', err);
+      });
+    }
 
     return {
       score: result.score,
