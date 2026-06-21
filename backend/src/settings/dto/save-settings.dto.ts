@@ -7,7 +7,7 @@ export class SaveSettingsDto {
   platformName: string;
 
   @IsInt()
-  @Min(1)
+  @Min(0)
   @Max(10)
   maxTabSwitches: number;
 

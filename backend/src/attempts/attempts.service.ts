@@ -64,7 +64,7 @@ export class AttemptsService {
     // Timer validation
     const now = new Date();
     const deadline = new Date(
-      attempt.startedAt.getTime() + quiz.durationInMinutes * 60 * 1000,
+      attempt.startedAt.getTime() + (quiz.durationInMinutes * 60 + 120) * 1000,
     );
     if (now > deadline) {
       throw new BadRequestException('Quiz duration exceeded. Submission rejected.');

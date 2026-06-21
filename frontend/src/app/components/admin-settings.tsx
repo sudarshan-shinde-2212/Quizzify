@@ -94,7 +94,7 @@ export function AdminSettings() {
                 value={form.maxTabSwitches}
                 onChange={(e) => setForm({ ...form, maxTabSwitches: +e.target.value })}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
-                min={1}
+                min={0}
                 max={10}
               />
             </div>

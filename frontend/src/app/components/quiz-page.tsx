@@ -245,7 +245,7 @@ export function QuizPage() {
   }, [quizId, router]);
 
   const handleSubmit = useCallback(async () => {
-    if (!quizId || !quiz) return;
+    if (!quizId || !quiz || submitting) return;
     setSubmitting(true);
     try {
       const timeTaken = Math.floor((Date.now() - startTime) / 1000);
@@ -278,7 +278,7 @@ export function QuizPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [answers, router, quiz, quizId, startTime]);
+  }, [answers, router, quiz, quizId, startTime, submitting]);
 
   // Tab visibility monitoring
   useEffect(() => {
@@ -302,6 +302,7 @@ export function QuizPage() {
   const { minutes, secs, isLow } = useTimer((quiz?.durationInMinutes ?? 30) * 60, () => {
     if (settings?.autoSubmit !== false) {
       setModal("time-up");
+      handleSubmit();
     } else {
       setModal("time-up-no-auto");
     }
