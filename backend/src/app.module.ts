@@ -38,7 +38,12 @@ import { AiQuizModule } from './ai-quiz/ai-quiz.module';
   synchronize: false,
   logging: false,
 
-  ssl: false
+  sl: true,
+  extra: {
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  },
 })
     }),
     AuthModule,
