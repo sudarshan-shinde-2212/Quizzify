@@ -61,8 +61,7 @@ export function AdminUsers() {
   const filtered = students.filter(
     (u) =>
       (u.fullName || "").toLowerCase().includes(search.toLowerCase()) ||
-      (u.email || "").toLowerCase().includes(search.toLowerCase()) ||
-      (u.collegeName || "").toLowerCase().includes(search.toLowerCase())
+      (u.email || "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -81,7 +80,7 @@ export function AdminUsers() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full max-w-sm pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-black"
-          placeholder="Search students, emails, colleges..."
+          placeholder="Search students, emails..."
         />
       </div>
 
