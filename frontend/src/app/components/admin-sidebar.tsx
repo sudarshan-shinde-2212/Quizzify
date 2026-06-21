@@ -7,7 +7,6 @@ import {
   BookOpen, LayoutDashboard, FileQuestion, Users,
   Settings, LogOut, Trophy, Menu, X
 } from 'lucide-react';
-import { AdminAiChat } from './admin-ai-chat';
 
 const sidebarLinks = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -17,6 +16,7 @@ const sidebarLinks = [
 
   // { label: "Analytics", href: "/admin/analytics", icon: BarChart3 }, // Removed per request
   { label: "Settings", href: "/admin/settings", icon: Settings },
+
 ];
 
 export function AdminSidebar({

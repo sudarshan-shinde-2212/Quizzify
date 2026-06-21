@@ -12,6 +12,7 @@ import {
   Quiz,
   Question,
 } from "./api";
+import { ConfirmModal } from "./ui/confirm-modal";
 import { motion, AnimatePresence } from "motion/react";
 import { Plus, Edit2, Trash2, X, Loader2 } from "lucide-react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
@@ -89,9 +90,13 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Question Text</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-medium text-gray-700">Question Text <span className="text-red-500">*</span></label>
+              <span className="text-[10px] text-gray-400">{form.questionText.length}/500</span>
+            </div>
             <textarea
               required
+              maxLength={500}
               value={form.questionText}
               onChange={(e) => setForm({ ...form, questionText: e.target.value })}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black resize-none"
@@ -101,7 +106,7 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
           </div>
 
           <div className="space-y-2">
-            <label className="block text-xs font-medium text-gray-700">Options</label>
+            <label className="block text-xs font-medium text-gray-700">Options <span className="text-red-500">*</span></label>
             {([
               { key: "optionA", label: "A" },
               { key: "optionB", label: "B" },
@@ -112,6 +117,7 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
                 <span className="text-xs font-medium text-gray-400 w-5">{label}.</span>
                 <input
                   required
+                  maxLength={200}
                   value={form[key]}
                   onChange={(e) => setForm({ ...form, [key]: e.target.value })}
                   className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black"
@@ -123,7 +129,7 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Correct Answer</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Correct Answer <span className="text-red-500">*</span></label>
               <select
                 value={form.correctOption}
                 onChange={(e) => setForm({ ...form, correctOption: e.target.value as QuestionOption })}
@@ -135,18 +141,19 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Marks</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Marks <span className="text-red-500">*</span></label>
               <input
                 type="number"
                 required
-                min={0}
+                min={0.5}
+                step={0.5}
                 value={form.marks}
                 onChange={(e) => setForm({ ...form, marks: +e.target.value })}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Negative Marks</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Negative Marks <span className="text-red-500">*</span></label>
               <input
                 type="number"
                 required
@@ -242,23 +249,45 @@ export function AdminQuestions() {
   const openCreate = () => { setEditQuestion(undefined); setShowModal(true); };
   const openEdit = (q: Question) => { setEditQuestion(q); setShowModal(true); };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this question?")) return;
+  const [deleteQuestionId, setDeleteQuestionId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteQuestionId) return;
+    setIsDeleting(true);
     try {
-      await apiAdminDeleteQuestion(id);
+      await apiAdminDeleteQuestion(deleteQuestionId);
       loadQuestions();
     } catch (err) {
       console.error("Failed to delete question", err);
       alert("Delete failed.");
+    } finally {
+      setIsDeleting(false);
+      setDeleteQuestionId(null);
     }
   };
+
+  // Derive selected quiz details for limits
+  const selectedQuiz = quizzes.find((q) => q.id === selectedQuizId);
+  const questionLimit = selectedQuiz?.questionCount ?? 0;
+  const assignedMarks = questions.reduce((sum, q) => sum + Number(q.marks), 0);
+  const targetMarks = selectedQuiz ? Number(selectedQuiz.totalMarks) : 0;
+  const atQuestionLimit = questionLimit > 0 && questions.length >= questionLimit;
+  const marksMatch = assignedMarks === targetMarks;
 
   return (
     <AdminLayout>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-xl font-bold text-black">Questions Bank</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{questions.length} questions in this quiz</p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {questions.length}{questionLimit > 0 ? ` / ${questionLimit}` : ""} questions
+            {selectedQuiz && (
+              <span className={`ml-2 font-medium ${marksMatch ? "text-green-600" : "text-amber-600"}`}>
+                (Assigned: {assignedMarks} / {targetMarks} Marks)
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex gap-3 items-center">
           {/* Dropdown selector for switching quizzes */}
@@ -279,14 +308,36 @@ export function AdminQuestions() {
           )}
 
           <button
-            disabled={!selectedQuizId}
+            disabled={!selectedQuizId || atQuestionLimit}
             onClick={openCreate}
-            className="flex items-center gap-1.5 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900 disabled:opacity-50"
+            title={atQuestionLimit ? `Limit reached: ${questionLimit} questions max` : "Add a new question"}
+            className="flex items-center gap-1.5 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus size={15} /> Add Question
           </button>
         </div>
       </div>
+
+      {/* Question limit / marks warning banners */}
+      {selectedQuiz && atQuestionLimit && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
+          <span className="font-semibold">Question limit reached.</span>
+          <span>This quiz allows exactly {questionLimit} question{questionLimit !== 1 ? "s" : ""}. Remove one before adding another.</span>
+        </div>
+      )}
+      {/* Warning if marks don't perfectly match the total. Only show when limit reached, or if they've overshot early */}
+      {selectedQuiz && questions.length > 0 && (!marksMatch && (questions.length === questionLimit || assignedMarks > targetMarks)) && (
+        <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-red-800">
+          <span className="font-semibold">Marks mismatch.</span>
+          <span>Assigned marks ({assignedMarks}) do not equal quiz total ({targetMarks}). Fix before publishing.</span>
+        </div>
+      )}
+      {selectedQuiz && questions.length > 0 && questions.length < questionLimit && !atQuestionLimit && assignedMarks <= targetMarks && (
+        <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-blue-800">
+          <span className="font-semibold">Add more questions.</span>
+          <span>Please add all {questionLimit} questions before publishing. ({questions.length} of {questionLimit} added)</span>
+        </div>
+      )}
 
       {loadingQuestions ? (
         <div className="py-20 flex flex-col items-center justify-center">
@@ -357,7 +408,7 @@ export function AdminQuestions() {
                       <Edit2 size={14} />
                     </button>
                     <button
-                      onClick={() => handleDelete(q.id)}
+                      onClick={() => setDeleteQuestionId(q.id)}
                       title="Delete Question"
                       className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                     >
@@ -381,6 +432,15 @@ export function AdminQuestions() {
           />
         )}
       </AnimatePresence>
+      <ConfirmModal
+        isOpen={!!deleteQuestionId}
+        title="Delete Question"
+        description="Are you sure you want to delete this question? This action cannot be undone."
+        confirmText="Delete"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteQuestionId(null)}
+        isLoading={isDeleting}
+      />
     </AdminLayout>
   );
 }

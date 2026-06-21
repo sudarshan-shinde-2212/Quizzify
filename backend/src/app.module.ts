@@ -17,6 +17,9 @@ import { Question } from './entities/question.entity';
 import { QuizAttempt } from './entities/quiz-attempt.entity';
 import { QuizAnswer } from './entities/quiz-answer.entity';
 import { QuizResult } from './entities/quiz-result.entity';
+import { Setting } from './entities/setting.entity';
+import { SettingsModule } from './settings/settings.module';
+import { AiQuizModule } from './ai-quiz/ai-quiz.module';
 
 @Module({
   imports: [
@@ -31,7 +34,7 @@ import { QuizResult } from './entities/quiz-result.entity';
   username: config.get<string>('database.username'),
   password: config.get<string>('database.password'),
   database: config.get<string>('database.name'),
-  entities: [Admin, Student, Quiz, Question, QuizAttempt, QuizAnswer, QuizResult],
+  entities: [Admin, Student, Quiz, Question, QuizAttempt, QuizAnswer, QuizResult, Setting],
   synchronize: false,
   logging: false,
 
@@ -46,6 +49,8 @@ import { QuizResult } from './entities/quiz-result.entity';
     ResultsModule,
     StudentPortalModule,
     AiChatModule,
+    SettingsModule,
+    AiQuizModule,
   ],
 })
 export class AppModule {}

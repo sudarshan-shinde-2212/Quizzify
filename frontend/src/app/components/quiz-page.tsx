@@ -10,32 +10,52 @@ import {
   Quiz,
   Question,
 } from "./api";
+import { useAuth } from "./auth-context";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Clock, ChevronLeft, ChevronRight, AlertTriangle, Send,
   RotateCcw, Bookmark, CheckSquare, Loader2
 } from "lucide-react";
 
+/** Fisher-Yates shuffle – returns a new array */
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 type AnswerMap = Record<string, number | null>;
 type QuestionStatus = "answered" | "marked" | "skipped" | "unanswered";
 
-function useTimer(initialSeconds: number, onExpire: () => void) {
+function useTimer(initialSeconds: number, onExpire: () => void, isLoaded: boolean) {
   const [seconds, setSeconds] = useState(initialSeconds);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const onExpireRef = useRef(onExpire);
 
   useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setSeconds((s) => {
-        if (s <= 1) {
-          onExpire();
-          clearInterval(timerRef.current!);
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timerRef.current!);
+    onExpireRef.current = onExpire;
   }, [onExpire]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    setSeconds(initialSeconds);
+    const endTime = Date.now() + initialSeconds * 1000;
+
+    const interval = setInterval(() => {
+      const remaining = Math.round((endTime - Date.now()) / 1000);
+      if (remaining <= 0) {
+        setSeconds(0);
+        onExpireRef.current();
+        clearInterval(interval);
+      } else {
+        setSeconds(remaining);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [initialSeconds, isLoaded]);
 
   const minutes = Math.floor(seconds / 60);
   const secs = seconds % 60;
@@ -44,13 +64,14 @@ function useTimer(initialSeconds: number, onExpire: () => void) {
   return { minutes, secs, seconds, isLow };
 }
 
-type ModalType = "tab-switch" | "security-warning" | "final-warning" | "submitted" | "confirm-submit" | null;
+type ModalType = "tab-switch" | "security-warning" | "final-warning" | "submitted" | "confirm-submit" | "time-up" | "time-up-no-auto" | null;
 
-function Modal({ type, tabCount, onClose, onSubmit }: {
+function Modal({ type, tabCount, onClose, onSubmit, settings }: {
   type: ModalType;
   tabCount: number;
   onClose: () => void;
   onSubmit: () => void;
+  settings: any;
 }) {
   if (!type) return null;
 
@@ -60,7 +81,7 @@ function Modal({ type, tabCount, onClose, onSubmit }: {
       icon: <AlertTriangle size={24} className="text-amber-500" />,
       bg: "bg-amber-50",
       border: "border-amber-200",
-      body: `You have switched tabs ${tabCount} time${tabCount > 1 ? "s" : ""}. You are allowed a maximum of 3 tab switches. Further violations may result in automatic submission.`,
+      body: `You have switched tabs ${tabCount} time${tabCount > 1 ? "s" : ""}. You are allowed a maximum of ${settings?.maxTabSwitches ?? 3} tab switches. Further violations may result in automatic submission.`,
       action: "I Understand",
       actionFn: onClose,
       showClose: true,
@@ -70,7 +91,7 @@ function Modal({ type, tabCount, onClose, onSubmit }: {
       icon: <AlertTriangle size={24} className="text-orange-500" />,
       bg: "bg-orange-50",
       border: "border-orange-200",
-      body: `This is your second tab switch. One more switch will auto-submit your assessment.`,
+      body: `This is your last warning! One more switch will auto-submit your assessment.`,
       action: "Continue Assessment",
       actionFn: onClose,
       showClose: false,
@@ -80,7 +101,7 @@ function Modal({ type, tabCount, onClose, onSubmit }: {
       icon: <AlertTriangle size={24} className="text-red-500" />,
       bg: "bg-red-50",
       border: "border-red-200",
-      body: "You have exceeded the maximum allowed tab switches. Your assessment is being submitted automatically.",
+      body: `You have exceeded the maximum allowed tab switches (${settings?.maxTabSwitches ?? 3}). Your assessment is being submitted automatically.`,
       action: "OK",
       actionFn: onSubmit,
       showClose: false,
@@ -102,6 +123,26 @@ function Modal({ type, tabCount, onClose, onSubmit }: {
       border: "border-green-200",
       body: "Your responses have been recorded successfully. You will be redirected to your history shortly.",
       action: "View History",
+      actionFn: onSubmit,
+      showClose: false,
+    },
+    "time-up": {
+      title: "Time's Up!",
+      icon: <Clock size={24} className="text-red-500" />,
+      bg: "bg-red-50",
+      border: "border-red-200",
+      body: "Your time has expired. Your assessment is being submitted automatically.",
+      action: "OK",
+      actionFn: onSubmit,
+      showClose: false,
+    },
+    "time-up-no-auto": {
+      title: "Time's Up!",
+      icon: <Clock size={24} className="text-orange-500" />,
+      bg: "bg-orange-50",
+      border: "border-orange-200",
+      body: "Your time has expired. Please submit your assessment manually.",
+      action: "Submit Now",
       actionFn: onSubmit,
       showClose: false,
     },
@@ -148,6 +189,7 @@ export function QuizPage() {
   const params = useParams();
   const quizId = params?.quizId as string;
   const router = useRouter();
+  const { user } = useAuth();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -161,30 +203,46 @@ export function QuizPage() {
   const [startTime] = useState(Date.now());
   const [submitting, setSubmitting] = useState(false);
 
+  const [settings, setSettings] = useState<any>(null);
+
   useEffect(() => {
     async function loadQuizData() {
-      if (!quizId) return;
+      if (!quizId || quizId === "undefined") return;
       try {
-        const quizData = await apiGetStudentQuiz(quizId);
+        // Load settings and quiz data in parallel
+        const [quizData, settingsData] = await Promise.all([
+          apiGetStudentQuiz(quizId),
+          import("./api").then(({ apiGetSettings }) => apiGetSettings()).catch(() => ({})),
+        ]);
+
         setQuiz(quizData);
-        setQuestions(quizData.questions || []);
+        const s = settingsData || {};
+        if (s.maintenanceMode) {
+          router.replace("/dashboard");
+          return;
+        }
+        setSettings(s);
 
         // Start the attempt on the backend
         await apiStartQuizAttempt(quizId);
+
+        // Apply shuffle immediately after we have both quiz data and settings
+        const rawQuestions = quizData.questions || [];
+        setQuestions(s.questionShuffle ? shuffle(rawQuestions) : rawQuestions);
       } catch (err) {
         console.error("Failed to start quiz", err);
         const message = getErrorMessage(err, "");
-        if (message.includes("already attempted")) {
-          setError("You have already attempted this quiz. Only one attempt is allowed.");
-        } else {
-          setError("Failed to load/start the quiz attempt. Please make sure the quiz is active.");
+        if (message.toLowerCase().includes("already attempted") || message.toLowerCase().includes("retakes are not allowed")) {
+          router.replace(`/already-attempted?quizId=${quizId}`);
+          return;
         }
+        setError("Failed to load/start the quiz attempt. Please make sure the quiz is active.");
       } finally {
         setLoading(false);
       }
     }
     loadQuizData();
-  }, [quizId]);
+  }, [quizId, router]);
 
   const handleSubmit = useCallback(async () => {
     if (!quizId || !quiz) return;
@@ -224,13 +282,14 @@ export function QuizPage() {
 
   // Tab visibility monitoring
   useEffect(() => {
-    if (loading || error) return;
+    if (loading || error || !settings) return;
+    const maxSwitches = settings?.maxTabSwitches ?? 3;
     const handleVisibility = () => {
       if (document.hidden) {
         setTabSwitches((prev) => {
           const next = prev + 1;
-          if (next >= 3) setModal("final-warning");
-          else if (next === 2) setModal("security-warning");
+          if (next >= maxSwitches) setModal("final-warning");
+          else if (next === maxSwitches - 1) setModal("security-warning");
           else setModal("tab-switch");
           return next;
         });
@@ -238,11 +297,15 @@ export function QuizPage() {
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [loading, error]);
+  }, [loading, error, settings]);
 
   const { minutes, secs, isLow } = useTimer((quiz?.durationInMinutes ?? 30) * 60, () => {
-    setModal("submitted");
-  });
+    if (settings?.autoSubmit !== false) {
+      setModal("time-up");
+    } else {
+      setModal("time-up-no-auto");
+    }
+  }, !loading);
 
   const getQuestionStatus = (qId: string): QuestionStatus => {
     if (marked.has(qId)) return "marked";
@@ -284,6 +347,8 @@ export function QuizPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+
+
       {/* Top bar */}
       <header className="sticky top-0 z-30 bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 h-13 flex items-center justify-between py-2.5">
@@ -292,10 +357,6 @@ export function QuizPage() {
             <p className="text-xs text-gray-400">Question {currentQ + 1} of {questions.length}</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-mono font-semibold ${isLow ? "text-red-600 bg-red-50 border-red-200 animate-pulse" : "text-gray-700 bg-gray-50 border-gray-200"}`}>
-              <Clock size={14} />
-              {String(minutes).padStart(2, "0")}:{String(secs).padStart(2, "0")}
-            </div>
             <button
               onClick={() => setModal("confirm-submit")}
               disabled={submitting}
@@ -357,6 +418,14 @@ export function QuizPage() {
 
           {/* Center: Question */}
           <div>
+            {/* Timer – centered above question */}
+            <div className="flex justify-center mb-4">
+              <div className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border text-base font-mono font-bold shadow-sm ${isLow ? "text-red-600 bg-red-50 border-red-200 animate-pulse" : "text-gray-800 bg-white border-gray-200"}`}>
+                <Clock size={16} />
+                {String(minutes).padStart(2, "0")}:{String(secs).padStart(2, "0")}
+              </div>
+            </div>
+
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentQ}
@@ -365,6 +434,7 @@ export function QuizPage() {
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
                 className="bg-white border border-gray-100 rounded-xl p-6"
+                style={{ position: "relative", overflow: "hidden" }}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div>
@@ -434,6 +504,35 @@ export function QuizPage() {
                     <RotateCcw size={12} /> Clear
                   </button>
                 </div>
+
+                {/* Watermark – 8 copies inside question box only */}
+                {user?.email && (
+                  <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 10 }}>
+                    {Array.from({ length: 8 }).map((_, i) => {
+                      const row = Math.floor(i / 4);
+                      const col = i % 4;
+                      return (
+                        <span
+                          key={i}
+                          style={{
+                            position: "absolute",
+                            top: `${15 + row * 45}%`,
+                            left: `${5 + col * 25}%`,
+                            transform: "rotate(-30deg)",
+                            fontSize: "clamp(10px, 1.4vw, 14px)",
+                            color: "rgba(0,0,0,0.06)",
+                            fontWeight: 600,
+                            letterSpacing: "0.05em",
+                            whiteSpace: "nowrap",
+                            userSelect: "none",
+                          }}
+                        >
+                          {user.email}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -467,7 +566,7 @@ export function QuizPage() {
 
               {tabSwitches > 0 && (
                 <div className="bg-amber-50 border border-amber-100 rounded-lg p-2.5">
-                  <p className="text-xs font-medium text-amber-700">Tab switches: {tabSwitches}/3</p>
+                  <p className="text-xs font-medium text-amber-700">Tab switches: {tabSwitches}/{settings?.maxTabSwitches ?? 3}</p>
                 </div>
               )}
             </div>
@@ -486,6 +585,7 @@ export function QuizPage() {
               setModal(null);
               handleSubmit();
             }}
+            settings={settings}
           />
         )}
       </AnimatePresence>

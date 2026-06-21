@@ -1,12 +1,13 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn,
-  ManyToOne, OneToMany, JoinColumn,
+  ManyToOne, OneToMany, JoinColumn, Unique,
 } from 'typeorm';
 import { Admin } from './admin.entity';
 import { Question } from './question.entity';
 import { QuizAttempt } from './quiz-attempt.entity';
 
 @Entity('quizzes')
+@Unique(['title'])
 export class Quiz {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -47,6 +48,9 @@ createdById: string;
 
   @OneToMany(() => QuizAttempt, (a) => a.quiz)
   attempts: QuizAttempt[];
+
+  @Column({ type: 'int', default: 0 })
+  questionCount: number;
 
   @CreateDateColumn()
   createdAt: Date;

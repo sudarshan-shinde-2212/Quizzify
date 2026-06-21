@@ -7,11 +7,13 @@ import { QuizAnswer } from '../entities/quiz-answer.entity';
 import { QuizResult } from '../entities/quiz-result.entity';
 import { Question } from '../entities/question.entity';
 import { QuizzesModule } from '../quizzes/quizzes.module';
+import { SettingsModule } from '../settings/settings.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([QuizAttempt, QuizAnswer, QuizResult, Question]),
     QuizzesModule,
+    SettingsModule,
   ],
   providers: [AttemptsService],
   controllers: [AttemptsController],

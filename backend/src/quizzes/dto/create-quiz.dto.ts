@@ -1,6 +1,6 @@
 import {
   IsString, IsNotEmpty, IsOptional, IsDateString,
-  IsInt, Min, IsNumber, IsBoolean,
+  IsInt, Min, IsBoolean, IsNumber,
 } from 'class-validator';
 
 export class CreateQuizDto {
@@ -26,9 +26,15 @@ export class CreateQuizDto {
   @Min(1)
   durationInMinutes: number;
 
-  @IsNumber()
-  @Min(0)
+  /** Total marks – stored as DECIMAL(10,2); must be ≥ 1 */
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(1)
   totalMarks: number;
+
+  /** Number of questions – no fixed maximum, must be ≥ 1 */
+  @IsInt()
+  @Min(1)
+  questionCount: number;
 
   @IsOptional()
   @IsBoolean()

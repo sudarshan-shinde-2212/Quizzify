@@ -3,23 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { UserLayout } from "./user-layout";
-import { apiGetStudentQuiz, Quiz } from "./api";
+import { apiGetStudentQuiz, apiGetSettings, Quiz } from "./api";
 import { motion } from "motion/react";
 import {
   AlertTriangle, Clock, HelpCircle, Trophy, CheckCircle2,
   Monitor, Wifi, RefreshCw, ChevronRight, ArrowLeft, Loader2
 } from "lucide-react";
 
-const rules = [
-  { icon: CheckCircle2, text: "You are allowed only one attempt for this assessment." },
-  { icon: Clock, text: "The timer starts immediately when you click Start Quiz." },
-  { icon: RefreshCw, text: "The quiz is auto-submitted when the timer reaches zero." },
-  { icon: Monitor, text: "Do not refresh the page during the assessment." },
-  { icon: Wifi, text: "Do not close the browser tab or window." },
-  { icon: Monitor, text: "Tab switching is actively monitored throughout the session." },
-  { icon: AlertTriangle, text: "Maximum 3 tab switches are allowed before auto-submit." },
-  { icon: Wifi, text: "Attempting from multiple devices simultaneously is prohibited." },
-];
+// Rules are now generated dynamically from settings
 
 export function InstructionsPage() {
   const params = useParams();
@@ -27,15 +18,24 @@ export function InstructionsPage() {
   const router = useRouter();
   const [agreed, setAgreed] = useState(false);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     async function loadQuiz() {
-      if (!quizId) return;
+      if (!quizId || quizId === "undefined") return;
       try {
-        const data = await apiGetStudentQuiz(quizId);
+        const [data, settingsData] = await Promise.all([
+          apiGetStudentQuiz(quizId),
+          apiGetSettings().catch(() => ({})),
+        ]);
+        if (settingsData?.maintenanceMode) {
+          router.replace("/dashboard");
+          return;
+        }
         setQuiz(data);
+        setSettings(settingsData || {});
       } catch (err) {
         console.error("Failed to load quiz details", err);
         setError("Could not load instructions. The quiz might not be active or available.");
@@ -45,6 +45,22 @@ export function InstructionsPage() {
     }
     loadQuiz();
   }, [quizId]);
+
+  // Build rules dynamically from settings
+  const maxSwitches = settings?.maxTabSwitches ?? 3;
+  const autoSubmit = settings?.autoSubmit !== false;
+  const allowRetakes = settings?.allowRetakes ?? false;
+
+  const rules = [
+    { icon: CheckCircle2, text: allowRetakes ? "You may retake this assessment if allowed by the admin." : "You are allowed only one attempt for this assessment." },
+    { icon: Clock, text: "The timer starts immediately when you click Start Quiz." },
+    { icon: RefreshCw, text: autoSubmit ? "The quiz is auto-submitted when the timer reaches zero." : "You must submit the quiz manually before the timer runs out." },
+    { icon: Monitor, text: "Do not refresh the page during the assessment." },
+    { icon: Wifi, text: "Do not close the browser tab or window." },
+    { icon: Monitor, text: "Tab switching is actively monitored throughout the session." },
+    { icon: AlertTriangle, text: `Maximum ${maxSwitches} tab switch${maxSwitches !== 1 ? "es are" : " is"} allowed before auto-submit.` },
+    { icon: Wifi, text: "Attempting from multiple devices simultaneously is prohibited." },
+  ];
 
   if (loading) {
     return (
@@ -127,7 +143,7 @@ export function InstructionsPage() {
             <div>
               <p className="text-sm font-semibold text-amber-800 mb-0.5">Tab Switch Warning</p>
               <p className="text-sm text-amber-700">
-                After 3 tab switches your assessment may be automatically submitted and your attempt will be recorded.
+                After {maxSwitches} tab switch{maxSwitches !== 1 ? "es" : ""} your assessment {autoSubmit ? "will be automatically submitted" : "may be flagged for review"} and your attempt will be recorded.
               </p>
             </div>
           </div>

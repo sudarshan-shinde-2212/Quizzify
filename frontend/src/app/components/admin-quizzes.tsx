@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { AdminLayout } from "./admin-sidebar";
 import {
   apiAdminGetQuizzes,
@@ -11,8 +11,12 @@ import {
   getErrorMessage,
   Quiz,
 } from "./api";
+import { ConfirmModal } from "./ui/confirm-modal";
 import { motion, AnimatePresence } from "motion/react";
-import { Calendar, Plus, Edit2, Trash2, Eye, Clock, Trophy, X, Loader2, Play, PowerOff } from "lucide-react";
+import {
+  Calendar, Plus, Edit2, Trash2, Eye, Clock, Trophy, X, Loader2,
+  Play, PowerOff, Sparkles, FileQuestion,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface QuizFormModalProps {
@@ -23,10 +27,8 @@ interface QuizFormModalProps {
 
 function toDateInputValue(value?: string) {
   if (!value) return "";
-
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-
   return date.toISOString().slice(0, 10);
 }
 
@@ -37,7 +39,6 @@ function toIsoDate(value: string) {
 function formatQuizDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Invalid date";
-
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeZone: "UTC",
@@ -50,12 +51,18 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
     description: quiz?.description ?? "",
     instructions: quiz?.instructions ?? "",
     duration: quiz?.durationInMinutes ?? 30,
-    totalMarks: quiz?.totalMarks ?? 30,
+    totalMarks: quiz?.totalMarks ?? 10,
+    questionCount: quiz?.questionCount ?? 10,
     startDate: toDateInputValue(quiz?.startDate),
     endDate: toDateInputValue(quiz?.endDate),
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Live counters – only meaningful for existing quiz with questions
+  const marksPerQ = form.questionCount > 0
+    ? Number((form.totalMarks / form.questionCount).toFixed(2))
+    : 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +71,7 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
 
     const durationInMinutes = Number(form.duration);
     const totalMarks = Number(form.totalMarks);
+    const questionCount = Number(form.questionCount);
     const startTime = new Date(`${form.startDate}T00:00:00.000Z`).getTime();
     const endTime = new Date(`${form.endDate}T00:00:00.000Z`).getTime();
 
@@ -75,6 +83,12 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
 
     if (!Number.isFinite(totalMarks) || totalMarks < 1) {
       setError("Total marks must be at least 1.");
+      setLoading(false);
+      return;
+    }
+
+    if (!Number.isInteger(questionCount) || questionCount < 1) {
+      setError("Number of questions must be a whole number greater than 0.");
       setLoading(false);
       return;
     }
@@ -99,6 +113,7 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
       endDate: toIsoDate(form.endDate),
       durationInMinutes,
       totalMarks,
+      questionCount,
     };
 
     try {
@@ -132,11 +147,29 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
           </button>
         </div>
 
+        {/* Live counters */}
+        <div className="flex gap-3 mb-4">
+          {[
+            { label: "Questions", value: form.questionCount },
+            { label: "Total Marks", value: form.totalMarks },
+            { label: "Marks / Q", value: marksPerQ },
+          ].map(({ label, value }) => (
+            <div key={label} className="flex-1 bg-gray-50 border border-gray-100 rounded-lg p-2.5 text-center">
+              <p className="text-xs text-gray-400">{label}</p>
+              <p className="text-sm font-bold text-black">{value}</p>
+            </div>
+          ))}
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Quiz Title</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-medium text-gray-700">Quiz Title <span className="text-red-500">*</span></label>
+              <span className="text-[10px] text-gray-400">{form.title.length}/100</span>
+            </div>
             <input
               required
+              maxLength={100}
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
@@ -144,9 +177,13 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Description</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-medium text-gray-700">Description <span className="text-red-500">*</span></label>
+              <span className="text-[10px] text-gray-400">{form.description.length}/500</span>
+            </div>
             <textarea
               required
+              maxLength={500}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black resize-none"
@@ -155,8 +192,12 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Instructions</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-medium text-gray-700">Instructions <span className="text-gray-400 font-normal">(Optional)</span></label>
+              <span className="text-[10px] text-gray-400">{form.instructions.length}/1000</span>
+            </div>
             <textarea
+              maxLength={1000}
               value={form.instructions}
               onChange={(e) => setForm({ ...form, instructions: e.target.value })}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black resize-none"
@@ -164,9 +205,9 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
               placeholder="Directions for candidate..."
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Duration (min)</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Duration (min) <span className="text-red-500">*</span></label>
               <input
                 type="number"
                 required
@@ -177,20 +218,33 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Total Marks</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Total Marks <span className="text-red-500">*</span></label>
               <input
                 type="number"
                 required
                 min={1}
+                step="0.01"
                 value={form.totalMarks}
                 onChange={(e) => setForm({ ...form, totalMarks: +e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">No. of Questions <span className="text-red-500">*</span></label>
+              <input
+                type="number"
+                required
+                min={1}
+                step={1}
+                value={form.questionCount}
+                onChange={(e) => setForm({ ...form, questionCount: Math.floor(+e.target.value) })}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
               />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Start Date</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Start Date <span className="text-red-500">*</span></label>
               <input
                 type="date"
                 required
@@ -200,7 +254,7 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">End Date</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">End Date <span className="text-red-500">*</span></label>
               <input
                 type="date"
                 required
@@ -266,24 +320,41 @@ export function AdminQuizzes() {
   const openCreate = () => { setEditQuiz(undefined); setShowModal(true); };
   const openEdit = (q: Quiz) => { setEditQuiz(q); setShowModal(true); };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this quiz? This cannot be undone.")) return;
+  // ── Delete confirmation ─────────────────────────────────────────────────────
+  const [deleteQuizId, setDeleteQuizId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteQuizId) return;
+    setIsDeleting(true);
     try {
-      await apiAdminDeleteQuiz(id);
+      await apiAdminDeleteQuiz(deleteQuizId);
       loadQuizzes();
     } catch (err) {
       console.error("Failed to delete quiz", err);
       alert("Delete failed.");
+    } finally {
+      setIsDeleting(false);
+      setDeleteQuizId(null);
     }
   };
 
-  const handleTogglePublish = async (quiz: Quiz) => {
+  // ── Publish / Unpublish confirmation ────────────────────────────────────────
+  const [publishConfirm, setPublishConfirm] = useState<Quiz | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  const handleTogglePublish = async () => {
+    if (!publishConfirm) return;
+    setIsPublishing(true);
     try {
-      await apiAdminPublishQuiz(quiz.id, !quiz.isPublished);
+      await apiAdminPublishQuiz(publishConfirm.id, !publishConfirm.isPublished);
       loadQuizzes();
     } catch (err) {
       console.error("Failed to publish/unpublish quiz", err);
-      alert("Status update failed.");
+      alert(getErrorMessage(err, "Status update failed."));
+    } finally {
+      setIsPublishing(false);
+      setPublishConfirm(null);
     }
   };
 
@@ -311,12 +382,22 @@ export function AdminQuizzes() {
           <h1 className="text-xl font-bold text-black">Quizzes</h1>
           <p className="text-sm text-gray-500 mt-0.5">{quizzes.length} total quizzes</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900"
-        >
-          <Plus size={15} /> Create Quiz
-        </button>
+        {/* Action buttons: AI Generator first, then Create Quiz */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push("/admin/ai-quiz")}
+            className="flex items-center gap-1.5 border border-gray-200 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            <Sparkles size={15} className="text-purple-500" />
+            AI Quiz Generator
+          </button>
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-1.5 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900"
+          >
+            <Plus size={15} /> Create Quiz
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -353,6 +434,7 @@ export function AdminQuizzes() {
                   <div className="flex gap-4">
                     <span className="text-xs text-gray-400 flex items-center gap-1"><Clock size={11} /> {quiz.durationInMinutes}m</span>
                     <span className="text-xs text-gray-400 flex items-center gap-1"><Trophy size={11} /> {quiz.totalMarks} marks</span>
+                    <span className="text-xs text-gray-400 flex items-center gap-1"><FileQuestion size={11} /> {quiz.questionCount} Qs</span>
                     <span className="text-xs text-gray-400 flex items-center gap-1">
                       <Calendar size={11} /> {formatQuizDate(quiz.startDate)} - {formatQuizDate(quiz.endDate)}
                     </span>
@@ -360,7 +442,7 @@ export function AdminQuizzes() {
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button
-                    onClick={() => handleTogglePublish(quiz)}
+                    onClick={() => setPublishConfirm(quiz)}
                     title={quiz.isPublished ? "Unpublish Quiz (set draft)" : "Publish Quiz"}
                     className="p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded-lg transition-colors"
                   >
@@ -381,7 +463,7 @@ export function AdminQuizzes() {
                     <Edit2 size={15} />
                   </button>
                   <button
-                    onClick={() => handleDelete(quiz.id)}
+                    onClick={() => setDeleteQuizId(quiz.id)}
                     title="Delete Quiz"
                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >
@@ -399,6 +481,32 @@ export function AdminQuizzes() {
           <QuizFormModal quiz={editQuiz} onClose={() => setShowModal(false)} onRefresh={loadQuizzes} />
         )}
       </AnimatePresence>
+
+      {/* Delete confirmation */}
+      <ConfirmModal
+        isOpen={!!deleteQuizId}
+        title="Delete Quiz"
+        description="Are you sure you want to delete this quiz? All questions and results will be permanently removed. This action cannot be undone."
+        confirmText="Delete"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteQuizId(null)}
+        isLoading={isDeleting}
+      />
+
+      {/* Publish / Unpublish confirmation */}
+      <ConfirmModal
+        isOpen={!!publishConfirm}
+        title={publishConfirm?.isPublished ? "Unpublish Quiz?" : "Publish Quiz?"}
+        description={
+          publishConfirm?.isPublished
+            ? "This will hide the quiz from students. It can be re-published at any time."
+            : "This will make the quiz visible to students immediately (subject to start/end dates)."
+        }
+        confirmText={publishConfirm?.isPublished ? "Unpublish" : "Publish"}
+        onConfirm={handleTogglePublish}
+        onCancel={() => setPublishConfirm(null)}
+        isLoading={isPublishing}
+      />
     </AdminLayout>
   );
 }

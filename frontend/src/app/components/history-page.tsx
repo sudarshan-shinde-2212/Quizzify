@@ -9,6 +9,10 @@ import { CheckCircle2, XCircle, Trophy, Calendar, Loader2 } from "lucide-react";
 export function HistoryPage() {
   const [history, setHistory] = useState<QuizResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const filteredHistory = history.filter((item) =>
+    (item.quiz?.title ?? "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   useEffect(() => {
     async function loadHistory() {
@@ -37,10 +41,15 @@ export function HistoryPage() {
 
   return (
     <UserLayout>
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-black">Quiz History</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Your past assessment attempts and scores</p>
-      </div>
+      <div className="flex items-center mb-4">
+  <input
+    type="text"
+    placeholder="Search quizzes..."
+    value={searchTerm}
+    onChange={e => setSearchTerm(e.target.value)}
+    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+  />
+</div>
 
       {/* Desktop table */}
       <div className="hidden md:block bg-white border border-gray-100 rounded-xl overflow-hidden">

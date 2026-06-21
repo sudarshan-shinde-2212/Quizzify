@@ -4,7 +4,7 @@
 // In production set NEXT_PUBLIC_API_BASE_URL to your deployed backend URL
 // ---------------------------------------------------------------------------
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 // ── Session & Storage Keys ───────────────────────────────────────────────────
 
@@ -69,6 +69,7 @@ export interface Quiz {
   endDate: string;
   durationInMinutes: number;
   totalMarks: number;
+  questionCount: number;
   isPublished: boolean;
   createdById: string;
   createdAt: string;
@@ -132,6 +133,7 @@ export interface GoogleLoginResponse {
 async function request<T>(
   path: string,
   options: RequestInit = {},
+  retries = 2
 ): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -140,19 +142,39 @@ async function request<T>(
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
 
-  if (!res.ok) {
-    let message = `Request failed: ${res.status}`;
+    if (!res.ok) {
+      if (res.status >= 500 && retries > 0) {
+        // Wait 1.5 seconds and retry (helps with Render cold starts)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        return request<T>(path, options, retries - 1);
+      }
+
+      let message = `Request failed: ${res.status}`;
+      try {
+        const body = await res.json();
+        message = body?.message ?? message;
+      } catch { /* ignore */ }
+      throw new Error(message);
+    }
+
+    const text = await res.text();
+    if (!text) return undefined as unknown as T;
     try {
-      const body = await res.json();
-      message = body?.message ?? message;
-    } catch { /* ignore */ }
-    throw new Error(message);
+      return JSON.parse(text) as T;
+    } catch (e) {
+      return text as unknown as T;
+    }
+  } catch (error) {
+    if (error instanceof TypeError && retries > 0) {
+      // Network errors (like connection refused during cold start)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return request<T>(path, options, retries - 1);
+    }
+    throw error;
   }
-
-  if (res.status === 204) return undefined as unknown as T;
-  return res.json() as Promise<T>;
 }
 
 // ── Auth & Profile Endpoints ─────────────────────────────────────────────────
@@ -168,7 +190,17 @@ export async function apiAdminLogin(
 }
 
 export function startGoogleOAuth() {
-  window.location.href = `${BASE_URL}/auth/google`;
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
+  // Capture the current origin (e.g., http://localhost:3000, http://localhost:5173, or prod URL)
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  
+  // Pass the origin as the 'state' query parameter to the backend
+  const url = new URL(`${backendUrl}/auth/google`);
+  if (origin) {
+    url.searchParams.set('state', origin);
+  }
+  
+  window.location.href = url.toString();
 }
 
 export function parseOAuthCallback(): {
@@ -252,6 +284,7 @@ export async function apiAdminCreateQuiz(data: {
   endDate: string;
   durationInMinutes: number;
   totalMarks: number;
+  questionCount: number;
   isPublished?: boolean;
 }): Promise<Quiz> {
   return request<Quiz>('/admin/quizzes', {
@@ -343,6 +376,38 @@ export async function apiAdminAiChat(
   return request<{ response: string }>('/admin/ai-chat', {
     method: 'POST',
     body: JSON.stringify({ messages }),
+  });
+}
+
+export async function apiAdminGenerateAiQuiz(data: {
+  topic: string;
+  category: string;
+  difficulty: string;
+  questionCount: number;
+}): Promise<any> {
+  return request<any>('/admin/ai-quiz/generate', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function apiAdminSaveAiQuiz(data: any): Promise<any> {
+  return request<any>('/admin/ai-quiz/save', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// ── Settings Endpoints ───────────────────────────────────────────────────────
+
+export async function apiGetSettings(): Promise<any> {
+  return request<any>('/settings');
+}
+
+export async function apiSaveSettings(data: any): Promise<any> {
+  return request<any>('/settings', {
+    method: 'POST',
+    body: JSON.stringify(data),
   });
 }
 

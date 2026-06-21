@@ -1,8 +1,8 @@
 import {
-  Injectable, NotFoundException, ForbiddenException, BadRequestException,
+  Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { Repository, LessThanOrEqual, MoreThanOrEqual, Not } from 'typeorm';
 import { Quiz } from '../entities/quiz.entity';
 import { CreateQuizDto } from './dto/create-quiz.dto';
 import { UpdateQuizDto } from './dto/update-quiz.dto';
@@ -19,6 +19,12 @@ export class QuizzesService {
       throw new BadRequestException('Admin ID is required');
     }
 
+    // Duplicate title check
+    const existing = await this.quizRepo.findOne({ where: { title: dto.title } });
+    if (existing) {
+      throw new ConflictException('A quiz with this title already exists.');
+    }
+
     const { start, end } = this.parseDateRange(dto.startDate, dto.endDate);
     const quiz = this.quizRepo.create({
       ...dto,
@@ -28,6 +34,7 @@ export class QuizzesService {
     });
     return this.quizRepo.save(quiz);
   }
+
 
   async findAll(): Promise<Quiz[]> {
     return this.quizRepo.find({ order: { createdAt: 'DESC' } });
@@ -44,6 +51,17 @@ export class QuizzesService {
 
   async update(id: string, dto: UpdateQuizDto): Promise<Quiz> {
     const quiz = await this.findOne(id);
+
+    // Duplicate title check (ignore current quiz)
+    if (dto.title && dto.title !== quiz.title) {
+      const titleConflict = await this.quizRepo.findOne({
+        where: { title: dto.title },
+      });
+      if (titleConflict && titleConflict.id !== id) {
+        throw new ConflictException('A quiz with this title already exists.');
+      }
+    }
+
     const { startDate, endDate, ...rest } = dto;
     const updateData: Partial<Quiz> = { ...rest };
 
@@ -67,6 +85,21 @@ export class QuizzesService {
 
   async publish(id: string, dto: PublishQuizDto): Promise<Quiz> {
     const quiz = await this.findOne(id);
+    
+    if (dto.isPublished) {
+      if (!quiz.questions || quiz.questions.length === 0) {
+        throw new BadRequestException('Quiz cannot be published with zero questions.');
+      }
+      if (quiz.questions.length !== quiz.questionCount) {
+        throw new BadRequestException(`Question count mismatch. Expected ${quiz.questionCount} but found ${quiz.questions.length}.`);
+      }
+      
+      const sumMarks = quiz.questions.reduce((acc, q) => acc + Number(q.marks), 0);
+      if (sumMarks !== Number(quiz.totalMarks)) {
+        throw new BadRequestException(`Total marks mismatch. Quiz total is ${quiz.totalMarks}, but questions sum to ${sumMarks}.`);
+      }
+    }
+
     quiz.isPublished = dto.isPublished;
     return this.quizRepo.save(quiz);
   }

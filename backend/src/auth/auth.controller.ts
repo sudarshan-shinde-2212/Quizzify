@@ -6,7 +6,7 @@ import { GoogleAuthGuard } from '../common/guards/google-auth.guard';
 
 /** URL of the frontend – used for the post-OAuth redirect */
 const FRONTEND_URL =
-  process.env.FRONTEND_URL || 'https://quizzify-liart.vercel.app';
+  process.env.FRONTEND_URL || 'http://localhost:5173';
 
 @Controller()
 export class AuthController {
@@ -51,6 +51,19 @@ export class AuthController {
       profileCompleted: String(result.profileCompleted),
     });
 
-    return res.redirect(`${FRONTEND_URL}/?${params.toString()}`);
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://quizzify-hkak.vercel.app',
+    ];
+
+    let targetOrigin = FRONTEND_URL;
+    const stateOrigin = req.query.state as string;
+
+    if (stateOrigin && allowedOrigins.includes(stateOrigin)) {
+      targetOrigin = stateOrigin;
+    }
+
+    return res.redirect(`${targetOrigin}/?${params.toString()}`);
   }
 }

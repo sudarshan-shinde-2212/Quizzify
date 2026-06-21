@@ -63,7 +63,7 @@ export function LoginPage() {
             <span className="font-semibold text-lg tracking-tight">Quizzify</span>
           </div>
 
-          <h2 className="text-2xl font-bold text-black mb-1">Welcome back</h2>
+          <h2 className="text-2xl font-bold text-black mb-1">Welcome</h2>
           <p className="text-gray-500 text-sm mb-8">Sign in to your account to continue</p>
 
           {/* Google sign-in button */}

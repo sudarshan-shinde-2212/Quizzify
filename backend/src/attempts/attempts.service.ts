@@ -11,6 +11,8 @@ import { Question } from '../entities/question.entity';
 import { QuizzesService } from '../quizzes/quizzes.service';
 import { SubmitAnswersDto } from './dto/submit-answers.dto';
 
+import { SettingsService } from '../settings/settings.service';
+
 @Injectable()
 export class AttemptsService {
   constructor(
@@ -19,6 +21,7 @@ export class AttemptsService {
     @InjectRepository(QuizResult) private resultRepo: Repository<QuizResult>,
     @InjectRepository(Question) private questionRepo: Repository<Question>,
     private quizzesService: QuizzesService,
+    private settingsService: SettingsService,
   ) {}
 
   async startQuiz(studentId: string, quizId: string): Promise<QuizAttempt> {
@@ -27,8 +30,18 @@ export class AttemptsService {
     const existing = await this.attemptRepo.findOne({
       where: { studentId, quizId },
     });
+
     if (existing) {
-      throw new ConflictException('Quiz already attempted');
+      if (existing.isSubmitted) {
+        // Check if retakes are allowed before permitting a new attempt
+        const settings = await this.settingsService.getSettings();
+        const allowRetakes = settings?.allowRetakes ?? false;
+        if (!allowRetakes) {
+          throw new ConflictException('Quiz already attempted. Retakes are not allowed.');
+        }
+      }
+      // Remove old attempt to allow a fresh start
+      await this.attemptRepo.remove(existing);
     }
 
     const attempt = this.attemptRepo.create({
@@ -82,6 +95,9 @@ export class AttemptsService {
     let wrongAnswers = 0;
     let score = 0;
 
+    const settings = await this.settingsService.getSettings();
+    const useNegativeMarking = settings?.negativeMarking ?? false;
+
     for (const answer of answerEntities) {
       const question = questionMap.get(answer.questionId);
       if (!question) continue;
@@ -91,7 +107,9 @@ export class AttemptsService {
         score += Number(question.marks);
       } else {
         wrongAnswers++;
-        score -= Number(question.negativeMarks);
+        if (useNegativeMarking) {
+          score -= Number(question.negativeMarks);
+        }
       }
     }
 

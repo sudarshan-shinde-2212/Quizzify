@@ -16,6 +16,7 @@ import {
   getStoredRole,
   getStoredUser,
   parseOAuthCallback,
+  startGoogleOAuth,
   StoredUser,
 } from "./api";
 
@@ -134,8 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── Google OAuth (student) ────────────────────────────────────────────────
   const loginWithGoogle = () => {
-    const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api";
-    window.location.href = `${BASE_URL}/auth/google`;
+    startGoogleOAuth();
   };
 
   // ── Logout ───────────────────────────────────────────────────────────────

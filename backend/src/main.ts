@@ -7,10 +7,15 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // ── CORS ────────────────────────────────────────────────────────────────
-  // Allow the Vite dev server (port 5173) and any FRONTEND_URL in production.
-  const frontendUrl = process.env.FRONTEND_URL || 'https://quizzify-hkak.vercel.app';
+  // Allow explicit origins only: localhost:3000, localhost:5173, and Vercel.
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://quizzify-hkak.vercel.app',
+  ];
+
   app.enableCors({
-    origin: [frontendUrl, 'http://localhost:5173', 'http://localhost:3001'],
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -33,10 +38,10 @@ async function bootstrap() {
     process.env.ADMIN_PASSWORD || 'Admin@123',
   );
 
-  const port = Number(process.env.PORT) || 3001;
+  const port = Number(process.env.PORT) || 3000;
 
   await app.listen(port);
   console.log(`Quiz backend running on http://localhost:${port}`);
-  console.log(`CORS enabled for: ${frontendUrl}`);
+  console.log(`CORS enabled for explicitly allowed origins.`);
 }
 bootstrap();

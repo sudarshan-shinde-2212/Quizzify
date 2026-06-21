@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "./auth-context";
+import { apiGetSettings } from "./api";
 import { BookOpen, Menu, X, LogOut, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -18,6 +19,13 @@ export function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [platformName, setPlatformName] = useState("Quizzify");
+
+  useEffect(() => {
+    apiGetSettings()
+      .then((s) => { if (s?.platformName) setPlatformName(s.platformName); })
+      .catch(() => {});
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -31,7 +39,7 @@ export function Navbar() {
           {/* Logo */}
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/dashboard")}>
             <BookOpen size={18} className="text-black" />
-            <span className="font-semibold text-base tracking-tight">Quizzify</span>
+            <span className="font-semibold text-base tracking-tight">{platformName}</span>
           </div>
 
           {/* Desktop nav */}

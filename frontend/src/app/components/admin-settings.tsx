@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { AdminLayout } from "./admin-sidebar";
+import { apiGetSettings, apiSaveSettings } from "./api";
 
 export function AdminSettings() {
   const [form, setForm] = useState({
@@ -11,22 +12,26 @@ export function AdminSettings() {
     negativeMarking: false,
     autoSubmit: true,
     allowRetakes: false,
+    questionShuffle: true,
     emailNotifications: true,
     maintenanceMode: false,
   });
 
   const [saving, setSaving] = useState(false);
 
-  // Load saved settings from localStorage on component mount
+  // Load saved settings from backend on component mount
   useEffect(() => {
-    const saved = localStorage.getItem("adminSettings");
-    if (saved) {
+    async function load() {
       try {
-        setForm(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse saved settings", e);
+        const data = await apiGetSettings();
+        if (data && Object.keys(data).length > 0) {
+          setForm(data);
+        }
+      } catch (err) {
+        console.error("Failed to load settings", err);
       }
     }
+    load();
   }, []);
 
   const toggle = (key: keyof typeof form) =>
@@ -47,9 +52,7 @@ export function AdminSettings() {
   const saveSettings = async () => {
     setSaving(true);
     try {
-      // Simulate API call delay
-      await new Promise((res) => setTimeout(res, 500));
-      localStorage.setItem("adminSettings", JSON.stringify(form));
+      await apiSaveSettings(form);
       toast.success("Settings saved successfully");
     } catch (err) {
       toast.error("Failed to save settings");
@@ -71,17 +74,23 @@ export function AdminSettings() {
           <h3 className="text-sm font-semibold text-black mb-4">General</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Platform Name</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-medium text-gray-700">Platform Name <span className="text-red-500">*</span></label>
+                <span className="text-[10px] text-gray-400">{form.platformName.length}/50</span>
+              </div>
               <input
+                required
+                maxLength={50}
                 value={form.platformName}
                 onChange={(e) => setForm({ ...form, platformName: e.target.value })}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Max Tab Switches Allowed</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Max Tab Switches Allowed <span className="text-red-500">*</span></label>
               <input
                 type="number"
+                required
                 value={form.maxTabSwitches}
                 onChange={(e) => setForm({ ...form, maxTabSwitches: +e.target.value })}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
@@ -98,7 +107,8 @@ export function AdminSettings() {
           <div className="space-y-4">
             {[{ key: "negativeMarking" as const, label: "Enable Negative Marking", desc: "Deduct marks for wrong answers" },
               { key: "autoSubmit" as const, label: "Auto-Submit on Timeout", desc: "Automatically submit when timer ends" },
-              { key: "allowRetakes" as const, label: "Allow Retakes", desc: "Users can retake the same quiz" }].map(({ key, label, desc }) => (
+              { key: "allowRetakes" as const, label: "Allow Retakes", desc: "Users can retake the same quiz" },
+              { key: "questionShuffle" as const, label: "Shuffle Questions", desc: "Randomize question order for each attempt" }].map(({ key, label, desc }) => (
                 <div key={key} className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-black">{label}</p>
