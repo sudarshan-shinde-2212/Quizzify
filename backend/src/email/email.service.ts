@@ -8,26 +8,30 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
   constructor(private readonly configService: ConfigService) {
+    const smtpHost = this.configService.get<string>('smtp.host');
+    const smtpPort = this.configService.get<number>('smtp.port');
+    const smtpUser = this.configService.get<string>('smtp.user');
+    const smtpPass = this.configService.get<string>('smtp.pass');
+
     // Log presence of SMTP variables
-    this.logger.log(`SMTP_HOST loaded: ${!!this.configService.get<string>('SMTP_HOST')}`);
-    this.logger.log(`SMTP_PORT loaded: ${!!this.configService.get<string>('SMTP_PORT')}`);
-    this.logger.log(`SMTP_USER loaded: ${!!this.configService.get<string>('SMTP_USER')}`);
-    this.logger.log(`SMTP_PASS loaded: ${!!this.configService.get<string>('SMTP_PASS')}`);
-    this.logger.log(`SMTP_FROM_EMAIL loaded: ${!!this.configService.get<string>('SMTP_FROM_EMAIL')}`);
+    this.logger.log(`SMTP_HOST loaded: ${!!smtpHost}`);
+    this.logger.log(`SMTP_PORT loaded: ${!!smtpPort}`);
+    this.logger.log(`SMTP_USER loaded: ${!!smtpUser}`);
+    this.logger.log(`SMTP_PASS loaded: ${!!smtpPass}`);
+    this.logger.log(`SMTP_FROM_EMAIL loaded: ${!!this.configService.get<string>('smtp.fromEmail')}`);
 
     this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('SMTP_HOST') || 'smtp.gmail.com',
-      port: Number(this.configService.get<string>('SMTP_PORT')) || 587,
-      secure: Number(this.configService.get<string>('SMTP_PORT')) === 465,
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
       auth: {
-        user: this.configService.get<string>('SMTP_USER'),
-        pass: this.configService.get<string>('SMTP_PASS'),
+        user: smtpUser,
+        pass: smtpPass,
       },
     });
 
-    // Validate connection on startup but do not crash if it fails
-    // Verify transporter on startup
-    if (this.configService.get<string>('SMTP_USER') && this.configService.get<string>('SMTP_PASS')) {
+    // Verify transporter on startup if credentials are available
+    if (smtpUser && smtpPass) {
       this.transporter.verify()
         .then(() => this.logger.log('SMTP verification successful'))
         .catch((error) => this.logger.warn(`SMTP verification failed: ${error.message}`));
@@ -45,13 +49,16 @@ export class EmailService {
     wrongAnswers: number,
     submissionDate: Date,
   ) {
-    if (!this.configService.get<string>('SMTP_USER') || !this.configService.get<string>('SMTP_PASS')) {
-      this.logger.warn('SMTP credentials not configured, skipping email.');
-      return;
+    this.logger.log(`[DEBUG] sendQuizResult called. to: ${to}, studentName: ${studentName}, quizTitle: ${quizTitle}, score: ${score}`);
+    const smtpUser = this.configService.get<string>('smtp.user');
+    const smtpPass = this.configService.get<string>('smtp.pass');
+    if (!smtpUser || !smtpPass) {
+      this.logger.warn('[DEBUG] SMTP credentials not configured, skipping email.');
+      return { success: false, reason: 'SMTP credentials missing' };
     }
 
     const passFailStatus = percentage >= 50 ? 'Passed' : 'Failed';
-    const statusColor = percentage >= 50 ? '#10B981' : '#EF4444'; // Green or Red
+    const statusColor = percentage >= 50 ? '#10B981' : '#EF4444';
     const dateStr = new Date().toLocaleDateString('en-US', {
       weekday: 'short',
       year: 'numeric',
@@ -89,15 +96,19 @@ export class EmailService {
     `;
 
     try {
-      await this.transporter.sendMail({
-        from: `"Quizzify" <${this.configService.get<string>('SMTP_FROM_EMAIL') || this.configService.get<string>('SMTP_USER')}>`,
+      const fromEmail = `"Quizzify" <${this.configService.get<string>('smtp.fromEmail') || smtpUser}>`;
+      this.logger.log(`[DEBUG] Attempting to sendMail. From: ${fromEmail}, To: ${to}, Subject: Your Quiz Results: ${quizTitle}`);
+      const info = await this.transporter.sendMail({
+        from: fromEmail,
         to,
         subject: `Your Quiz Results: ${quizTitle}`,
         html,
       });
-      this.logger.log(`Sent result email to ${to} for quiz ${quizTitle}`);
+      this.logger.log(`[DEBUG] sendMail succeeded. MessageId: ${info.messageId}, Response: ${info.response}`);
+      return { success: true, messageId: info.messageId, response: info.response };
     } catch (error) {
-      this.logger.error(`Failed to send email to ${to}: ${(error as Error).message}`, (error as Error).stack);
+      this.logger.error(`[DEBUG] sendMail failed for ${to}: ${(error as Error).message}`, (error as Error).stack);
+      throw error;
     }
   }
 }

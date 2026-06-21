@@ -148,12 +148,15 @@ export class AttemptsService {
     await this.resultRepo.save(result);
 
     // ── Email notification ────────────────────────────────────────────────────
+    this.logger.log(`[DEBUG] Beginning email notification flow. studentId: ${studentId}, quizId: ${quizId}`);
     const settings = await this.settingsService.getSettings();
+    this.logger.log(`[DEBUG] Loaded settings: ${JSON.stringify(settings)}`);
     if (settings?.emailNotifications) {
-      this.logger.log(`emailNotifications: true – looking up student ${studentId}`);
+      this.logger.log(`[DEBUG] emailNotifications is enabled. Looking up student: ${studentId}`);
       this.studentsService.findById(studentId).then((student) => {
+        this.logger.log(`[DEBUG] Student lookup completed. Found student: ${JSON.stringify(student)}`);
         if (student && student.email) {
-          this.logger.log(`Student email found: ${student.email} – calling EmailService`);
+          this.logger.log(`[DEBUG] Student email found: ${student.email}. Calling EmailService.sendQuizResult...`);
           return this.emailService.sendQuizResult(
             student.email,
             student.fullName || 'Student',
@@ -164,15 +167,20 @@ export class AttemptsService {
             result.correctAnswers,
             result.wrongAnswers,
             attempt.submittedAt || new Date(),
-          );
+          ).then((sendResult) => {
+            this.logger.log(`[DEBUG] EmailService.sendQuizResult completed. Result: ${JSON.stringify(sendResult)}`);
+            return sendResult;
+          }).catch((sendErr) => {
+            this.logger.error(`[DEBUG] EmailService.sendQuizResult failed: ${sendErr.message}`, sendErr.stack);
+          });
         } else {
-          this.logger.warn(`Student ${studentId} not found or has no email address`);
+          this.logger.warn(`[DEBUG] Student found but has NO email address or is null: ${JSON.stringify(student)}`);
         }
       }).catch((err) => {
-        this.logger.error(`Failed to send email notification for student ${studentId}: ${(err as Error).message}`);
+        this.logger.error(`[DEBUG] Failed to look up student ${studentId} or send email: ${err.message}`, err.stack);
       });
     } else {
-      this.logger.log(`emailNotifications: false – skipping email for student ${studentId}`);
+      this.logger.log(`[DEBUG] emailNotifications is disabled in settings. Skipping email for student ${studentId}`);
     }
 
     return {

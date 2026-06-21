@@ -13,7 +13,7 @@ export class EmailController {
 
   @Post('test-email')
   async sendTestEmail() {
-    const to = this.configService.get<string>('ADMIN_EMAIL');
+    const to = this.configService.get<string>('admin.email');
     if (!to) {
       this.logger.warn('ADMIN_EMAIL not configured, cannot send test email');
       return { success: false, message: 'ADMIN_EMAIL not set' };

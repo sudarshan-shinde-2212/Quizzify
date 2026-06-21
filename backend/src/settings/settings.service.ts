@@ -3,6 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Setting } from '../entities/setting.entity';
 
+const DEFAULT_SETTINGS = {
+  emailNotifications: true,
+  allowRetakes: false,
+};
+
 @Injectable()
 export class SettingsService {
   private readonly logger = new Logger(SettingsService.name);
@@ -13,21 +18,24 @@ export class SettingsService {
   ) {}
 
   async getSettings() {
-    const settings = await this.settingsRepo.find();
-    if (settings.length === 0) {
-      return {};
+    this.logger.log('Fetching global settings...');
+    const setting = await this.settingsRepo.findOne({ where: { key: 'global_settings' } });
+    if (!setting) {
+      this.logger.log('No global settings found, returning defaults:', DEFAULT_SETTINGS);
+      return DEFAULT_SETTINGS;
     }
-    return settings[0].value;
+    const mergedSettings = { ...DEFAULT_SETTINGS, ...setting.value };
+    this.logger.log('Loaded settings:', mergedSettings);
+    return mergedSettings;
   }
 
   async saveSettings(value: any) {
     let setting = await this.settingsRepo.findOne({ where: { key: 'global_settings' } });
     if (!setting) {
-      setting = this.settingsRepo.create({ key: 'global_settings', value });
+      setting = this.settingsRepo.create({ key: 'global_settings', value: { ...DEFAULT_SETTINGS, ...value } });
     } else {
-      // Merge new values into existing ones so fields not sent by the UI
-      // (e.g. negativeMarking) are preserved from the database.
-      setting.value = { ...setting.value, ...value };
+      // Merge new values into existing ones, preserving defaults if needed
+      setting.value = { ...DEFAULT_SETTINGS, ...setting.value, ...value };
     }
     await this.settingsRepo.save(setting);
     this.logger.log(`Settings saved: ${JSON.stringify(setting.value)}`);
