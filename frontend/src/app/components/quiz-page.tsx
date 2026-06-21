@@ -64,14 +64,15 @@ function useTimer(initialSeconds: number, onExpire: () => void, isLoaded: boolea
   return { minutes, secs, seconds, isLow };
 }
 
-type ModalType = "tab-switch" | "security-warning" | "final-warning" | "submitted" | "confirm-submit" | "time-up" | "time-up-no-auto" | null;
+type ModalType = "tab-switch" | "security-warning" | "final-warning" | "submitted" | "confirm-submit" | "time-up" | "time-up-no-auto" | "incomplete" | null;
 
-function Modal({ type, tabCount, onClose, onSubmit, settings }: {
+function Modal({ type, tabCount, onClose, onSubmit, settings, unansweredCount }: {
   type: ModalType;
   tabCount: number;
   onClose: () => void;
   onSubmit: () => void;
   settings: any;
+  unansweredCount?: number;
 }) {
   if (!type) return null;
 
@@ -144,6 +145,16 @@ function Modal({ type, tabCount, onClose, onSubmit, settings }: {
       body: "Your time has expired. Please submit your assessment manually.",
       action: "Submit Now",
       actionFn: onSubmit,
+      showClose: false,
+    },
+    "incomplete": {
+      title: "⚠️ Incomplete Exam Submission",
+      icon: <AlertTriangle size={24} className="text-red-500" />,
+      bg: "bg-red-50",
+      border: "border-red-200",
+      body: `You cannot submit the exam because ${unansweredCount} question${unansweredCount > 1 ? "s" : ""} remain unanswered. All questions are mandatory and must be answered before the exam can be submitted. Please complete the remaining questions and try again.`,
+      action: "Complete Questions",
+      actionFn: onClose,
       showClose: false,
     },
   };
@@ -244,8 +255,40 @@ export function QuizPage() {
     loadQuizData();
   }, [quizId, router]);
 
+  // Helper to get unanswered questions and first index
+  const getUnansweredInfo = useCallback(() => {
+    const unansweredIndices: number[] = [];
+    questions.forEach((q, index) => {
+      if (answers[q.id] === undefined || answers[q.id] === null) {
+        unansweredIndices.push(index);
+      }
+    });
+    return {
+      unansweredCount: unansweredIndices.length,
+      firstUnansweredIndex: unansweredIndices.length > 0 ? unansweredIndices[0] : null,
+    };
+  }, [questions, answers]);
+
+  // Validate answers and show incomplete modal if needed
+  const validateAndTrySubmit = useCallback(() => {
+    const { unansweredCount, firstUnansweredIndex } = getUnansweredInfo();
+    if (unansweredCount > 0) {
+      // Show incomplete modal, when closed scroll to first unanswered question
+      setModal("incomplete");
+      // Wait for modal to close then scroll
+      return;
+    }
+    // Proceed to confirm submission
+    setModal("confirm-submit");
+  }, [getUnansweredInfo]);
+
   const handleSubmit = useCallback(async () => {
     if (!quizId || !quiz || submitting) return;
+    const { unansweredCount } = getUnansweredInfo();
+    if (unansweredCount > 0) {
+      setModal("incomplete");
+      return;
+    }
     setSubmitting(true);
     try {
       const timeTaken = Math.floor((Date.now() - startTime) / 1000);
@@ -274,11 +317,12 @@ export function QuizPage() {
       router.push("/history");
     } catch (err) {
       console.error("Failed to submit quiz", err);
+      // If backend rejected because of incomplete (though we should have caught it frontend)
       alert("Submission failed. Please try again or check your internet connection.");
     } finally {
       setSubmitting(false);
     }
-  }, [answers, router, quiz, quizId, startTime, submitting]);
+  }, [answers, router, quiz, quizId, startTime, submitting, getUnansweredInfo]);
 
   // Tab visibility monitoring
   useEffect(() => {
@@ -359,7 +403,7 @@ export function QuizPage() {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setModal("confirm-submit")}
+              onClick={validateAndTrySubmit}
               disabled={submitting}
               className="flex items-center gap-1.5 bg-black text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-900 disabled:opacity-50"
             >
@@ -383,6 +427,7 @@ export function QuizPage() {
               <div className="grid grid-cols-5 gap-1.5">
                 {questions.map((q, i) => {
                   const status = getQuestionStatus(q.id);
+                  const isUnanswered = status === "unanswered";
                   return (
                     <button
                       key={q.id}
@@ -394,6 +439,8 @@ export function QuizPage() {
                           ? "bg-green-100 text-green-700 border border-green-200"
                           : status === "marked"
                           ? "bg-amber-100 text-amber-700 border border-amber-200"
+                          : isUnanswered
+                          ? "bg-red-50 text-red-600 border border-red-300 hover:border-red-400"
                           : "bg-gray-50 text-gray-500 border border-gray-100 hover:border-gray-300"
                       }`}
                     >
@@ -406,7 +453,7 @@ export function QuizPage() {
                 {[
                   { color: "bg-green-100 border-green-200", label: "Answered" },
                   { color: "bg-amber-100 border-amber-200", label: "Marked" },
-                  { color: "bg-gray-50 border-gray-200", label: "Unanswered" },
+                  { color: "bg-red-50 border-red-300", label: "Unanswered" },
                 ].map(({ color, label }) => (
                   <div key={label} className="flex items-center gap-2 text-xs text-gray-500">
                     <div className={`w-3 h-3 rounded border ${color}`} />
@@ -434,7 +481,11 @@ export function QuizPage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
-                className="bg-white border border-gray-100 rounded-xl p-6"
+                className={`bg-white rounded-xl p-6 border-2 ${
+                  getQuestionStatus(questions[currentQ].id) === "unanswered"
+                    ? "border-red-400 bg-red-50"
+                    : "border-gray-100"
+                }`}
                 style={{ position: "relative", overflow: "hidden" }}
               >
                 <div className="flex items-start justify-between mb-4">
@@ -581,12 +632,23 @@ export function QuizPage() {
           <Modal
             type={modal}
             tabCount={tabSwitches}
-            onClose={() => setModal(null)}
-            onSubmit={() => {
+            onClose={() => {
+              if (modal === "incomplete") {
+                const { firstUnansweredIndex } = getUnansweredInfo();
+                if (firstUnansweredIndex !== null) {
+                  setCurrentQ(firstUnansweredIndex);
+                }
+              }
               setModal(null);
-              handleSubmit();
+            }}
+            onSubmit={() => {
+              if (modal !== "incomplete") {
+                setModal(null);
+                handleSubmit();
+              }
             }}
             settings={settings}
+            unansweredCount={getUnansweredInfo().unansweredCount}
           />
         )}
       </AnimatePresence>

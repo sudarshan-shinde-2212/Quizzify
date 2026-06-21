@@ -84,6 +84,17 @@ export class AttemptsService {
 
     const questionMap = new Map(questions.map((q) => [q.id, q]));
 
+    // Validate all questions have answers
+    const answeredQuestionIds = new Set(dto.answers.map((a) => a.questionId));
+    const unansweredQuestionIds = questions
+      .map((q) => q.id)
+      .filter((id) => !answeredQuestionIds.has(id));
+    if (unansweredQuestionIds.length > 0) {
+      throw new BadRequestException(
+        `Incomplete submission: ${unansweredQuestionIds.length} question(s) remain unanswered. All questions are mandatory.`,
+      );
+    }
+
     // Save answers
     const answerEntities = dto.answers
       .filter((a) => questionMap.has(a.questionId))
