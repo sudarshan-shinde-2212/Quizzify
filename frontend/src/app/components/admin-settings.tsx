@@ -9,7 +9,7 @@ export function AdminSettings() {
   const [form, setForm] = useState({
     platformName: "Quizzify",
     maxTabSwitches: 3,
-    negativeMarking: false,
+    // negativeMarking intentionally excluded from UI – logic handled in quiz engine
     autoSubmit: true,
     allowRetakes: false,
     questionShuffle: true,
@@ -25,7 +25,18 @@ export function AdminSettings() {
       try {
         const data = await apiGetSettings();
         if (data && Object.keys(data).length > 0) {
-          setForm(data);
+          // Spread only the fields we manage in the UI; negativeMarking is
+          // preserved in the DB but not exposed here.
+          setForm((prev) => ({
+            ...prev,
+            platformName: data.platformName ?? prev.platformName,
+            maxTabSwitches: data.maxTabSwitches ?? prev.maxTabSwitches,
+            autoSubmit: data.autoSubmit ?? prev.autoSubmit,
+            allowRetakes: data.allowRetakes ?? prev.allowRetakes,
+            questionShuffle: data.questionShuffle ?? prev.questionShuffle,
+            emailNotifications: data.emailNotifications ?? prev.emailNotifications,
+            maintenanceMode: data.maintenanceMode ?? prev.maintenanceMode,
+          }));
         }
       } catch (err) {
         console.error("Failed to load settings", err);
@@ -101,22 +112,23 @@ export function AdminSettings() {
           </div>
         </div>
 
-        {/* Quiz settings */}
+        {/* Quiz settings – negativeMarking removed from UI */}
         <div className="bg-white border border-gray-100 rounded-xl p-5">
           <h3 className="text-sm font-semibold text-black mb-4">Quiz Configuration</h3>
           <div className="space-y-4">
-            {[{ key: "negativeMarking" as const, label: "Enable Negative Marking", desc: "Deduct marks for wrong answers" },
+            {([
               { key: "autoSubmit" as const, label: "Auto-Submit on Timeout", desc: "Automatically submit when timer ends" },
               { key: "allowRetakes" as const, label: "Allow Retakes", desc: "Users can retake the same quiz" },
-              { key: "questionShuffle" as const, label: "Shuffle Questions", desc: "Randomize question order for each attempt" }].map(({ key, label, desc }) => (
-                <div key={key} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-black">{label}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
-                  </div>
-                  <Toggle id={key} value={form[key] as boolean} />
+              { key: "questionShuffle" as const, label: "Shuffle Questions", desc: "Randomize question order for each attempt" },
+            ]).map(({ key, label, desc }) => (
+              <div key={key} className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-black">{label}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
                 </div>
-              ))}
+                <Toggle id={key} value={form[key] as boolean} />
+              </div>
+            ))}
           </div>
         </div>
 
@@ -124,16 +136,18 @@ export function AdminSettings() {
         <div className="bg-white border border-gray-100 rounded-xl p-5">
           <h3 className="text-sm font-semibold text-black mb-4">System</h3>
           <div className="space-y-4">
-            {[{ key: "emailNotifications" as const, label: "Email Notifications", desc: "Send result emails to users" },
-              { key: "maintenanceMode" as const, label: "Maintenance Mode", desc: "Temporarily disable the platform for users" }].map(({ key, label, desc }) => (
-                <div key={key} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-black">{label}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
-                  </div>
-                  <Toggle id={key} value={form[key] as boolean} />
+            {([
+              { key: "emailNotifications" as const, label: "Email Notifications", desc: "Send result emails to users" },
+              { key: "maintenanceMode" as const, label: "Maintenance Mode", desc: "Temporarily disable the platform for users" },
+            ]).map(({ key, label, desc }) => (
+              <div key={key} className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-black">{label}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
                 </div>
-              ))}
+                <Toggle id={key} value={form[key] as boolean} />
+              </div>
+            ))}
           </div>
         </div>
 

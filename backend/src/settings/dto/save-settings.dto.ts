@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsInt, Min, Max, IsBoolean, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, Min, Max, IsBoolean, MaxLength, IsOptional } from 'class-validator';
 
 export class SaveSettingsDto {
   @IsString()
@@ -11,8 +11,15 @@ export class SaveSettingsDto {
   @Max(10)
   maxTabSwitches: number;
 
+  /**
+   * negativeMarking is intentionally optional here.
+   * The Settings UI does not expose this toggle — it is managed
+   * directly at the quiz/question level. When absent from the request
+   * body, the existing DB value is preserved by the service.
+   */
+  @IsOptional()
   @IsBoolean()
-  negativeMarking: boolean;
+  negativeMarking?: boolean;
 
   @IsBoolean()
   autoSubmit: boolean;

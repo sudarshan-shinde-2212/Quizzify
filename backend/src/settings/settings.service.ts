@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Setting } from '../entities/setting.entity';
 
 @Injectable()
 export class SettingsService {
+  private readonly logger = new Logger(SettingsService.name);
+
   constructor(
     @InjectRepository(Setting)
     private readonly settingsRepo: Repository<Setting>,
@@ -23,9 +25,12 @@ export class SettingsService {
     if (!setting) {
       setting = this.settingsRepo.create({ key: 'global_settings', value });
     } else {
-      setting.value = value;
+      // Merge new values into existing ones so fields not sent by the UI
+      // (e.g. negativeMarking) are preserved from the database.
+      setting.value = { ...setting.value, ...value };
     }
     await this.settingsRepo.save(setting);
+    this.logger.log(`Settings saved: ${JSON.stringify(setting.value)}`);
     return setting.value;
   }
 }

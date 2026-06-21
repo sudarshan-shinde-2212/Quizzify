@@ -1,6 +1,6 @@
 import {
   Injectable, NotFoundException, ConflictException,
-  BadRequestException, ForbiddenException,
+  BadRequestException, Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -17,6 +17,8 @@ import { StudentsService } from '../students/students.service';
 
 @Injectable()
 export class AttemptsService {
+  private readonly logger = new Logger(AttemptsService.name);
+
   constructor(
     @InjectRepository(QuizAttempt) private attemptRepo: Repository<QuizAttempt>,
     @InjectRepository(QuizAnswer) private answerRepo: Repository<QuizAnswer>,
@@ -57,6 +59,8 @@ export class AttemptsService {
   }
 
   async submitQuiz(studentId: string, quizId: string, dto: SubmitAnswersDto) {
+    this.logger.log(`Quiz submission started – studentId: ${studentId}, quizId: ${quizId}`);
+
     const quiz = await this.quizzesService.findOneActive(quizId);
 
     const attempt = await this.attemptRepo.findOne({
@@ -100,6 +104,8 @@ export class AttemptsService {
     let score = 0;
 
     const settings = await this.settingsService.getSettings();
+    this.logger.log(`Settings loaded – emailNotifications: ${settings?.emailNotifications}, negativeMarking: ${settings?.negativeMarking}`);
+
     const useNegativeMarking = settings?.negativeMarking ?? false;
 
     for (const answer of answerEntities) {
@@ -127,6 +133,7 @@ export class AttemptsService {
     attempt.isSubmitted = true;
     attempt.submittedAt = now;
     await this.attemptRepo.save(attempt);
+    this.logger.log(`Attempt saved – score: ${score}, percentage: ${percentage.toFixed(2)}%`);
 
     // Save result
     const result = this.resultRepo.create({
@@ -142,22 +149,27 @@ export class AttemptsService {
     });
     await this.resultRepo.save(result);
 
-    // Send email notification asynchronously if enabled
+    // ── Email notification ────────────────────────────────────────────────────
     if (settings?.emailNotifications) {
+      this.logger.log(`emailNotifications: true – looking up student ${studentId}`);
       this.studentsService.findById(studentId).then((student) => {
         if (student && student.email) {
-          this.emailService.sendQuizResult(
+          this.logger.log(`Student email found: ${student.email} – calling EmailService`);
+          return this.emailService.sendQuizResult(
             student.email,
             student.fullName || 'Student',
             quiz.title,
             result.score,
-            result.percentage
+            result.percentage,
           );
+        } else {
+          this.logger.warn(`Student ${studentId} not found or has no email address`);
         }
       }).catch((err) => {
-        // Log silently, do not fail submission
-        console.error('Failed to fetch student for email notification:', err);
+        this.logger.error(`Failed to send email notification for student ${studentId}: ${(err as Error).message}`);
       });
+    } else {
+      this.logger.log(`emailNotifications: false – skipping email for student ${studentId}`);
     }
 
     return {
