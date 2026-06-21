@@ -97,7 +97,7 @@ export function AdminUsers() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-50">
-                  {["User", "Email", "College / Department", "Attempts", "Avg Score", "Joined"].map((h) => (
+                  {["User", "Email", "Attempts", "Avg Score", "Joined"].map((h) => (
                     <th key={h} className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-5 py-3.5">
                       {h}
                     </th>
@@ -122,16 +122,7 @@ export function AdminUsers() {
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-sm text-gray-500">{user.email}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-500">
-                      {user.collegeName ? (
-                        <div>
-                          <p className="font-medium text-gray-700">{user.collegeName}</p>
-                          <p className="text-xs text-gray-400">{user.department} &bull; Year {user.yearOfStudy}</p>
-                        </div>
-                      ) : (
-                        <span className="text-gray-300 italic">Profile Incomplete</span>
-                      )}
-                    </td>
+
                     <td className="px-5 py-3.5 text-sm text-gray-700 font-semibold">{user.attempts}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1.5">
@@ -175,11 +166,7 @@ export function AdminUsers() {
                     </div>
                   </div>
                 </div>
-                {user.collegeName && (
-                  <p className="text-xs text-gray-500 mb-2">
-                    {user.collegeName} ({user.department})
-                  </p>
-                )}
+
                 <div className="flex gap-4 text-xs text-gray-500">
                   <span>Attempts: <span className="font-semibold text-black">{user.attempts}</span></span>
                   <span>Avg: <span className="font-semibold text-black">{user.avgScore}%</span></span>
