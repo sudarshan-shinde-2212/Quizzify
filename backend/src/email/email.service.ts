@@ -20,21 +20,39 @@ export class EmailService {
     this.logger.log(`SMTP_PASS loaded: ${!!smtpPass}`);
     this.logger.log(`SMTP_FROM_EMAIL loaded: ${!!this.configService.get<string>('smtp.fromEmail')}`);
 
-    this.transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpPort === 465,
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-    });
+    this.logger.log(`SMTP_HOST: ${smtpHost}`);
+this.logger.log(`SMTP_PORT actual value: ${smtpPort}`);
+this.logger.log(`SMTP_USER loaded: ${!!smtpUser}`);
+this.logger.log(`SMTP_PASS loaded: ${!!smtpPass}`);
+
+this.transporter = nodemailer.createTransport({
+  host: smtpHost,
+  port: smtpPort,
+  secure: smtpPort === 465,
+
+  auth: {
+    user: smtpUser,
+    pass: smtpPass,
+  },
+
+  connectionTimeout: 30000,
+  greetingTimeout: 30000,
+  socketTimeout: 30000,
+
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
 
     // Verify transporter on startup if credentials are available
     if (smtpUser && smtpPass) {
       this.transporter.verify()
-        .then(() => this.logger.log('SMTP verification successful'))
-        .catch((error) => this.logger.warn(`SMTP verification failed: ${error.message}`));
+  .then(() => {
+    this.logger.log('SMTP verification successful');
+  })
+  .catch((error) => {
+    this.logger.error(`SMTP verification failed: ${error.message}`);
+  });
     }
   }
 
