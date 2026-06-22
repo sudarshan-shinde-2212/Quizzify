@@ -19,7 +19,7 @@ export class EmailController {
       return { success: false, message: 'ADMIN_EMAIL not set' };
     }
     try {
-      await this.emailService.sendQuizResult(
+      const result = await this.emailService.sendQuizResult(
         to,
         'Admin Test',
         'Test Email',
@@ -30,8 +30,13 @@ export class EmailController {
         0, // wrongAnswers placeholder
         new Date(), // submissionDate placeholder
       );
-      this.logger.log(`Test email sent to ${to}`);
-      return { success: true, message: `Test email sent to ${to}` };
+      if (result.success) {
+        this.logger.log(`Test email sent to ${to}`);
+        return { success: true, message: `Test email sent to ${to}`, messageId: result.messageId };
+      } else {
+        this.logger.error(`Failed to send test email to ${to}: ${result.reason}`);
+        return { success: false, message: result.reason };
+      }
     } catch (error) {
       this.logger.error('Failed to send test email', (error as Error).stack);
       return { success: false, message: (error as Error).message };

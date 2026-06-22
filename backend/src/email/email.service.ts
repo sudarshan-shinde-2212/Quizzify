@@ -19,13 +19,13 @@ export class EmailService {
     // Log presence of SMTP variables (without exposing sensitive data)
     this.logger.log(`EMAIL_ENABLED: ${emailEnabled}`);
     this.logger.log(`SMTP_HOST configured: ${!!smtpHost}`);
-    this.logger.log(`SMTP_PORT configured: ${!!smtpPort}`);
+    this.logger.log(`SMTP_PORT configured: ${!!smtpPort} (value: ${smtpPort})`);
     this.logger.log(`SMTP_USER configured: ${!!smtpUser}`);
     this.logger.log(`SMTP_PASS configured: ${!!smtpPass}`);
     this.logger.log(`SMTP_FROM_EMAIL configured: ${!!this.configService.get<string>('smtp.fromEmail')}`);
 
     if (emailEnabled && smtpHost && smtpPort && smtpUser && smtpPass) {
-      this.logger.log('Initializing SMTP transporter...');
+      this.logger.log('Initializing SMTP transporter with options...');
       const options = {
         host: smtpHost,
         port: smtpPort,
@@ -34,10 +34,10 @@ export class EmailService {
           user: smtpUser,
           pass: smtpPass,
         },
-        // Timeouts for production environments
-        connectionTimeout: 8000,
-        greetingTimeout: 8000,
-        socketTimeout: 10000,
+        // Timeouts for production environments (increased to 30s)
+        connectionTimeout: 30000,
+        greetingTimeout: 30000,
+        socketTimeout: 30000,
         // Force IPv4 to avoid ENETUNREACH errors on Render
         family: 4,
         // TLS configuration
@@ -46,16 +46,20 @@ export class EmailService {
         },
         pool: true, // Use connection pooling for better performance
         maxConnections: 5,
-      } as SMTPTransport.Options;
+      } as SMTPTransport.Options & { family?: number; pool?: boolean; maxConnections?: number };
+      
+      this.logger.log(`Transporter options: host=${options.host}, port=${options.port}, secure=${options.secure}, pool=${(options as any).pool}`);
+      
       this.transporter = nodemailer.createTransport(options);
 
       // Verify transporter asynchronously (don't block startup)
+      this.logger.log('Starting transporter verification...');
       this.transporter.verify()
         .then(() => {
           this.logger.log('✅ SMTP transporter verified and ready');
         })
         .catch((error) => {
-          this.logger.warn(`⚠️ SMTP transporter verification failed: ${error.message}`);
+          this.logger.warn(`⚠️ SMTP transporter verification failed: ${error.message}`, error.stack);
           this.logger.warn('⚠️ This is common with Gmail on Render. Switch to Brevo (see .env.example) for free, reliable emails!');
           this.logger.warn('Will still attempt to send emails when needed...');
         });
@@ -132,27 +136,25 @@ export class EmailService {
       const fromEmail = `"Quizzify" <${this.configService.get<string>('smtp.fromEmail') || this.configService.get<string>('smtp.user')}>`;
       this.logger.log(`Attempting to send email from ${fromEmail} to ${to}`);
       
-      // Send with shorter timeout for production
-      const info = await Promise.race([
-        this.transporter.sendMail({
-          from: fromEmail,
-          to,
-          subject: `Your Quiz Results: ${quizTitle}`,
-          html,
-        }),
-        new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Email send timeout after 8 seconds')), 8000)
-        ),
-      ]);
+      // Let Nodemailer handle timeouts with its built-in options
+      this.logger.log('Calling transporter.sendMail()...');
+      const info = await this.transporter.sendMail({
+        from: fromEmail,
+        to,
+        subject: `Your Quiz Results: ${quizTitle}`,
+        html,
+      });
       
       this.logger.log(`✅ Email sent successfully! MessageId: ${info.messageId}`);
+      this.logger.log(`SMTP Response: ${info.response}`);
       return { success: true, messageId: info.messageId, response: info.response };
     } catch (error) {
-      this.logger.error(`❌ Failed to send email to ${to}: ${(error as Error).message}`);
-      if (this.isProduction && (error as Error).message.toLowerCase().includes('gmail')) {
+      const err = error as Error;
+      this.logger.error(`❌ Failed to send email to ${to}: ${err.message}`, err.stack);
+      if (this.isProduction && err.message.toLowerCase().includes('gmail')) {
         this.logger.warn('⚠️ Gmail is not recommended for production on Render! See .env.example for Brevo/SendGrid alternatives.');
       }
-      return { success: false, reason: (error as Error).message };
+      return { success: false, reason: err.message };
     }
   }
 }
