@@ -1,72 +1,65 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
-import SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 @Injectable()
 export class EmailService {
   private transporter: nodemailer.Transporter | null = null;
   private readonly logger = new Logger(EmailService.name);
-  private readonly isProduction = process.env.NODE_ENV === 'production';
 
   constructor(private readonly configService: ConfigService) {
+    // Load ALL SMTP config values and log them (NO PASSWORDS!)
     const emailEnabled = this.configService.get<boolean>('email.enabled');
     const smtpHost = this.configService.get<string>('smtp.host');
     const smtpPort = this.configService.get<number>('smtp.port');
     const smtpUser = this.configService.get<string>('smtp.user');
     const smtpPass = this.configService.get<string>('smtp.pass');
+    const smtpFromEmail = this.configService.get<string>('smtp.fromEmail');
 
-    // Log presence of SMTP variables (without exposing sensitive data)
+    this.logger.log('=== EMAIL SERVICE CONFIGURATION ===');
     this.logger.log(`EMAIL_ENABLED: ${emailEnabled}`);
-    this.logger.log(`SMTP_HOST configured: ${!!smtpHost}`);
-    this.logger.log(`SMTP_PORT configured: ${!!smtpPort} (value: ${smtpPort})`);
-    this.logger.log(`SMTP_USER configured: ${!!smtpUser}`);
-    this.logger.log(`SMTP_PASS configured: ${!!smtpPass}`);
-    this.logger.log(`SMTP_FROM_EMAIL configured: ${!!this.configService.get<string>('smtp.fromEmail')}`);
+    this.logger.log(`smtp.host: ${smtpHost}`);
+    this.logger.log(`smtp.port: ${smtpPort}`);
+    this.logger.log(`smtp.user: ${smtpUser}`);
+    this.logger.log(`smtp.fromEmail: ${smtpFromEmail}`);
+    this.logger.log('====================================');
 
     if (emailEnabled && smtpHost && smtpPort && smtpUser && smtpPass) {
-      this.logger.log('Initializing SMTP transporter with options...');
-      const options = {
+      this.logger.log('Initializing MINIMAL Brevo-compatible SMTP transporter...');
+      // Simplest possible Brevo-compatible configuration!
+      const transporterOptions = {
         host: smtpHost,
         port: smtpPort,
-        secure: smtpPort === 465, // true for 465, false for other ports
+        secure: false, // Port 587 uses STARTTLS, not direct TLS
         auth: {
           user: smtpUser,
           pass: smtpPass,
         },
-        // Timeouts for production environments (increased to 30s)
-        connectionTimeout: 30000,
-        greetingTimeout: 30000,
-        socketTimeout: 30000,
-        // Force IPv4 to avoid ENETUNREACH errors on Render
-        family: 4,
-        // TLS configuration
-        tls: {
-          rejectUnauthorized: false, // Disable for better compatibility on Render
-        },
-        pool: true, // Use connection pooling for better performance
-        maxConnections: 5,
-      } as SMTPTransport.Options & { family?: number; pool?: boolean; maxConnections?: number };
+      };
       
-      this.logger.log(`Transporter options: host=${options.host}, port=${options.port}, secure=${options.secure}, pool=${(options as any).pool}`);
-      
-      this.transporter = nodemailer.createTransport(options);
+      this.logger.log(`Transporter options: ${JSON.stringify({
+        ...transporterOptions,
+        auth: { user: transporterOptions.auth.user, pass: '***REDACTED***' }
+      })}`);
+
+      this.transporter = nodemailer.createTransport(transporterOptions);
 
       // Verify transporter asynchronously (don't block startup)
       this.logger.log('Starting transporter verification...');
       this.transporter.verify()
         .then(() => {
-          this.logger.log('✅ SMTP transporter verified and ready');
+          this.logger.log('✅ SMTP transporter verified and ready!');
         })
         .catch((error) => {
-          this.logger.warn(`⚠️ SMTP transporter verification failed: ${error.message}`, error.stack);
-          this.logger.warn('⚠️ This is common with Gmail on Render. Switch to Brevo (see .env.example) for free, reliable emails!');
-          this.logger.warn('Will still attempt to send emails when needed...');
+          this.logger.warn('⚠️ SMTP transporter verification failed:');
+          this.logger.warn(error.message);
+          this.logger.warn(error.stack);
+          this.logger.warn('Will still attempt to send emails...');
         });
     } else if (!emailEnabled) {
-      this.logger.warn('⚠️ Email service disabled via EMAIL_ENABLED flag; skipping initialization');
+      this.logger.warn('⚠️ Email service disabled via EMAIL_ENABLED flag.');
     } else {
-      this.logger.warn('⚠️ SMTP credentials not fully configured; email service will be disabled');
+      this.logger.warn('⚠️ Missing SMTP credentials! Check environment variables.');
     }
   }
 
@@ -83,13 +76,13 @@ export class EmailService {
   ) {
     const emailEnabled = this.configService.get<boolean>('email.enabled');
     if (!emailEnabled) {
-      this.logger.log('Email service disabled via EMAIL_ENABLED flag; skipping email');
-      return { success: false, reason: 'Email service disabled' };
+      this.logger.log('Email disabled. Skipping send.');
+      return { success: false, reason: 'Email disabled' };
     }
     
     if (!this.transporter) {
-      this.logger.warn('Email service not configured; skipping email');
-      return { success: false, reason: 'Email service not configured' };
+      this.logger.warn('Transporter not initialized. Skipping send.');
+      return { success: false, reason: 'Transporter not initialized' };
     }
 
     this.logger.log(`sendQuizResult called for: ${to} (${studentName})`);
@@ -134,26 +127,25 @@ export class EmailService {
 
     try {
       const fromEmail = `"Quizzify" <${this.configService.get<string>('smtp.fromEmail') || this.configService.get<string>('smtp.user')}>`;
-      this.logger.log(`Attempting to send email from ${fromEmail} to ${to}`);
-      
-      // Let Nodemailer handle timeouts with its built-in options
-      this.logger.log('Calling transporter.sendMail()...');
+      this.logger.log(`Calling sendMail() from ${fromEmail} to ${to}...`);
+
       const info = await this.transporter.sendMail({
         from: fromEmail,
         to,
         subject: `Your Quiz Results: ${quizTitle}`,
         html,
       });
-      
-      this.logger.log(`✅ Email sent successfully! MessageId: ${info.messageId}`);
+
+      this.logger.log('✅ sendMail() SUCCESS!');
+      this.logger.log(`MessageId: ${info.messageId}`);
       this.logger.log(`SMTP Response: ${info.response}`);
+
       return { success: true, messageId: info.messageId, response: info.response };
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`❌ Failed to send email to ${to}: ${err.message}`, err.stack);
-      if (this.isProduction && err.message.toLowerCase().includes('gmail')) {
-        this.logger.warn('⚠️ Gmail is not recommended for production on Render! See .env.example for Brevo/SendGrid alternatives.');
-      }
+      this.logger.error('❌ sendMail() FAILED!');
+      this.logger.error(`Error Message: ${err.message}`);
+      this.logger.error('Full Stack Trace:', err.stack);
       return { success: false, reason: err.message };
     }
   }
