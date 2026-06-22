@@ -18,7 +18,7 @@ export class Question {
   quizId: string;
 
   @Column({ type: 'text' })
-  questionText: string;
+  text: string;
 
   @Column()
   optionA: string;
