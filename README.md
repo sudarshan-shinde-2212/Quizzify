@@ -42,6 +42,9 @@ Users can log in securely using Google Authentication, attempt available quizzes
 -  Analyze quiz results
 -  Export quiz reports
 -  AI quiz generator
+-  Anti-cheating monitoring
+-  Email notifications
+-  Mobile application
 ---
 
 #  System Architecture
@@ -202,19 +205,6 @@ quiz-platform/
 - Protected API routes
 - Secure password storage
 
-
----
-
-#  Future Enhancements
-
-- AI-generated quiz questions
-- Coding-based assessments
-- Leaderboard system
-- Certificate generation
-- Anti-cheating monitoring
-- Email notifications
-- Mobile application
-- Advanced analytics dashboard
 
 
 ---
