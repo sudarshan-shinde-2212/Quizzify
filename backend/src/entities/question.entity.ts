@@ -20,6 +20,9 @@ export class Question {
   @Column({ type: 'text' })
   text: string;
 
+  @Column({ type: 'text', nullable: true })
+  imageUrl: string | null;
+
   @Column()
   optionA: string;
 

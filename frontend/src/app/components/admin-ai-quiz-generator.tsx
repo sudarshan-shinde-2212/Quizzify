@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import { AdminLayout } from "./admin-sidebar";
-import { apiAdminGenerateAiQuiz, apiAdminCreateQuiz, apiAdminCreateQuestion } from "./api";
-import { Loader2, Plus, Trash2, Save, RefreshCw, Sparkles, ChevronRight, Edit3 } from "lucide-react";
+import { apiAdminGenerateAiQuiz, apiAdminCreateQuiz, apiAdminCreateQuestion, apiAdminGenerateAiImage } from "./api";
+import { Loader2, Plus, Trash2, Save, RefreshCw, Sparkles, ChevronRight, Edit3, Image } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type WorkflowStep = "configure" | "preview" | "save";
 
 interface GeneratedQuestion {
   question: string;
+  imageUrl?: string;
   options: string[];
   correctAnswer: string;
   marks: number;
@@ -155,6 +156,7 @@ export function AdminAiQuizGenerator() {
 
         await apiAdminCreateQuestion(newQuiz.id, {
           text: q.question,
+          imageUrl: q.imageUrl || undefined,
           optionA: q.options[0] || "",
           optionB: q.options[1] || "",
           optionC: q.options[2] || "",
@@ -194,9 +196,31 @@ export function AdminAiQuizGenerator() {
       ...generatedQuiz,
       questions: [
         ...generatedQuiz.questions,
-        { question: "", options: ["", "", "", ""], correctAnswer: "", marks: marksPerQuestion },
+        { question: "", imageUrl: "", options: ["", "", "", ""], correctAnswer: "", marks: marksPerQuestion },
       ],
     });
+  };
+
+  const [generatingImageIndex, setGeneratingImageIndex] = useState<number | null>(null);
+
+  const handleGenerateImage = async (index: number, questionText: string) => {
+    if (!questionText.trim()) return;
+
+    setGeneratingImageIndex(index);
+    try {
+      const result = await apiAdminGenerateAiImage(
+        `A clear, educational diagram or illustration for this quiz question: "${questionText}". Simple, professional style, suitable for an online quiz.`
+      );
+      if (!generatedQuiz) return;
+
+      const newQuestions = [...generatedQuiz.questions];
+      newQuestions[index] = { ...newQuestions[index], imageUrl: result.imageUrl };
+      setGeneratedQuiz({ ...generatedQuiz, questions: newQuestions });
+    } catch (err) {
+      console.error("Failed to generate image", err);
+    } finally {
+      setGeneratingImageIndex(null);
+    }
   };
 
   const removeQuestion = (i: number) => {
@@ -523,6 +547,38 @@ export function AdminAiQuizGenerator() {
                   onChange={(e) => updateQuestion(i, { question: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg mb-3 text-sm outline-none focus:border-black"
                 />
+
+                {/* Image URL */}
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-medium text-gray-600">Image URL (Optional)</label>
+                  <button
+                    type="button"
+                    onClick={() => handleGenerateImage(i, q.question)}
+                    disabled={generatingImageIndex === i || !q.question.trim()}
+                    className="flex items-center gap-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 px-2 py-1 rounded-lg"
+                  >
+                    {generatingImageIndex === i ? <Loader2 size={12} className="animate-spin" /> : <Image size={12} />}
+                    Generate Image
+                  </button>
+                </div>
+                <input
+                  type="url"
+                  value={q.imageUrl || ""}
+                  onChange={(e) => updateQuestion(i, { imageUrl: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg mb-3 text-sm outline-none focus:border-black"
+                  placeholder="Enter image URL or generate one"
+                />
+                {/* Image Preview */}
+                {q.imageUrl && (
+                  <div className="mb-3">
+                    <p className="text-[10px] text-gray-400 mb-1">Preview:</p>
+                    <img
+                      src={q.imageUrl}
+                      alt="Question image"
+                      className="max-h-32 max-w-full object-contain border border-gray-200 rounded-lg"
+                    />
+                  </div>
+                )}
 
                 {/* Options */}
                 <div className="grid grid-cols-2 gap-2 mb-3">

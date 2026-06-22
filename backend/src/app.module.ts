@@ -21,6 +21,7 @@ import { QuizResult } from './entities/quiz-result.entity';
 import { Setting } from './entities/setting.entity';
 import { SettingsModule } from './settings/settings.module';
 import { AiQuizModule } from './ai-quiz/ai-quiz.module';
+import { AiImageModule } from './ai-image/ai-image.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { GlobalSearchModule } from './global-search/global-search.module';
 
@@ -55,6 +56,7 @@ import { GlobalSearchModule } from './global-search/global-search.module';
     AiChatModule,
     SettingsModule,
     AiQuizModule,
+    AiImageModule,
     LeaderboardModule,
     GlobalSearchModule,
   ],

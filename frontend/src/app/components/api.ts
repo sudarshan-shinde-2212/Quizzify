@@ -85,6 +85,7 @@ export interface Question {
   id: string;
   quizId: string;
   text: string;
+  imageUrl?: string | null;
   optionA: string;
   optionB: string;
   optionC: string;
@@ -592,6 +593,13 @@ export async function apiAdminGenerateAiQuiz(data: {
   return request<any>('/admin/ai-quiz/generate', {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+export async function apiAdminGenerateAiImage(prompt: string): Promise<{ imageUrl: string }> {
+  return request<{ imageUrl: string }>('/admin/ai-image/generate', {
+    method: 'POST',
+    body: JSON.stringify({ prompt }),
   });
 }
 

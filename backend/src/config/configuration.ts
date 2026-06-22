@@ -19,6 +19,9 @@ export default () => ({
   groq: {
     apiKey: process.env.GROQ_API_KEY || '',
   },
+  pollinations: {
+    apiKey: process.env.POLLINATIONS_API_KEY || '',
+  },
   firstAdmin: {
     email: process.env.FIRST_ADMIN_EMAIL,
     password: process.env.FIRST_ADMIN_PASSWORD,

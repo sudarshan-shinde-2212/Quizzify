@@ -107,6 +107,7 @@ Return ONLY valid JSON matching this schema exactly, with no markdown formatting
 
       await this.questionsService.create(quiz.id, {
         text: questionText,
+        imageUrl: q.imageUrl || undefined,
         optionA: options[0] || '',
         optionB: options[1] || '',
         optionC: options[2] || '',

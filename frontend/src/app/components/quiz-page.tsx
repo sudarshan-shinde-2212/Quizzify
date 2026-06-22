@@ -16,6 +16,7 @@ import {
   Clock, ChevronLeft, ChevronRight, AlertTriangle, Send,
   RotateCcw, Bookmark, CheckSquare, Loader2
 } from "lucide-react";
+import { ImageModal } from "./ui/image-modal";
 
 /** Fisher-Yates shuffle – returns a new array */
 function shuffle<T>(arr: T[]): T[] {
@@ -214,6 +215,11 @@ export function QuizPage() {
   const [startTime] = useState(Date.now());
   const [submitting, setSubmitting] = useState(false);
   const [cheatingDetected, setCheatingDetected] = useState(false);
+  const [imageModal, setImageModal] = useState<{ isOpen: boolean; imageUrl: string; alt: string }>({
+    isOpen: false,
+    imageUrl: "",
+    alt: "",
+  });
 
   const [settings, setSettings] = useState<any>(null);
 
@@ -549,6 +555,25 @@ export function QuizPage() {
                   {q.text}
                 </p>
 
+                {/* Image Display */}
+                {q.imageUrl && (
+                  <div className="mb-4">
+                    <img
+                      src={q.imageUrl}
+                      alt={`Question ${currentQ + 1}`}
+                      className="max-h-64 w-auto object-contain border border-gray-200 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() =>
+                        setImageModal({
+                          isOpen: true,
+                          imageUrl: q.imageUrl!,
+                          alt: `Question ${currentQ + 1} image`,
+                        })
+                      }
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Click to enlarge</p>
+                  </div>
+                )}
+
                 <div className="space-y-2.5 mt-4">
                   {options.map((opt, oi) => {
                     const selected = answers[q.id] === oi;
@@ -690,6 +715,14 @@ export function QuizPage() {
           />
         )}
       </AnimatePresence>
+
+      {/* Image Modal */}
+      <ImageModal
+        isOpen={imageModal.isOpen}
+        onClose={() => setImageModal({ ...imageModal, isOpen: false })}
+        imageUrl={imageModal.imageUrl}
+        alt={imageModal.alt}
+      />
     </div>
   );
 }

@@ -9,6 +9,10 @@ export class CreateQuestionDto {
   @IsNotEmpty()
   text: string;
 
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
   @IsString()
   @IsNotEmpty()
   optionA: string;

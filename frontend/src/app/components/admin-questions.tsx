@@ -42,6 +42,7 @@ function QuestionModal({ quizId, question, selectedQuiz, onClose, onRefresh }: Q
 
   const [form, setForm] = useState({
     text: question?.text ?? "",
+    imageUrl: question?.imageUrl ?? "",
     optionA: question?.optionA ?? "",
     optionB: question?.optionB ?? "",
     optionC: question?.optionC ?? "",
@@ -58,6 +59,7 @@ function QuestionModal({ quizId, question, selectedQuiz, onClose, onRefresh }: Q
 
     const payload = {
       text: form.text,
+      imageUrl: form.imageUrl || undefined,
       optionA: form.optionA,
       optionB: form.optionB,
       optionC: form.optionC,
@@ -109,10 +111,35 @@ function QuestionModal({ quizId, question, selectedQuiz, onClose, onRefresh }: Q
               maxLength={500}
               value={form.text}
               onChange={(e) => setForm({ ...form, text: e.target.value })}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black resize-none"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-black resize-none"
               rows={3}
               placeholder="Enter your question text..."
             />
+          </div>
+
+          {/* Image URL Input */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-medium text-gray-700">Image URL (Optional)</label>
+            </div>
+            <input
+              type="url"
+              value={form.imageUrl}
+              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-black"
+              placeholder="Enter image URL..."
+            />
+            {/* Preview */}
+            {form.imageUrl && (
+              <div className="mt-2">
+                <p className="text-xs text-gray-500 mb-1">Preview:</p>
+                <img
+                  src={form.imageUrl}
+                  alt="Question preview"
+                  className="max-h-40 max-w-full object-contain border border-gray-200 rounded-lg"
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -423,6 +450,16 @@ export function AdminQuestions() {
                       )}
                     </div>
                     <p className="text-sm text-black mb-3 leading-relaxed">{q.text}</p>
+                    {/* Image Preview */}
+                    {q.imageUrl && (
+                      <div className="mb-3">
+                        <img
+                          src={q.imageUrl}
+                          alt={`Question ${i + 1}`}
+                          className="max-h-32 max-w-full object-contain border border-gray-200 rounded-lg"
+                        />
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {options.map((opt) => {
                         const isCorrect = q.correctOption === opt.key;
