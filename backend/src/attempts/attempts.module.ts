@@ -8,7 +8,6 @@ import { QuizResult } from '../entities/quiz-result.entity';
 import { Question } from '../entities/question.entity';
 import { QuizzesModule } from '../quizzes/quizzes.module';
 import { SettingsModule } from '../settings/settings.module';
-import { EmailModule } from '../email/email.module';
 import { StudentsModule } from '../students/students.module';
 
 @Module({
@@ -16,7 +15,6 @@ import { StudentsModule } from '../students/students.module';
     TypeOrmModule.forFeature([QuizAttempt, QuizAnswer, QuizResult, Question]),
     QuizzesModule,
     SettingsModule,
-    EmailModule,
     StudentsModule,
   ],
   providers: [AttemptsService],

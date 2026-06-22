@@ -12,7 +12,6 @@ import { QuizzesService } from '../quizzes/quizzes.service';
 import { SubmitAnswersDto } from './dto/submit-answers.dto';
 
 import { SettingsService } from '../settings/settings.service';
-import { EmailService } from '../email/email.service';
 import { StudentsService } from '../students/students.service';
 
 @Injectable()
@@ -26,7 +25,6 @@ export class AttemptsService {
     @InjectRepository(Question) private questionRepo: Repository<Question>,
     private quizzesService: QuizzesService,
     private settingsService: SettingsService,
-    private emailService: EmailService,
     private studentsService: StudentsService,
   ) {}
 
@@ -157,42 +155,6 @@ export class AttemptsService {
       percentage: parseFloat(percentage.toFixed(2)),
     });
     await this.resultRepo.save(result);
-
-    // ── Email notification ────────────────────────────────────────────────────
-    this.logger.log(`[DEBUG] Beginning email notification flow. studentId: ${studentId}, quizId: ${quizId}`);
-    const settings = await this.settingsService.getSettings();
-    this.logger.log(`[DEBUG] Loaded settings: ${JSON.stringify(settings)}`);
-    if (settings?.emailNotifications) {
-      this.logger.log(`[DEBUG] emailNotifications is enabled. Looking up student: ${studentId}`);
-      this.studentsService.findById(studentId).then((student) => {
-        this.logger.log(`[DEBUG] Student lookup completed. Found student: ${JSON.stringify(student)}`);
-        if (student && student.email) {
-          this.logger.log(`[DEBUG] Student email found: ${student.email}. Calling EmailService.sendQuizResult...`);
-          return this.emailService.sendQuizResult(
-            student.email,
-            student.fullName || 'Student',
-            quiz.title,
-            result.score,
-            result.percentage,
-            result.totalQuestions,
-            result.correctAnswers,
-            result.wrongAnswers,
-            attempt.submittedAt || new Date(),
-          ).then((sendResult) => {
-            this.logger.log(`[DEBUG] EmailService.sendQuizResult completed. Result: ${JSON.stringify(sendResult)}`);
-            return sendResult;
-          }).catch((sendErr) => {
-            this.logger.error(`[DEBUG] EmailService.sendQuizResult failed: ${sendErr.message}`, sendErr.stack);
-          });
-        } else {
-          this.logger.warn(`[DEBUG] Student found but has NO email address or is null: ${JSON.stringify(student)}`);
-        }
-      }).catch((err) => {
-        this.logger.error(`[DEBUG] Failed to look up student ${studentId} or send email: ${err.message}`, err.stack);
-      });
-    } else {
-      this.logger.log(`[DEBUG] emailNotifications is disabled in settings. Skipping email for student ${studentId}`);
-    }
 
     return {
       score: result.score,

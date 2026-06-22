@@ -13,7 +13,6 @@ export function AdminSettings() {
     maxTabSwitches: 3,
     allowRetakes: false,
     questionShuffle: true,
-    emailNotifications: true,
     maintenanceMode: false,
   });
 
@@ -33,7 +32,6 @@ export function AdminSettings() {
             maxTabSwitches: data.maxTabSwitches ?? prev.maxTabSwitches,
             allowRetakes: data.allowRetakes ?? prev.allowRetakes,
             questionShuffle: data.questionShuffle ?? prev.questionShuffle,
-            emailNotifications: data.emailNotifications ?? prev.emailNotifications,
             maintenanceMode: data.maintenanceMode ?? prev.maintenanceMode,
           }));
         }
@@ -126,7 +124,6 @@ export function AdminSettings() {
           <h3 className="text-sm font-semibold text-black mb-4">System</h3>
           <div className="space-y-4">
             {([
-              { key: "emailNotifications" as const, label: "Email Notifications", desc: "Send result emails to users" },
               { key: "maintenanceMode" as const, label: "Maintenance Mode", desc: "Temporarily disable the platform for users" },
             ]).map(({ key, label, desc }) => (
               <div key={key} className="flex items-center justify-between">
