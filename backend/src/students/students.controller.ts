@@ -3,12 +3,13 @@ import { StudentsService } from './students.service';
 import { CompleteProfileDto } from './dto/complete-profile.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { MaintenanceModeGuard } from '../common/guards/maintenance-mode.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '../common/enums/role.enum';
 
 @Controller()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, MaintenanceModeGuard)
 export class StudentsController {
   constructor(private studentsService: StudentsService) {}
 

@@ -499,6 +499,9 @@ export async function apiAdminGetUsers(): Promise<StoredUser[]> {
   return request<StoredUser[]>('/admin/users');
 }
 
+/** Alias for apiAdminGetUsers for backward compatibility */
+export const apiAdminGetStudents = apiAdminGetUsers;
+
 export async function apiAdminSearchUsers(query: string): Promise<StoredUser[]> {
   return request<StoredUser[]>(`/admin/users/search?q=${encodeURIComponent(query)}`);
 }

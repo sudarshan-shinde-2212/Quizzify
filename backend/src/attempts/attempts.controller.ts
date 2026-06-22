@@ -3,12 +3,13 @@ import { AttemptsService } from './attempts.service';
 import { SubmitAnswersDto } from './dto/submit-answers.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { MaintenanceModeGuard } from '../common/guards/maintenance-mode.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '../common/enums/role.enum';
 
 @Controller('student/quizzes')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, MaintenanceModeGuard)
 @Roles(Role.STUDENT)
 export class AttemptsController {
   constructor(private attemptsService: AttemptsService) {}

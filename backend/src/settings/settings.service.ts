@@ -6,6 +6,12 @@ import { Setting } from '../entities/setting.entity';
 const DEFAULT_SETTINGS = {
   emailNotifications: true,
   allowRetakes: false,
+  maxTabSwitches: 3,
+  questionShuffle: true,
+  maintenanceMode: false,
+  platformName: "Quizzify",
+  autoSubmit: true,
+  negativeMarking: 0,
 };
 
 @Injectable()

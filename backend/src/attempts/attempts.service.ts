@@ -112,7 +112,8 @@ export class AttemptsService {
     let wrongAnswers = 0;
     let score = 0;
 
-    const quizNegMark = Number(quiz.negativeMarks ?? 0);
+    const settings = await this.settingsService.getSettings();
+    const quizNegMark = Number(quiz.negativeMarks ?? settings.negativeMarking ?? 0);
 
     for (const answer of answerEntities) {
       const question = questionMap.get(answer.questionId);

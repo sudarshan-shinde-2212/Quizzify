@@ -154,19 +154,19 @@ export function InstructionsPage() {
               <div className="relative mt-0.5">
                 <input
                   type="checkbox"
+                  id="agree-to-rules"
                   checked={agreed}
                   onChange={(e) => setAgreed(e.target.checked)}
-                  className="sr- SR-ONLY"
-                  style={{ display: "none" }}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
                 />
                 <div
-                  onClick={() => setAgreed(!agreed)}
-                  className={`w-4 h-4 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
+                  aria-hidden="true"
+                  className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors pointer-events-none ${
                     agreed ? "bg-black border-black" : "border-gray-300 bg-white"
                   }`}
                 >
                   {agreed && (
-                    <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                    <svg width="9" height="7" viewBox="0 0 9 7" fill="none" aria-hidden="true">
                       <path d="M1 3L3.5 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   )}
