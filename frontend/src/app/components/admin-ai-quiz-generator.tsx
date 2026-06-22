@@ -13,7 +13,6 @@ interface GeneratedQuestion {
   imageUrl?: string;
   options: string[];
   correctAnswer: string;
-  marks: number;
 }
 
 interface GeneratedQuiz {
@@ -25,12 +24,12 @@ interface GeneratedQuiz {
 export function AdminAiQuizGenerator() {
   const router = useRouter();
 
-  // ── Step 1: Configuration ────────────────────────────────────────────────────
+  // ── Step 1: Configure ────────────────────────────────────────────────────
   const [topic, setTopic] = useState("");
   const [category, setCategory] = useState("Programming");
   const [difficulty, setDifficulty] = useState("Medium");
   const [questionCount, setQuestionCount] = useState<number>(5);
-  const [marksPerQuestion, setMarksPerQuestion] = useState<number>(1);
+  const [totalMarks, setTotalMarks] = useState<number>(10);
   const [negativeMarks, setNegativeMarks] = useState<number>(0);
   const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 10); });
@@ -43,20 +42,18 @@ export function AdminAiQuizGenerator() {
   const [generatedQuiz, setGeneratedQuiz] = useState<GeneratedQuiz | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // ── Validation ───────────────────────────────────────────────────────────────
-  const validateMarks = (val: number): string => {
-    if (val <= 0) return "Question marks must be greater than 0.";
-    if (val !== 0.5 && !Number.isInteger(val)) return "Marks must be 0.5 or a whole number (1, 2, 3…).";
-    return "";
+  // ── Total Marks Calculation ───────────────────────────────────────────────────
+  const calculatePerQuestionMarks = () => {
+    if (generatedQuiz && generatedQuiz.questions.length > 0) {
+      return Number((totalMarks / generatedQuiz.questions.length).toFixed(1));
+    }
+    return 1; // Default 1 mark
   };
-
-  const marksError = validateMarks(marksPerQuestion);
 
   // ── Step 1 → Generate ───────────────────────────────────────────────────────
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!topic.trim()) return;
-    if (marksError) { setError(marksError); return; }
     if (questionCount < 1) { setError("Number of questions must be at least 1."); return; }
 
     setLoading(true);
@@ -82,15 +79,16 @@ export function AdminAiQuizGenerator() {
         }
       }
 
-      // Attach configurable marks to every question
-      const enriched: GeneratedQuiz = {
+      // Clean up: remove any marks from AI output
+      const cleaned: GeneratedQuiz = {
         ...quiz,
         questions: quiz.questions.map((q: any) => ({
-          ...q,
-          marks: marksPerQuestion,
+          question: q.question,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
         })),
       };
-      setGeneratedQuiz(enriched);
+      setGeneratedQuiz(cleaned);
       setStep("preview");
     } catch (err: any) {
       setError(err.message || "Failed to generate quiz. AI might have returned invalid format.");
@@ -112,23 +110,8 @@ export function AdminAiQuizGenerator() {
     setSaving(true);
     setError("");
 
-    // Validate all question marks
-    for (let i = 0; i < generatedQuiz.questions.length; i++) {
-      const q = generatedQuiz.questions[i];
-      const err = validateMarks(q.marks);
-      if (err) { setError(`Q${i + 1}: ${err}`); setSaving(false); return; }
-    }
-
-    const expectedTotalMarks = questionCount * marksPerQuestion;
-    const totalMarks = generatedQuiz.questions.reduce(
-      (sum, q) => sum + Number(q.marks), 0
-    );
-
-    if (Math.abs(totalMarks - expectedTotalMarks) > 0.01) {
-      setError(`Marks mismatch. Questions sum to ${totalMarks.toFixed(2)}, but the target total is ${expectedTotalMarks.toFixed(2)}. Please adjust the question marks.`);
-      setSaving(false);
-      return;
-    }
+    const perQuestionMarks = calculatePerQuestionMarks();
+    const calculatedTotalMarks = perQuestionMarks * generatedQuiz.questions.length;
 
     try {
       const newQuiz = await apiAdminCreateQuiz({
@@ -138,7 +121,7 @@ export function AdminAiQuizGenerator() {
         startDate: new Date(`${startDate}T00:00:00.000Z`).toISOString(),
         endDate: new Date(`${endDate}T23:59:59.000Z`).toISOString(),
         durationInMinutes,
-        totalMarks: parseFloat(totalMarks.toFixed(2)),
+        totalMarks: parseFloat(calculatedTotalMarks.toFixed(2)),
         questionCount: generatedQuiz.questions.length,
         negativeMarks,
         visibility,
@@ -162,7 +145,7 @@ export function AdminAiQuizGenerator() {
           optionC: q.options[2] || "",
           optionD: q.options[3] || "",
           correctOption: correctOptionLabel,
-          marks: parseFloat(Number(q.marks).toFixed(2)),
+          marks: parseFloat(perQuestionMarks.toFixed(2)),
         });
       }
 
@@ -196,7 +179,7 @@ export function AdminAiQuizGenerator() {
       ...generatedQuiz,
       questions: [
         ...generatedQuiz.questions,
-        { question: "", imageUrl: "", options: ["", "", "", ""], correctAnswer: "", marks: marksPerQuestion },
+        { question: "", imageUrl: "", options: ["", "", "", ""], correctAnswer: "" },
       ],
     });
   };
@@ -334,21 +317,20 @@ export function AdminAiQuizGenerator() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Marks per Question <span className="text-red-500">*</span>
+                  Total Marks <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
                   min="0.5"
                   step="0.5"
                   required
-                  value={marksPerQuestion}
-                  onChange={(e) => setMarksPerQuestion(Number(e.target.value))}
-                  className={`w-full px-3 py-2.5 border rounded-lg focus:border-black outline-none ${marksError ? "border-red-300" : ""}`}
-                  placeholder="e.g. 0.5, 1, 2"
+                  value={totalMarks}
+                  onChange={(e) => setTotalMarks(Number(e.target.value))}
+                  className="w-full px-3 py-2.5 border rounded-lg focus:border-black outline-none"
+                  placeholder="e.g. 10, 20, 50"
                 />
-                {marksError && <p className="text-[11px] text-red-500 mt-1">{marksError}</p>}
                 <p className="text-[10px] text-gray-400 mt-1">
-                  Total marks = {questionCount} × {marksPerQuestion} = {(questionCount * marksPerQuestion).toFixed(2)}
+                  Marks per question = {totalMarks} ÷ {questionCount} = {Number((totalMarks / questionCount).toFixed(1))}
                 </p>
               </div>
             </div>
@@ -597,36 +579,18 @@ export function AdminAiQuizGenerator() {
                   ))}
                 </div>
 
-                {/* Correct answer + Marks */}
-                <div className="flex gap-3">
-                  <div className="flex-1">
-                    <label className="block text-xs font-medium mb-0.5 text-green-600">Correct Answer <span className="text-red-500">*</span></label>
-                    <select
-                      value={q.correctAnswer}
-                      onChange={(e) => updateQuestion(i, { correctAnswer: e.target.value })}
-                      className="w-full px-2 py-1.5 border border-green-200 rounded-md text-sm outline-none focus:border-green-400"
-                    >
-                      {q.options.map((opt, oi) => (
-                        <option key={oi} value={opt}>{opt || `Option ${oi + 1}`}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="w-32">
-                    <label className="block text-xs font-medium mb-0.5 text-gray-600">Marks <span className="text-red-500">*</span></label>
-                    <input
-                      type="number"
-                      min="0.5"
-                      step="0.5"
-                      value={q.marks}
-                      onChange={(e) => updateQuestion(i, { marks: Number(e.target.value) })}
-                      className={`w-full px-2 py-1.5 border rounded-md text-sm outline-none ${
-                        validateMarks(q.marks) ? "border-red-300" : "focus:border-black"
-                      }`}
-                    />
-                    {validateMarks(q.marks) && (
-                      <p className="text-[10px] text-red-500 mt-0.5">{validateMarks(q.marks)}</p>
-                    )}
-                  </div>
+                {/* Correct answer */}
+                <div className="flex-1">
+                  <label className="block text-xs font-medium mb-0.5 text-green-600">Correct Answer <span className="text-red-500">*</span></label>
+                  <select
+                    value={q.correctAnswer}
+                    onChange={(e) => updateQuestion(i, { correctAnswer: e.target.value })}
+                    className="w-full px-2 py-1.5 border border-green-200 rounded-md text-sm outline-none focus:border-green-400"
+                  >
+                    {q.options.map((opt, oi) => (
+                      <option key={oi} value={opt}>{opt || `Option ${oi + 1}`}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             ))}

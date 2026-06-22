@@ -122,16 +122,34 @@ export function Dashboard() {
 
   return (
     <UserLayout>
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-black">
-          Welcome back, {user?.fullName?.split(" ")[0] || user?.name?.split(" ")[0]}
-        </h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {stats.liveCount > 0
-            ? `${stats.liveCount} quiz${stats.liveCount > 1 ? "zes" : ""} available to take`
+      {/* Top Row - Welcome + Available Assessments */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+        <div className="flex-shrink-0">
+          <h1 className="text-xl font-bold text-black">
+            Welcome back, {user?.fullName?.split(" ")[0] || user?.name?.split(" ")[0]}
+          </h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {stats.liveCount > 0
+              ? `${stats.liveCount} quiz${stats.liveCount > 1 ? "zes" : ""} available to take`
             : "No new quizzes available right now"}
-        </p>
+          </p>
+        </div>
+        
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide pt-1">
+            Available Assessments
+          </h2>
+          <div className="relative w-full md:w-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search assessments..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full md:w-64 pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all"
+            />
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6">
@@ -179,21 +197,6 @@ export function Dashboard() {
 
         {/* Available Assessments (80% Desktop, 70% Tablet) */}
         <div className="w-full md:w-[70%] lg:w-[80%]">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-            <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
-              Available Assessments
-            </h2>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-              <input
-                type="text"
-                placeholder="Search assessments..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full md:w-64 pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all"
-              />
-            </div>
-          </div>
 
           {filteredQuizzes.length === 0 ? (
             <div className="bg-white border border-gray-100 rounded-xl py-12 text-center text-gray-400">

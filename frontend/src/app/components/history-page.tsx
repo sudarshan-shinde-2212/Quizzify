@@ -79,18 +79,34 @@ export function HistoryPage() {
                       <p className="text-sm font-medium text-black">{item.quiz?.title || "Unknown Quiz"}</p>
                     </td>
                     <td className="px-5 py-4">
-                      <span className="text-sm font-semibold text-black">
-                        {item.score}/{item.quiz?.totalMarks || item.totalQuestions * 3}
-                      </span>
+                      {item.cheatingDetected ? (
+                        <span className="text-sm font-semibold text-gray-400">—</span>
+                      ) : (
+                        <span className="text-sm font-semibold text-black">
+                          {item.score}/{item.quiz?.totalMarks || item.totalQuestions * 3}
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-4">
-                      <span className="text-sm text-gray-700 font-semibold">{item.percentage}%</span>
+                      {item.cheatingDetected ? (
+                        <span className="text-sm font-semibold text-gray-400">—</span>
+                      ) : (
+                        <span className="text-sm text-gray-700 font-semibold">{item.percentage}%</span>
+                      )}
                     </td>
                     <td className="px-5 py-4">
-                      <span className="text-sm text-green-600 font-medium">{item.correctAnswers}</span>
+                      {item.cheatingDetected ? (
+                        <span className="text-sm font-semibold text-gray-400">—</span>
+                      ) : (
+                        <span className="text-sm text-green-600 font-medium">{item.correctAnswers}</span>
+                      )}
                     </td>
                     <td className="px-5 py-4">
-                      <span className="text-sm text-red-500 font-medium">{item.wrongAnswers}</span>
+                      {item.cheatingDetected ? (
+                        <span className="text-sm font-semibold text-gray-400">—</span>
+                      ) : (
+                        <span className="text-sm text-red-500 font-medium">{item.wrongAnswers}</span>
+                      )}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-1.5 text-sm text-gray-500">
@@ -151,14 +167,20 @@ export function HistoryPage() {
                 )}
               </div>
               <div className="flex items-center gap-4 text-xs text-gray-500 mb-1">
-                <span>Score: <span className="font-medium text-black">{item.score}/{item.quiz?.totalMarks}</span></span>
-                <span>Percentage: <span className="font-medium text-black">{item.percentage}%</span></span>
+                {!item.cheatingDetected && (
+                  <span>Score: <span className="font-medium text-black">{item.score}/{item.quiz?.totalMarks}</span></span>
+                )}
+                {!item.cheatingDetected && (
+                  <span>Percentage: <span className="font-medium text-black">{item.percentage}%</span></span>
+                )}
                 <span>{new Date(item.createdAt).toLocaleDateString()}</span>
               </div>
-              <div className="flex items-center gap-4 text-xs text-gray-500">
-                <span>Correct: <span className="font-medium text-green-600">{item.correctAnswers}</span></span>
-                <span>Wrong: <span className="font-medium text-red-500">{item.wrongAnswers}</span></span>
-              </div>
+              {!item.cheatingDetected && (
+                <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <span>Correct: <span className="font-medium text-green-600">{item.correctAnswers}</span></span>
+                  <span>Wrong: <span className="font-medium text-red-500">{item.wrongAnswers}</span></span>
+                </div>
+              )}
             </motion.div>
           );
         })}
