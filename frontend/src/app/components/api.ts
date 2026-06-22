@@ -81,13 +81,14 @@ export interface Quiz {
 export interface Question {
   id: string;
   quizId: string;
-  questionText: string;
+  text: string;
   optionA: string;
   optionB: string;
   optionC: string;
   optionD: string;
-  correctOption?: 'A' | 'B' | 'C' | 'D'; // optional for students
+  correctOption?: 'A' | 'B' | 'C' | 'D';
   marks: number;
+  difficulty?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -126,6 +127,58 @@ export interface GoogleLoginResponse {
   accessToken: string;
   role: 'student';
   profileCompleted: boolean;
+}
+
+// New types for features
+export interface UserDetailsResponse {
+  student: StoredUser;
+  stats: {
+    totalQuizzesAttempted: number;
+    averageScore: number;
+    highestScore: number;
+    lowestScore: number;
+    lastActivity: string;
+  };
+}
+
+export interface UserHistoryItem {
+  quizName: string;
+  dateAttempted: string;
+  score: number;
+  percentage: number;
+  correctAnswers: number;
+  wrongAnswers: number;
+  status: 'Pass' | 'Fail';
+}
+
+export interface QuizStats {
+  overview: {
+    quizName: string;
+    totalQuestions: number;
+    publishedStatus: boolean;
+    creationDate: string;
+  };
+  participation: {
+    totalStudentsAttempted: number;
+    totalAttempts: number;
+    completionRate: number;
+  };
+  performance: {
+    averageScore: number;
+    highestScore: number;
+    lowestScore: number;
+    passCount: number;
+    failCount: number;
+    passPercentage: number;
+  };
+}
+
+export interface QuizResultsItem {
+  studentName: string;
+  email: string;
+  score: number;
+  percentage: number;
+  attemptDate: string;
 }
 
 // ── HTTP helper ──────────────────────────────────────────────────────────────
@@ -191,10 +244,8 @@ export async function apiAdminLogin(
 
 export function startGoogleOAuth() {
   const backendUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
-  // Capture the current origin (e.g., http://localhost:3000, http://localhost:5173, or prod URL)
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   
-  // Pass the origin as the 'state' query parameter to the backend
   const url = new URL(`${backendUrl}/auth/google`);
   if (origin) {
     url.searchParams.set('state', origin);
@@ -276,6 +327,10 @@ export async function apiAdminGetQuizzes(): Promise<Quiz[]> {
   return request<Quiz[]>('/admin/quizzes');
 }
 
+export async function apiAdminSearchQuizzes(query: string): Promise<Quiz[]> {
+  return request<Quiz[]>(`/admin/quizzes/search?q=${encodeURIComponent(query)}`);
+}
+
 export async function apiAdminCreateQuiz(data: {
   title: string;
   description: string;
@@ -320,27 +375,69 @@ export async function apiAdminPublishQuiz(
   });
 }
 
+// New quiz endpoints
+export async function apiAdminGetQuizStats(quizId: string): Promise<QuizStats> {
+  return request<QuizStats>(`/admin/quizzes/${quizId}/stats`);
+}
+
+export async function apiAdminGetQuizResults(
+  quizId: string,
+  options?: { q?: string; sortBy?: 'date' | 'score'; sortOrder?: 'ASC' | 'DESC' },
+): Promise<QuizResultsItem[]> {
+  let url = `/admin/quizzes/${quizId}/results`;
+  const params = new URLSearchParams();
+  if (options?.q) params.set('q', options.q);
+  if (options?.sortBy) params.set('sortBy', options.sortBy);
+  if (options?.sortOrder) params.set('sortOrder', options.sortOrder);
+  if (params.toString()) url += `?${params.toString()}`;
+  return request<QuizResultsItem[]>(url);
+}
+
 // ── Admin Portal Questions CRUD ──────────────────────────────────────────────
 
 export async function apiAdminGetQuestions(quizId: string): Promise<Question[]> {
   return request<Question[]>(`/admin/quizzes/${quizId}/questions`);
 }
 
+export async function apiAdminSearchQuestions(query: string): Promise<Question[]> {
+  return request<Question[]>(`/admin/questions/search?q=${encodeURIComponent(query)}`);
+}
+
 export async function apiAdminCreateQuestion(
   quizId: string,
   data: {
-    questionText: string;
+    text: string;
     optionA: string;
     optionB: string;
     optionC: string;
     optionD: string;
     correctOption: 'A' | 'B' | 'C' | 'D';
     marks: number;
+    difficulty?: string;
   },
 ): Promise<Question> {
   return request<Question>(`/admin/quizzes/${quizId}/questions`, {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+export async function apiAdminBulkCreateQuestions(
+  quizId: string,
+  questions: Array<{
+    text: string;
+    optionA: string;
+    optionB: string;
+    optionC: string;
+    optionD: string;
+    correctOption: 'A' | 'B' | 'C' | 'D';
+    marks: number;
+    difficulty?: string;
+  }>,
+): Promise<Question[]> {
+  return request<Question[]>(`/admin/quizzes/${quizId}/questions/bulk`, {
+    method: 'POST',
+    body: JSON.stringify({ questions }),
   });
 }
 
@@ -366,8 +463,29 @@ export async function apiAdminGetResults(): Promise<QuizResult[]> {
   return request<QuizResult[]>('/admin/results');
 }
 
-export async function apiAdminGetStudents(): Promise<StoredUser[]> {
-  return request<StoredUser[]>('/students/admin/list');
+export async function apiAdminGetUsers(): Promise<StoredUser[]> {
+  return request<StoredUser[]>('/admin/users');
+}
+
+export async function apiAdminSearchUsers(query: string): Promise<StoredUser[]> {
+  return request<StoredUser[]>(`/admin/users/search?q=${encodeURIComponent(query)}`);
+}
+
+export async function apiAdminGetUserDetails(userId: string): Promise<UserDetailsResponse> {
+  return request<UserDetailsResponse>(`/admin/users/${userId}`);
+}
+
+export async function apiAdminGetUserHistory(
+  userId: string,
+  options?: { q?: string; sortBy?: 'date' | 'score'; sortOrder?: 'ASC' | 'DESC' },
+): Promise<UserHistoryItem[]> {
+  let url = `/admin/users/${userId}/history`;
+  const params = new URLSearchParams();
+  if (options?.q) params.set('q', options.q);
+  if (options?.sortBy) params.set('sortBy', options.sortBy);
+  if (options?.sortOrder) params.set('sortOrder', options.sortOrder);
+  if (params.toString()) url += `?${params.toString()}`;
+  return request<UserHistoryItem[]>(url);
 }
 
 export async function apiAdminAiChat(

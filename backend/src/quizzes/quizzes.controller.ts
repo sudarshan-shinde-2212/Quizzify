@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Patch, Delete,
-  Param, Body, UseGuards, HttpCode,
+  Param, Body, UseGuards, HttpCode, Query,
 } from '@nestjs/common';
 import { QuizzesService } from './quizzes.service';
 import { CreateQuizDto } from './dto/create-quiz.dto';
@@ -28,9 +28,29 @@ export class QuizzesController {
     return this.quizzesService.findAll();
   }
 
+  @Get('search')
+  search(@Query('q') query: string) {
+    return this.quizzesService.search(query);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.quizzesService.findOne(id);
+  }
+
+  @Get(':id/stats')
+  getQuizStats(@Param('id') id: string) {
+    return this.quizzesService.getQuizStats(id);
+  }
+
+  @Get(':id/results')
+  getQuizResults(
+    @Param('id') id: string,
+    @Query('q') search?: string,
+    @Query('sortBy') sortBy?: 'date' | 'score',
+    @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
+  ) {
+    return this.quizzesService.getQuizResults(id, search, sortBy, sortOrder);
   }
 
   @Patch(':id')

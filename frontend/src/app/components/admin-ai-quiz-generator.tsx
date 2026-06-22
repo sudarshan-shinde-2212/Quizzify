@@ -152,7 +152,7 @@ export function AdminAiQuizGenerator() {
         const correctOptionLabel = (["A", "B", "C", "D"] as const)[correctOptIndex];
 
         await apiAdminCreateQuestion(newQuiz.id, {
-          questionText: q.question,
+          text: q.question,
           optionA: q.options[0] || "",
           optionB: q.options[1] || "",
           optionC: q.options[2] || "",

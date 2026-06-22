@@ -7,7 +7,7 @@ import { IsHalfMark } from '../../common/validators/is-half-mark.validator';
 export class CreateQuestionDto {
   @IsString()
   @IsNotEmpty()
-  questionText: string;
+  text: string;
 
   @IsString()
   @IsNotEmpty()

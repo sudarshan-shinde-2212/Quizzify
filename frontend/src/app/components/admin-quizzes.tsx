@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { AdminLayout } from "./admin-sidebar";
 import {
   apiAdminGetQuizzes,
@@ -8,16 +8,23 @@ import {
   apiAdminUpdateQuiz,
   apiAdminDeleteQuiz,
   apiAdminPublishQuiz,
+  apiAdminGetQuizStats,
+  apiAdminGetQuizResults,
   getErrorMessage,
   Quiz,
+  QuizStats,
+  QuizResultsItem,
 } from "./api";
 import { ConfirmModal } from "./ui/confirm-modal";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Calendar, Plus, Edit2, Trash2, Eye, Clock, Trophy, X, Loader2,
-  Play, PowerOff, Sparkles, FileQuestion,
+  Play, PowerOff, Sparkles, FileQuestion, BarChart2, ChevronLeft, Search,
+  Download, Users, CheckCircle2, TrendingUp, TrendingDown,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "./ui/sheet";
+import { useDebounce } from "./use-debounce";
 
 interface QuizFormModalProps {
   quiz?: Quiz;
@@ -43,6 +50,13 @@ function formatQuizDate(value: string) {
     dateStyle: "medium",
     timeZone: "UTC",
   }).format(date);
+}
+
+function formatDateTime(value?: string | Date) {
+  if (!value) return "Unknown";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown";
+  return date.toLocaleString();
 }
 
 function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
@@ -165,7 +179,7 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
             { label: "Marks / Q", value: marksPerQ },
           ].map(({ label, value }) => (
             <div key={label} className="flex-1 bg-gray-50 border border-gray-100 rounded-lg p-2 text-center">
-              <p className="text-xs text-gray-400">{label}</p>
+              <p className="text-xs text-gray-500">{label}</p>
               <p className="text-sm font-bold text-black">{value}</p>
             </div>
           ))}
@@ -348,6 +362,16 @@ export function AdminQuizzes() {
   const [showModal, setShowModal] = useState(false);
   const [editQuiz, setEditQuiz] = useState<Quiz | undefined>();
 
+  // Analytics sheet state
+  const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
+  const [quizStats, setQuizStats] = useState<QuizStats | null>(null);
+  const [quizResults, setQuizResults] = useState<QuizResultsItem[]>([]);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [resultsSearch, setResultsSearch] = useState("");
+  const [resultsSortBy, setResultsSortBy] = useState<"date" | "score">("date");
+  const [resultsSortOrder, setResultsSortOrder] = useState<"ASC" | "DESC">("DESC");
+  const debouncedResultsSearch = useDebounce(resultsSearch, 300);
+
   const loadQuizzes = async () => {
     try {
       const data = await apiAdminGetQuizzes();
@@ -362,6 +386,70 @@ export function AdminQuizzes() {
   useEffect(() => {
     loadQuizzes();
   }, []);
+
+  const fetchQuizAnalytics = async (quizId: string) => {
+    setLoadingAnalytics(true);
+    try {
+      const [stats, results] = await Promise.all([
+        apiAdminGetQuizStats(quizId),
+        apiAdminGetQuizResults(quizId, { sortBy: resultsSortBy, sortOrder: resultsSortOrder }),
+      ]);
+      setQuizStats(stats);
+      setQuizResults(results);
+    } catch (err) {
+      console.error("Failed to load quiz analytics", err);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
+
+  const fetchQuizResults = async (quizId: string) => {
+    try {
+      const results = await apiAdminGetQuizResults(quizId, {
+        q: debouncedResultsSearch,
+        sortBy: resultsSortBy,
+        sortOrder: resultsSortOrder,
+      });
+      setQuizResults(results);
+    } catch (err) {
+      console.error("Failed to load quiz results", err);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedQuizId) {
+      fetchQuizResults(selectedQuizId);
+    }
+  }, [selectedQuizId, debouncedResultsSearch, resultsSortBy, resultsSortOrder]);
+
+  const handleOpenAnalytics = (quiz: Quiz, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedQuizId(quiz.id);
+    fetchQuizAnalytics(quiz.id);
+  };
+
+  const exportToCSV = () => {
+    if (!quizResults.length || !quizStats) return;
+    const headers = ["Student Name", "Email", "Score", "Percentage", "Attempt Date"];
+    const csvContent = [
+      headers.join(","),
+      ...quizResults.map(row => [
+        `"${row.studentName}"`,
+        `"${row.email}"`,
+        row.score,
+        row.percentage,
+        `"${formatDateTime(row.attemptDate)}"`,
+      ].join(",")),
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `${quizStats.overview.quizName.replace(/[^a-z0-9]/gi, "_")}_results.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const openCreate = () => { setEditQuiz(undefined); setShowModal(true); };
   const openEdit = (q: Quiz) => { setEditQuiz(q); setShowModal(true); };
@@ -441,7 +529,8 @@ export function AdminQuizzes() {
             onClick={openCreate}
             className="flex items-center gap-1.5 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900"
           >
-            <Plus size={15} /> Create Quiz
+            <Plus size={15} />
+            Create Quiz
           </button>
         </div>
       </div>
@@ -491,8 +580,15 @@ export function AdminQuizzes() {
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button
+                    onClick={(e) => handleOpenAnalytics(quiz, e)}
+                    title="View Quiz Analytics"
+                    className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                  >
+                    <BarChart2 size={15} />
+                  </button>
+                  <button
                     onClick={() => setPublishConfirm(quiz)}
-                    title={quiz.isPublished ? "Unpublish Quiz (set draft)" : "Publish Quiz"}
+                    title={quiz.isPublished ? "Unpublish Quiz (set to draft)" : "Publish Quiz"}
                     className="p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded-lg transition-colors"
                   >
                     {quiz.isPublished ? <PowerOff size={15} /> : <Play size={15} />}
@@ -528,6 +624,179 @@ export function AdminQuizzes() {
       <AnimatePresence>
         {showModal && (
           <QuizFormModal quiz={editQuiz} onClose={() => setShowModal(false)} onRefresh={loadQuizzes} />
+        )}
+      </AnimatePresence>
+
+      {/* Quiz Analytics Sheet */}
+      <AnimatePresence>
+        {selectedQuizId && (
+          <Sheet open={!!selectedQuizId} onOpenChange={(open) => !open && setSelectedQuizId(null)}>
+            <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
+              <SheetHeader className="mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <button
+                    onClick={() => setSelectedQuizId(null)}
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <SheetTitle className="text-xl font-bold">Quiz Analytics</SheetTitle>
+                </div>
+                <SheetDescription>Detailed performance and participation insights</SheetDescription>
+              </SheetHeader>
+
+              {loadingAnalytics ? (
+                <div className="py-20 flex flex-col items-center justify-center">
+                  <Loader2 className="animate-spin text-black mb-2" size={24} />
+                  <p className="text-sm text-gray-500">Loading quiz analytics…</p>
+                </div>
+              ) : quizStats ? (
+                <>
+                  {/* Overview Stats */}
+                  <div className="bg-gray-50 rounded-xl p-6 mb-6">
+                    <h3 className="text-sm font-semibold text-gray-800 mb-4">Quiz Overview</h3>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-xs text-gray-500">Quiz Name</p>
+                        <p className="text-sm font-medium text-black">{quizStats.overview.quizName}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Total Questions</p>
+                        <p className="text-sm font-medium text-black">{quizStats.overview.totalQuestions}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Published</p>
+                        <p className="text-sm font-medium text-black">{quizStats.overview.publishedStatus ? "Yes" : "No"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Creation Date</p>
+                        <p className="text-sm font-medium text-black">{formatDateTime(quizStats.overview.creationDate)}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                      <div className="bg-white rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Users size={16} className="text-gray-500" />
+                          <p className="text-xs text-gray-500">Students Attempted</p>
+                        </div>
+                        <p className="text-2xl font-bold text-black">{quizStats.participation.totalStudentsAttempted}</p>
+                      </div>
+                      <div className="bg-white rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <BarChart2 size={16} className="text-gray-500" />
+                          <p className="text-xs text-gray-500">Total Attempts</p>
+                        </div>
+                        <p className="text-2xl font-bold text-black">{quizStats.participation.totalAttempts}</p>
+                      </div>
+                      <div className="bg-white rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <CheckCircle2 size={16} className="text-gray-500" />
+                          <p className="text-xs text-gray-500">Completion Rate</p>
+                        </div>
+                        <p className="text-2xl font-bold text-black">{quizStats.participation.completionRate}%</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-white rounded-lg p-4">
+                        <p className="text-xs text-gray-500 mb-1">Average Score</p>
+                        <p className="text-2xl font-bold text-blue-600">{quizStats.performance.averageScore}%</p>
+                      </div>
+                      <div className="bg-white rounded-lg p-4">
+                        <p className="text-xs text-gray-500 mb-1">Highest Score</p>
+                        <p className="text-2xl font-bold text-green-600">{quizStats.performance.highestScore}%</p>
+                      </div>
+                      <div className="bg-white rounded-lg p-4">
+                        <p className="text-xs text-gray-500 mb-1">Lowest Score</p>
+                        <p className="text-2xl font-bold text-red-600">{quizStats.performance.lowestScore}%</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      <div className="bg-white rounded-lg p-4">
+                        <p className="text-xs text-gray-500 mb-1">Pass Count</p>
+                        <p className="text-2xl font-bold text-green-600">{quizStats.performance.passCount}</p>
+                        <p className="text-xs text-gray-400 mt-1">{quizStats.performance.passPercentage}% pass rate</p>
+                      </div>
+                      <div className="bg-white rounded-lg p-4">
+                        <p className="text-xs text-gray-500 mb-1">Fail Count</p>
+                        <p className="text-2xl font-bold text-red-600">{quizStats.performance.failCount}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Student Results */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-black">Student Results</h3>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setResultsSortBy(resultsSortBy === "date" ? "score" : "date")}
+                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                          {resultsSortBy === "date" ? <Calendar size={14} /> : <Trophy size={14} />}
+                          {resultsSortBy === "date" ? "Date" : "Score"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            const newSortOrder = resultsSortOrder === "DESC" ? "ASC" : "DESC";
+                            setResultsSortOrder(newSortOrder);
+                          }}
+                          className="flex items-center justify-center w-8 h-8 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                          {resultsSortOrder === "DESC" ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
+                        </button>
+                        <div className="relative">
+                          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Search students..."
+                            value={resultsSearch}
+                            onChange={(e) => setResultsSearch(e.target.value)}
+                            className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-black"
+                          />
+                        </div>
+                        <button
+                          onClick={exportToCSV}
+                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                          <Download size={14} />
+                          Export CSV
+                        </button>
+                      </div>
+                    </div>
+
+                    {quizResults.length === 0 ? (
+                      <div className="bg-white border border-gray-100 rounded-xl py-16 text-center text-sm text-gray-400">
+                        No student results yet
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {quizResults.map((result, idx) => (
+                          <div key={idx} className="bg-white border border-gray-100 rounded-xl p-5">
+                            <div className="flex items-center justify-between mb-3">
+                              <div>
+                                <p className="font-medium text-black">{result.studentName}</p>
+                                <p className="text-xs text-gray-500">{result.email}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-lg font-bold text-black">{result.percentage}%</p>
+                                <p className="text-xs text-gray-500">Score: {result.score}</p>
+                              </div>
+                            </div>
+                            <p className="text-xs text-gray-400">
+                              Attempted: {formatDateTime(result.attemptDate)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : null}
+            </SheetContent>
+          </Sheet>
         )}
       </AnimatePresence>
 

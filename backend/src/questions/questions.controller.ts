@@ -1,6 +1,6 @@
 import {
   Controller, Post, Get, Patch, Delete,
-  Param, Body, UseGuards,
+  Param, Body, UseGuards, Query,
 } from '@nestjs/common';
 import { QuestionsService } from './questions.service';
 import { CreateQuestionDto } from './dto/create-question.dto';
@@ -36,6 +36,11 @@ export class QuestionsController {
   @Get('admin/quizzes/:quizId/questions')
   findAll(@Param('quizId') quizId: string) {
     return this.questionsService.findByQuiz(quizId);
+  }
+
+  @Get('admin/questions/search')
+  search(@Query('q') query: string) {
+    return this.questionsService.search(query);
   }
 
   @Patch('admin/questions/:id')

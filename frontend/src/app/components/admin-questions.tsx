@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { AdminLayout } from "./admin-sidebar";
 import {
   apiAdminGetQuizzes,
@@ -8,14 +8,16 @@ import {
   apiAdminCreateQuestion,
   apiAdminUpdateQuestion,
   apiAdminDeleteQuestion,
+  apiAdminSearchQuestions,
   getErrorMessage,
   Quiz,
   Question,
 } from "./api";
 import { ConfirmModal } from "./ui/confirm-modal";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, Edit2, Trash2, X, Loader2 } from "lucide-react";
+import { Plus, Edit2, Trash2, X, Loader2, Search } from "lucide-react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useDebounce } from "./use-debounce";
 
 type QuestionOption = "A" | "B" | "C" | "D";
 type QuestionOptionField = "optionA" | "optionB" | "optionC" | "optionD";
@@ -29,7 +31,7 @@ interface QuestionModalProps {
 
 function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalProps) {
   const [form, setForm] = useState({
-    questionText: question?.questionText ?? "",
+    text: question?.text ?? "",
     optionA: question?.optionA ?? "",
     optionB: question?.optionB ?? "",
     optionC: question?.optionC ?? "",
@@ -46,7 +48,7 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
     setError("");
 
     const payload = {
-      questionText: form.questionText,
+      text: form.text,
       optionA: form.optionA,
       optionB: form.optionB,
       optionC: form.optionC,
@@ -90,13 +92,13 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-xs font-medium text-gray-700">Question Text <span className="text-red-500">*</span></label>
-              <span className="text-[10px] text-gray-400">{form.questionText.length}/500</span>
+              <span className="text-[10px] text-gray-400">{form.text.length}/500</span>
             </div>
             <textarea
               required
               maxLength={500}
-              value={form.questionText}
-              onChange={(e) => setForm({ ...form, questionText: e.target.value })}
+              value={form.text}
+              onChange={(e) => setForm({ ...form, text: e.target.value })}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black resize-none"
               rows={3}
               placeholder="Enter your question text..."
@@ -194,6 +196,10 @@ export function AdminQuestions() {
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editQuestion, setEditQuestion] = useState<Question | undefined>();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<Question[]>([]);
+  const [searching, setSearching] = useState(false);
+  const debouncedSearch = useDebounce(searchTerm, 300);
 
   // Load quizzes list for the dropdown selector
   useEffect(() => {
@@ -233,6 +239,29 @@ export function AdminQuestions() {
     loadQuestions();
   }, [selectedQuizId]);
 
+  // Handle global search across all questions
+  useEffect(() => {
+    if (!debouncedSearch) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+
+    async function performSearch() {
+      setSearching(true);
+      try {
+        const results = await apiAdminSearchQuestions(debouncedSearch);
+        setSearchResults(results);
+      } catch (err) {
+        console.error("Failed to search questions", err);
+      } finally {
+        setSearching(false);
+      }
+    }
+
+    performSearch();
+  }, [debouncedSearch]);
+
   const openCreate = () => { setEditQuestion(undefined); setShowModal(true); };
   const openEdit = (q: Question) => { setEditQuestion(q); setShowModal(true); };
 
@@ -245,6 +274,11 @@ export function AdminQuestions() {
     try {
       await apiAdminDeleteQuestion(deleteQuestionId);
       loadQuestions();
+      // Re-run search if active
+      if (debouncedSearch) {
+        const results = await apiAdminSearchQuestions(debouncedSearch);
+        setSearchResults(results);
+      }
     } catch (err) {
       console.error("Failed to delete question", err);
       alert("Delete failed.");
@@ -262,21 +296,23 @@ export function AdminQuestions() {
   const atQuestionLimit = questionLimit > 0 && questions.length >= questionLimit;
   const marksMatch = assignedMarks === targetMarks;
 
+  const displayQuestions = debouncedSearch ? searchResults : questions;
+
   return (
     <AdminLayout>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-xl font-bold text-black">Questions Bank</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {questions.length}{questionLimit > 0 ? ` / ${questionLimit}` : ""} questions
-            {selectedQuiz && (
+            {displayQuestions.length}{questionLimit > 0 && !debouncedSearch ? ` / ${questionLimit}` : ""} questions
+            {selectedQuiz && !debouncedSearch && (
               <span className={`ml-2 font-medium ${marksMatch ? "text-green-600" : "text-amber-600"}`}>
                 (Assigned: {assignedMarks} / {targetMarks} Marks)
               </span>
             )}
           </p>
         </div>
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-3 items-center flex-wrap">
           {/* Dropdown selector for switching quizzes */}
           {!loadingQuizzes && quizzes.length > 0 && (
             <select
@@ -295,7 +331,7 @@ export function AdminQuestions() {
           )}
 
           <button
-            disabled={!selectedQuizId || atQuestionLimit}
+            disabled={!selectedQuizId || atQuestionLimit || !!debouncedSearch}
             onClick={openCreate}
             title={atQuestionLimit ? `Limit reached: ${questionLimit} questions max` : "Add a new question"}
             className="flex items-center gap-1.5 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -305,49 +341,63 @@ export function AdminQuestions() {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="relative mb-6">
+        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search all questions by text, quiz name, or difficulty..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm outline-none focus:border-black"
+        />
+        {searching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" size={18} />}
+      </div>
+
       {/* Question limit / marks warning banners */}
-      {selectedQuiz && atQuestionLimit && (
+      {selectedQuiz && atQuestionLimit && !debouncedSearch && (
         <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
           <span className="font-semibold">Question limit reached.</span>
           <span>This quiz allows exactly {questionLimit} question{questionLimit !== 1 ? "s" : ""}. Remove one before adding another.</span>
         </div>
       )}
       {/* Warning if marks don't perfectly match the total. Only show when limit reached, or if they've overshot early */}
-      {selectedQuiz && questions.length > 0 && (!marksMatch && (questions.length === questionLimit || assignedMarks > targetMarks)) && (
+      {selectedQuiz && questions.length > 0 && !debouncedSearch && (!marksMatch && (questions.length === questionLimit || assignedMarks > targetMarks)) && (
         <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-red-800">
           <span className="font-semibold">Marks mismatch.</span>
           <span>Assigned marks ({assignedMarks}) do not equal quiz total ({targetMarks}). Fix before publishing.</span>
         </div>
       )}
-      {selectedQuiz && questions.length > 0 && questions.length < questionLimit && !atQuestionLimit && assignedMarks <= targetMarks && (
+      {selectedQuiz && questions.length > 0 && questions.length < questionLimit && !atQuestionLimit && assignedMarks <= targetMarks && !debouncedSearch && (
         <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-blue-800">
           <span className="font-semibold">Add more questions.</span>
           <span>Please add all {questionLimit} questions before publishing. ({questions.length} of {questionLimit} added)</span>
         </div>
       )}
 
-      {loadingQuestions ? (
+      {loadingQuestions || searching ? (
         <div className="py-20 flex flex-col items-center justify-center">
           <Loader2 className="animate-spin text-black mb-2" size={24} />
-          <p className="text-sm text-gray-500">Loading questions…</p>
+          <p className="text-sm text-gray-500">{searching ? "Searching questions…" : "Loading questions…"}</p>
         </div>
-      ) : !selectedQuizId ? (
+      ) : !selectedQuizId && !debouncedSearch ? (
         <div className="bg-white border border-gray-100 rounded-xl py-16 text-center text-gray-400">
           Please select or create a quiz first to manage questions.
         </div>
-      ) : questions.length === 0 ? (
+      ) : displayQuestions.length === 0 ? (
         <div className="bg-white border border-gray-100 rounded-xl py-16 text-center text-gray-400">
-          No questions added to this quiz yet. Click Add Question to add one.
+          {debouncedSearch ? "No questions found matching your search." : "No questions added to this quiz yet. Click Add Question to add one."}
         </div>
       ) : (
         <div className="space-y-3">
-          {questions.map((q, i) => {
+          {displayQuestions.map((q, i) => {
             const options = [
               { key: "A", val: q.optionA },
               { key: "B", val: q.optionB },
               { key: "C", val: q.optionC },
               { key: "D", val: q.optionD },
             ];
+            const quizForQuestion = quizzes.find(quiz => quiz.id === q.quizId);
 
             return (
               <motion.div
@@ -360,10 +410,15 @@ export function AdminQuestions() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs font-semibold text-gray-400">Q{i + 1}</span>
+                      {debouncedSearch && quizForQuestion && (
+                        <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">{quizForQuestion.title}</span>
+                      )}
                       <span className="text-xs text-gray-400">{q.marks} marks</span>
+                      {q.difficulty && (
+                        <span className="text-xs px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full">{q.difficulty}</span>
+                      )}
                     </div>
-                    <p className="text-sm text-black mb-3 leading-relaxed">{q.questionText}</p>
+                    <p className="text-sm text-black mb-3 leading-relaxed">{q.text}</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {options.map((opt) => {
                         const isCorrect = q.correctOption === opt.key;

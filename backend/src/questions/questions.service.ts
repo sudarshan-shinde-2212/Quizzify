@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { Question } from '../entities/question.entity';
 import { Quiz } from '../entities/quiz.entity';
 import { CreateQuestionDto } from './dto/create-question.dto';
@@ -46,6 +46,16 @@ export class QuestionsService {
   async findByQuiz(quizId: string): Promise<Question[]> {
     await this.assertQuiz(quizId);
     return this.questionRepo.find({ where: { quizId }, order: { createdAt: 'ASC' } });
+  }
+
+  async search(query: string) {
+    return this.questionRepo
+      .createQueryBuilder('question')
+      .leftJoinAndSelect('question.quiz', 'quiz')
+      .where('question.text ILIKE :query', { query: `%${query}%` })
+      .orWhere('quiz.title ILIKE :query', { query: `%${query}%` })
+      .orWhere('question.difficulty ILIKE :query', { query: `%${query}%` })
+      .getMany();
   }
 
   async update(id: string, dto: UpdateQuestionDto): Promise<Question> {

@@ -508,7 +508,7 @@ export function QuizPage() {
                 </div>
 
                 <p className="text-sm font-medium text-black mb-4 leading-relaxed">
-                  {q.questionText}
+                  {q.text}
                 </p>
 
                 <div className="space-y-2.5 mt-4">

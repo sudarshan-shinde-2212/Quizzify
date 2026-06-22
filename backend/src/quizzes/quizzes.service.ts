@@ -2,16 +2,20 @@ import {
   Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, MoreThanOrEqual, Not } from 'typeorm';
+import { Repository, LessThanOrEqual, MoreThanOrEqual, Not, ILike } from 'typeorm';
 import { Quiz } from '../entities/quiz.entity';
 import { CreateQuizDto } from './dto/create-quiz.dto';
 import { UpdateQuizDto } from './dto/update-quiz.dto';
 import { PublishQuizDto } from './dto/publish-quiz.dto';
+import { QuizResult } from '../entities/quiz-result.entity';
+import { Student } from '../entities/student.entity';
 
 @Injectable()
 export class QuizzesService {
   constructor(
     @InjectRepository(Quiz) private quizRepo: Repository<Quiz>,
+    @InjectRepository(QuizResult) private resultRepo: Repository<QuizResult>,
+    @InjectRepository(Student) private studentRepo: Repository<Student>,
   ) {}
 
   async create(dto: CreateQuizDto, adminId: string): Promise<Quiz> {
@@ -38,6 +42,16 @@ export class QuizzesService {
 
   async findAll(): Promise<Quiz[]> {
     return this.quizRepo.find({ order: { createdAt: 'DESC' } });
+  }
+
+  async search(query: string) {
+    return this.quizRepo.find({
+      where: [
+        { title: ILike(`%${query}%`) },
+        { description: ILike(`%${query}%`) },
+      ],
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findOne(id: string): Promise<Quiz> {
@@ -129,6 +143,91 @@ export class QuizzesService {
     });
     if (!quiz) throw new NotFoundException('Quiz not found or not active');
     return quiz;
+  }
+
+  async getQuizStats(quizId: string) {
+    const quiz = await this.findOne(quizId);
+    const results = await this.resultRepo.find({
+      where: { quizId },
+      relations: { attempt: true, student: true },
+    });
+
+    const studentSet = new Set(results.map((res) => res.studentId));
+    const totalStudentsAttempted = studentSet.size;
+    const totalAttempts = results.length;
+
+    let totalScore = 0;
+    let highestScore = 0;
+    let lowestScore = Infinity;
+    let passCount = 0;
+    let failCount = 0;
+
+    results.forEach((res) => {
+      totalScore += res.score;
+      if (res.score > highestScore) highestScore = res.score;
+      if (res.score < lowestScore) lowestScore = res.score;
+      if (res.percentage >= 50) passCount++;
+      else failCount++;
+    });
+
+    const averageScore = totalAttempts > 0 ? totalScore / totalAttempts : 0;
+    const passPercentage = totalAttempts > 0 ? (passCount / totalAttempts) * 100 : 0;
+
+    return {
+      overview: {
+        quizName: quiz.title,
+        totalQuestions: quiz.questionCount,
+        publishedStatus: quiz.isPublished,
+        creationDate: quiz.createdAt,
+      },
+      participation: {
+        totalStudentsAttempted,
+        totalAttempts,
+        completionRate: totalStudentsAttempted > 0 ? 100 : 0, // all attempts are completed
+      },
+      performance: {
+        averageScore: Number(averageScore.toFixed(2)),
+        highestScore,
+        lowestScore: lowestScore === Infinity ? 0 : lowestScore,
+        passCount,
+        failCount,
+        passPercentage: Number(passPercentage.toFixed(2)),
+      },
+    };
+  }
+
+  async getQuizResults(
+    quizId: string,
+    search?: string,
+    sortBy?: 'date' | 'score',
+    sortOrder?: 'ASC' | 'DESC',
+  ) {
+    const queryBuilder = this.resultRepo
+      .createQueryBuilder('result')
+      .leftJoinAndSelect('result.student', 'student')
+      .leftJoinAndSelect('result.attempt', 'attempt')
+      .where('result.quizId = :quizId', { quizId });
+
+    if (search) {
+      queryBuilder.andWhere('(student.fullName ILIKE :search OR student.email ILIKE :search)', { search: `%${search}%` });
+    }
+
+    const order = sortOrder || 'DESC';
+    if (sortBy === 'score') {
+      queryBuilder.orderBy('result.score', order);
+    } else {
+      queryBuilder.orderBy('attempt.submittedAt', order);
+    }
+
+    const results = await queryBuilder.getMany();
+
+    return results.map((res) => ({
+      studentName: res.student.fullName || 'Anonymous',
+      email: res.student.email,
+      score: res.score,
+      percentage: res.percentage,
+      attemptDate: res.attempt.submittedAt || res.attempt.startedAt,
+    }));
   }
 
   private parseDateRange(startDate: string, endDate: string) {

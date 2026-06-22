@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion } from "motion/react";
 import { AdminLayout } from "./admin-sidebar";
 import {
@@ -9,13 +9,16 @@ import {
   StoredUser,
   QuizResult,
 } from "./api";
-import { Users, BookOpen, BarChart2, Trophy, CheckCircle2, Clock, Loader2 } from "lucide-react";
+import { Users, BookOpen, BarChart2, Trophy, CheckCircle2, Clock, Loader2, Search } from "lucide-react";
+import { useDebounce } from "./use-debounce";
 
 export function AdminDashboard() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [students, setStudents] = useState<StoredUser[]>([]);
   const [results, setResults] = useState<QuizResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 300);
 
   useEffect(() => {
     async function loadStats() {
@@ -45,6 +48,25 @@ export function AdminDashboard() {
       ? Math.round(results.reduce((sum, r) => sum + Number(r.percentage), 0) / totalAttempts)
       : 0;
 
+  const filteredQuizzes = useMemo(() => {
+    if (!debouncedSearch) return quizzes;
+    const lower = debouncedSearch.toLowerCase();
+    return quizzes.filter(q => 
+      q.title.toLowerCase().includes(lower) || 
+      q.description.toLowerCase().includes(lower)
+    );
+  }, [quizzes, debouncedSearch]);
+
+  const filteredResults = useMemo(() => {
+    if (!debouncedSearch) return results;
+    const lower = debouncedSearch.toLowerCase();
+    return results.filter(r => 
+      (r.student?.fullName || "").toLowerCase().includes(lower) || 
+      (r.student?.email || "").toLowerCase().includes(lower) || 
+      (r.quiz?.title || "").toLowerCase().includes(lower)
+    );
+  }, [results, debouncedSearch]);
+
   if (loading) {
     return (
       <AdminLayout>
@@ -61,6 +83,18 @@ export function AdminDashboard() {
       <div className="mb-6">
         <h1 className="text-xl font-bold text-black">Dashboard</h1>
         <p className="text-sm text-gray-500 mt-0.5">Platform overview and key metrics</p>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative mb-6">
+        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search quizzes, students, results..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm outline-none focus:border-black"
+        />
       </div>
 
       {/* Stat cards */}
@@ -94,7 +128,7 @@ export function AdminDashboard() {
         <div className="bg-white border border-gray-100 rounded-xl p-5">
           <h3 className="text-sm font-semibold text-black mb-4">Quiz Overview</h3>
           <div className="space-y-3">
-            {quizzes.slice(0, 4).map((quiz) => (
+            {filteredQuizzes.slice(0, 4).map((quiz) => (
               <div key={quiz.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-black truncate">{quiz.title}</p>
@@ -114,8 +148,8 @@ export function AdminDashboard() {
                 </span>
               </div>
             ))}
-            {quizzes.length === 0 && (
-              <div className="text-center text-xs text-gray-400 py-6">No quizzes created yet.</div>
+            {filteredQuizzes.length === 0 && (
+              <div className="text-center text-xs text-gray-400 py-6">No quizzes found matching your search.</div>
             )}
           </div>
         </div>
@@ -126,7 +160,7 @@ export function AdminDashboard() {
         <div className="px-5 py-4 border-b border-gray-50">
           <h3 className="text-sm font-semibold text-black">Recent Results</h3>
         </div>
-        {results.length > 0 ? (
+        {filteredResults.length > 0 ? (
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-50">
@@ -138,7 +172,7 @@ export function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {results.slice(0, 5).map((r) => (
+              {filteredResults.slice(0, 5).map((r) => (
                 <tr key={r.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
                   <td className="px-5 py-3 text-sm font-medium text-black">{r.student?.fullName || "Student"}</td>
                   <td className="px-5 py-3 text-sm text-gray-600">{r.quiz?.title || "Quiz"}</td>
@@ -154,7 +188,7 @@ export function AdminDashboard() {
             </tbody>
           </table>
         ) : (
-          <div className="text-center text-xs text-gray-400 py-12">No attempts submitted yet.</div>
+          <div className="text-center text-xs text-gray-400 py-12">No results found matching your search.</div>
         )}
       </div>
     </AdminLayout>
