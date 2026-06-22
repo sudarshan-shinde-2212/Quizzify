@@ -99,7 +99,11 @@ export function HistoryPage() {
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      {passed ? (
+                      {item.cheatingDetected ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+                          <XCircle size={11} /> Cheating Detected
+                        </span>
+                      ) : passed ? (
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
                           <CheckCircle2 size={11} /> Passed
                         </span>
@@ -138,7 +142,9 @@ export function HistoryPage() {
                 <p className="text-sm font-semibold text-black leading-tight flex-1 pr-2">
                   {item.quiz?.title || "Unknown Quiz"}
                 </p>
-                {passed ? (
+                {item.cheatingDetected ? (
+                  <span className="text-xs text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full shrink-0">Cheating Detected</span>
+                ) : passed ? (
                   <span className="text-xs text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full shrink-0">Passed</span>
                 ) : (
                   <span className="text-xs text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full shrink-0">Failed</span>

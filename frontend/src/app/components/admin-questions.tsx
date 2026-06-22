@@ -25,11 +25,21 @@ type QuestionOptionField = "optionA" | "optionB" | "optionC" | "optionD";
 interface QuestionModalProps {
   quizId: string;
   question?: Question;
+  selectedQuiz?: Quiz | null;
   onClose: () => void;
   onRefresh: () => void;
 }
 
-function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalProps) {
+function QuestionModal({ quizId, question, selectedQuiz, onClose, onRefresh }: QuestionModalProps) {
+  // Use quiz values for marks and negative marks automatically
+  const marks = question?.marks ?? 
+    (selectedQuiz && selectedQuiz.questionCount > 0 
+      ? Number((selectedQuiz.totalMarks / selectedQuiz.questionCount).toFixed(1)) 
+      : 3);
+      
+  const negativeMarks = question?.negativeMarks ?? 
+    (selectedQuiz ? selectedQuiz.negativeMarks : 0);
+
   const [form, setForm] = useState({
     text: question?.text ?? "",
     optionA: question?.optionA ?? "",
@@ -37,7 +47,6 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
     optionC: question?.optionC ?? "",
     optionD: question?.optionD ?? "",
     correctOption: (question?.correctOption ?? "A") as QuestionOption,
-    marks: question?.marks ?? 3,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -54,7 +63,8 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
       optionC: form.optionC,
       optionD: form.optionD,
       correctOption: form.correctOption,
-      marks: Number(form.marks),
+      marks: Number(marks),
+      negativeMarks: Number(negativeMarks),
     };
 
     try {
@@ -79,7 +89,7 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
         initial={{ scale: 0.97, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.97, opacity: 0 }}
-        className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6"
+        className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-bold text-black">{question ? "Edit Question" : "Add Question"}</h2>
@@ -127,31 +137,22 @@ function QuestionModal({ quizId, question, onClose, onRefresh }: QuestionModalPr
             ))}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Correct Answer <span className="text-red-500">*</span></label>
-              <select
-                value={form.correctOption}
-                onChange={(e) => setForm({ ...form, correctOption: e.target.value as QuestionOption })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black bg-white"
-              >
-                {["A", "B", "C", "D"].map((o) => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Marks <span className="text-red-500">*</span></label>
-              <input
-                type="number"
-                required
-                min={0.5}
-                step={0.5}
-                value={form.marks}
-                onChange={(e) => setForm({ ...form, marks: +e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Correct Answer <span className="text-red-500">*</span></label>
+            <select
+              value={form.correctOption}
+              onChange={(e) => setForm({ ...form, correctOption: e.target.value as QuestionOption })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-black bg-white"
+            >
+              {["A", "B", "C", "D"].map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+          </div>
+          <div className="bg-gray-50 rounded-lg px-3 py-2">
+            <p className="text-xs text-gray-600">
+              Marks: <span className="font-bold">{marks}</span> | Negative Marks: <span className="font-bold">{negativeMarks}</span>
+            </p>
           </div>
 
           {error && (
@@ -341,7 +342,7 @@ export function AdminQuestions() {
         </div>
       </div>
 
-      {/* Search Bar */}
+      {/* Local Search (for questions page only) */}
       <div className="relative mb-6">
         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
@@ -414,6 +415,9 @@ export function AdminQuestions() {
                         <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">{quizForQuestion.title}</span>
                       )}
                       <span className="text-xs text-gray-400">{q.marks} marks</span>
+                      {q.negativeMarks && q.negativeMarks > 0 && (
+                        <span className="text-xs px-2 py-0.5 bg-red-50 text-red-600 rounded-full">-{q.negativeMarks} neg</span>
+                      )}
                       {q.difficulty && (
                         <span className="text-xs px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full">{q.difficulty}</span>
                       )}
@@ -466,6 +470,7 @@ export function AdminQuestions() {
           <QuestionModal
             quizId={selectedQuizId}
             question={editQuestion}
+            selectedQuiz={selectedQuiz}
             onClose={() => setShowModal(false)}
             onRefresh={loadQuestions}
           />

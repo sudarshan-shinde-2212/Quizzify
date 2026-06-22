@@ -63,6 +63,12 @@ createdById: string;
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
   negativeMarks: number;
 
+  @Column({ type: 'boolean', default: false })
+  allowRetakes: boolean;
+
+  @Column({ type: 'boolean', default: true })
+  shuffleQuestions: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -47,18 +47,17 @@ export function InstructionsPage() {
   }, [quizId]);
 
   // Build rules dynamically from settings
-  const maxSwitches = settings?.maxTabSwitches ?? 3;
+  const maxSwitches = 0; // Set to 0 to declare any tab switch as cheating
   const autoSubmit = settings?.autoSubmit !== false;
   const allowRetakes = settings?.allowRetakes ?? false;
 
   const rules = [
-    { icon: CheckCircle2, text: allowRetakes ? "You may retake this assessment if allowed by the admin." : "You are allowed only one attempt for this assessment." },
-    { icon: Clock, text: "The timer starts immediately when you click Start Quiz." },
+    { icon: Clock, text: "The timer starts immediately when you click Start Assessment." },
     { icon: RefreshCw, text: autoSubmit ? "The quiz is auto-submitted when the timer reaches zero." : "You must submit the quiz manually before the timer runs out." },
     { icon: Monitor, text: "Do not refresh the page during the assessment." },
     { icon: Wifi, text: "Do not close the browser tab or window." },
     { icon: Monitor, text: "Tab switching is actively monitored throughout the session." },
-    { icon: AlertTriangle, text: `Maximum ${maxSwitches} tab switch${maxSwitches !== 1 ? "es are" : " is"} allowed before auto-submit.` },
+    { icon: AlertTriangle, text: "If tab switching is detected, it will be declared as cheating." },
     { icon: Wifi, text: "Attempting from multiple devices simultaneously is prohibited." },
   ];
 
@@ -134,17 +133,6 @@ export function InstructionsPage() {
                   <p className="text-sm text-gray-600 leading-snug">{text}</p>
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* Warning */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex gap-3">
-            <AlertTriangle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-amber-800 mb-0.5">Tab Switch Warning</p>
-              <p className="text-sm text-amber-700">
-                After {maxSwitches} tab switch{maxSwitches !== 1 ? "es" : ""} your assessment {autoSubmit ? "will be automatically submitted" : "may be flagged for review"} and your attempt will be recorded.
-              </p>
             </div>
           </div>
 

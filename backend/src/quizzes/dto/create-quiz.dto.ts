@@ -49,4 +49,12 @@ export class CreateQuizDto {
   @IsOptional()
   @IsEnum(Visibility)
   visibility?: Visibility;
+
+  @IsOptional()
+  @IsBoolean()
+  allowRetakes?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  shuffleQuestions?: boolean;
 }

@@ -20,6 +20,14 @@ export class LeaderboardService {
     });
   }
 
+  private calculateCompletionTime(startedAt: Date, submittedAt?: Date): number | null {
+    if (!submittedAt) {
+      return null;
+    }
+    const diffMs = new Date(submittedAt).getTime() - new Date(startedAt).getTime();
+    return Math.floor(diffMs / 1000);
+  }
+
   async getLeaderboard(quizId?: string) {
     const publicQuizzes = await this.getPublicQuizzes();
     if (publicQuizzes.length === 0) {
@@ -55,6 +63,10 @@ export class LeaderboardService {
       score: res.score,
       percentage: res.percentage,
       attemptDate: res.attempt.submittedAt || res.attempt.startedAt,
+      completionTimeSeconds: this.calculateCompletionTime(
+        res.attempt.startedAt,
+        res.attempt.submittedAt
+      ),
     }));
 
     return {

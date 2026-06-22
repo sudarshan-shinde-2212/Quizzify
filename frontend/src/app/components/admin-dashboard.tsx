@@ -164,7 +164,7 @@ export function AdminDashboard() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-50">
-                {["User", "Quiz", "Score", "Percentage", "Date"].map((h) => (
+                {["User", "Quiz", "Score", "Percentage", "Date", "Status"].map((h) => (
                   <th key={h} className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-5 py-3">
                     {h}
                   </th>
@@ -172,19 +172,37 @@ export function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {filteredResults.slice(0, 5).map((r) => (
-                <tr key={r.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
-                  <td className="px-5 py-3 text-sm font-medium text-black">{r.student?.fullName || "Student"}</td>
-                  <td className="px-5 py-3 text-sm text-gray-600">{r.quiz?.title || "Quiz"}</td>
-                  <td className="px-5 py-3 text-sm text-gray-700">
-                    {r.score}/{r.quiz?.totalMarks || r.totalQuestions * 3}
-                  </td>
-                  <td className="px-5 py-3 text-sm font-semibold text-black">{r.percentage}%</td>
-                  <td className="px-5 py-3 text-sm text-gray-400">
-                    {new Date(r.createdAt).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
+              {filteredResults.slice(0, 5).map((r) => {
+                const passed = r.percentage >= 60;
+                return (
+                  <tr key={r.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
+                    <td className="px-5 py-3 text-sm font-medium text-black">{r.student?.fullName || "Student"}</td>
+                    <td className="px-5 py-3 text-sm text-gray-600">{r.quiz?.title || "Quiz"}</td>
+                    <td className="px-5 py-3 text-sm text-gray-700">
+                      {r.score}/{r.quiz?.totalMarks || r.totalQuestions * 3}
+                    </td>
+                    <td className="px-5 py-3 text-sm font-semibold text-black">{r.percentage}%</td>
+                    <td className="px-5 py-3 text-sm text-gray-400">
+                      {new Date(r.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-5 py-3">
+                      {r.cheatingDetected ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+                          Cheating Detected
+                        </span>
+                      ) : passed ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                          Passed
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+                          Failed
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         ) : (

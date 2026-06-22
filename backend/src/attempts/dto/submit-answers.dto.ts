@@ -1,4 +1,4 @@
-import { IsArray, ValidateNested, IsUUID, IsEnum, ArrayMinSize } from 'class-validator';
+import { IsArray, ValidateNested, IsUUID, IsEnum, ArrayMinSize, IsOptional, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CorrectOption } from '../../common/enums/option.enum';
 
@@ -16,4 +16,8 @@ export class SubmitAnswersDto {
   @ValidateNested({ each: true })
   @Type(() => AnswerItemDto)
   answers: AnswerItemDto[];
+
+  @IsOptional()
+  @IsBoolean()
+  cheatingDetected?: boolean;
 }

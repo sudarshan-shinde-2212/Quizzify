@@ -82,7 +82,7 @@ Return ONLY valid JSON matching this schema exactly, with no markdown formatting
 
     for (const q of quizData.questions) {
       // Map AI response (question, options, correctAnswer) to CreateQuestionDto (text, optionA-D, correctOption)
-      const questionText = q.question || q.text || q.questionText;
+      const questionText = q.question || q.text || q.questionText; // Keep backward compatibility
       const options = q.options || [q.optionA, q.optionB, q.optionC, q.optionD];
       const correctAnswer = q.correctAnswer || q.correctOption;
       

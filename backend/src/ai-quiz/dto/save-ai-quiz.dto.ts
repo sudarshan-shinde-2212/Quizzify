@@ -8,7 +8,7 @@ import { Visibility } from '../../common/enums/visibility.enum';
 export class SaveAiQuizQuestionDto {
   @IsString()
   @IsNotEmpty()
-  questionText: string;
+  text: string;
 
   @IsString()
   @IsNotEmpty()

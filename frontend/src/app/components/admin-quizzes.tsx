@@ -11,17 +11,20 @@ import {
   apiAdminGetQuizStats,
   apiAdminGetQuizResults,
   apiAdminUpdateQuizVisibility,
+  apiAdminGetQuizSettings,
+  apiAdminUpdateQuizSettings,
   getErrorMessage,
   Quiz,
   QuizStats,
   QuizResultsItem,
+  QuizSettings,
 } from "./api";
 import { ConfirmModal } from "./ui/confirm-modal";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Calendar, Plus, Edit2, Trash2, Eye, Clock, Trophy, X, Loader2,
   Play, PowerOff, Sparkles, FileQuestion, BarChart2, ChevronLeft, Search,
-  Download, Users, CheckCircle2, TrendingUp, TrendingDown,
+  Download, Users, CheckCircle2, TrendingUp, TrendingDown, Settings,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "./ui/sheet";
@@ -123,8 +126,8 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
       return;
     }
 
-    if (startTime >= endTime) {
-      setError("End date must be after start date.");
+    if (startTime > endTime) {
+      setError("End date must be after or equal to start date.");
       setLoading(false);
       return;
     }
@@ -159,13 +162,12 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4 overflow-y-auto py-8">
       <motion.div
         initial={{ scale: 0.97, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.97, opacity: 0 }}
-        className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6"
-        style={{ maxHeight: "calc(100vh - 48px)", overflowY: "auto" }}
+        className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 max-h-[80vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold text-black">{quiz ? "Edit Quiz" : "Create New Quiz"}</h2>
@@ -393,6 +395,12 @@ export function AdminQuizzes() {
   const [resultsSortOrder, setResultsSortOrder] = useState<"ASC" | "DESC">("DESC");
   const debouncedResultsSearch = useDebounce(resultsSearch, 300);
 
+  // Quiz settings sheet state
+  const [settingsQuizId, setSettingsQuizId] = useState<string | null>(null);
+  const [quizSettings, setQuizSettings] = useState<QuizSettings | null>(null);
+  const [loadingSettings, setLoadingSettings] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+
   const loadQuizzes = async () => {
     try {
       const data = await apiAdminGetQuizzes();
@@ -402,6 +410,35 @@ export function AdminQuizzes() {
       console.error("Failed to fetch quizzes", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openQuizSettings = async (quiz: Quiz, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSettingsQuizId(quiz.id);
+    setLoadingSettings(true);
+    try {
+      const settings = await apiAdminGetQuizSettings(quiz.id);
+      setQuizSettings(settings);
+    } catch (err) {
+      console.error("Failed to load quiz settings", err);
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  const saveQuizSettings = async () => {
+    if (!settingsQuizId || !quizSettings) return;
+    setSavingSettings(true);
+    try {
+      await apiAdminUpdateQuizSettings(settingsQuizId, quizSettings);
+      await loadQuizzes();
+      setSettingsQuizId(null);
+    } catch (err) {
+      console.error("Failed to save quiz settings", err);
+      alert(getErrorMessage(err, "Failed to save quiz settings"));
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -566,7 +603,7 @@ export function AdminQuizzes() {
           <p className="text-sm text-gray-500 mt-0.5">{quizzes.length} quiz{quizzes.length !== 1 ? "zes" : ""}</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          {/* Search box */}
+          {/* Local Search (for quizzes page only) */}
           <div className="relative flex-1 sm:flex-none sm:w-64">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -655,6 +692,13 @@ export function AdminQuizzes() {
                     className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                   >
                     <BarChart2 size={15} />
+                  </button>
+                  <button
+                    onClick={(e) => openQuizSettings(quiz, e)}
+                    title="Quiz Settings"
+                    className="p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded-lg transition-colors"
+                  >
+                    <Settings size={15} />
                   </button>
                   <button
                     onClick={() => setPublishConfirm(quiz)}
@@ -864,6 +908,91 @@ export function AdminQuizzes() {
                     )}
                   </div>
                 </>
+              ) : null}
+            </SheetContent>
+          </Sheet>
+        )}
+      </AnimatePresence>
+
+      {/* Quiz Settings Sheet */}
+      <AnimatePresence>
+        {settingsQuizId && (
+          <Sheet open={!!settingsQuizId} onOpenChange={(open) => !open && setSettingsQuizId(null)}>
+            <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+              <SheetHeader className="mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <button
+                    onClick={() => setSettingsQuizId(null)}
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <SheetTitle className="text-xl font-bold">Quiz Settings</SheetTitle>
+                </div>
+                <SheetDescription>Customize quiz-specific settings</SheetDescription>
+              </SheetHeader>
+
+              {loadingSettings ? (
+                <div className="py-20 flex flex-col items-center justify-center">
+                  <Loader2 className="animate-spin text-black mb-2" size={24} />
+                  <p className="text-sm text-gray-500">Loading quiz settings…</p>
+                </div>
+              ) : quizSettings ? (
+                <div className="space-y-6">
+                  {/* Allow Retakes */}
+                  <div className="bg-gray-50 rounded-xl p-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-semibold text-black">Allow Retakes</h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Let students attempt the quiz multiple times
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setQuizSettings({ ...quizSettings, allowRetakes: !quizSettings.allowRetakes })}
+                        className={`w-12 h-6 rounded-full transition-colors relative ${
+                          quizSettings.allowRetakes ? "bg-black" : "bg-gray-300"
+                        }`}
+                      >
+                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                          quizSettings.allowRetakes ? "translate-x-6" : "translate-x-0"
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Shuffle Questions */}
+                  <div className="bg-gray-50 rounded-xl p-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-semibold text-black">Shuffle Questions</h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Randomize question order for each student
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setQuizSettings({ ...quizSettings, shuffleQuestions: !quizSettings.shuffleQuestions })}
+                        className={`w-12 h-6 rounded-full transition-colors relative ${
+                          quizSettings.shuffleQuestions ? "bg-black" : "bg-gray-300"
+                        }`}
+                      >
+                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                          quizSettings.shuffleQuestions ? "translate-x-6" : "translate-x-0"
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <button
+                    onClick={saveQuizSettings}
+                    disabled={savingSettings}
+                    className="w-full py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-900 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    {savingSettings && <Loader2 size={15} className="animate-spin" />}
+                    Save Settings
+                  </button>
+                </div>
               ) : null}
             </SheetContent>
           </Sheet>

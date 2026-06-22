@@ -38,6 +38,9 @@ export class Question {
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 1 })
   marks: number;
 
+  @Column({ type: 'decimal', precision: 5, scale: 2, default: 0, nullable: true })
+  negativeMarks: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

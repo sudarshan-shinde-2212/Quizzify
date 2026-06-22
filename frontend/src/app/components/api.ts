@@ -76,6 +76,8 @@ export interface Quiz {
   createdById: string;
   createdAt: string;
   updatedAt: string;
+  allowRetakes: boolean;
+  shuffleQuestions: boolean;
   questions?: Question[];
 }
 
@@ -89,6 +91,7 @@ export interface Question {
   optionD: string;
   correctOption?: 'A' | 'B' | 'C' | 'D';
   marks: number;
+  negativeMarks?: number;
   difficulty?: string;
   createdAt: string;
   updatedAt: string;
@@ -114,6 +117,7 @@ export interface QuizResult {
   wrongAnswers: number;
   score: number;
   percentage: number;
+  cheatingDetected: boolean;
   createdAt: string;
   quiz?: Quiz;
   student?: StoredUser;
@@ -188,6 +192,7 @@ export interface LeaderboardEntry {
   score: number;
   percentage: number;
   attemptDate: string;
+  completionTimeSeconds: number | null;
 }
 
 export interface LeaderboardResponse {
@@ -320,16 +325,18 @@ export async function apiStartQuizAttempt(quizId: string): Promise<QuizAttempt> 
 export async function apiSubmitQuizAttempt(
   quizId: string,
   answers: { questionId: string; selectedOption: 'A' | 'B' | 'C' | 'D' }[],
+  cheatingDetected: boolean = false,
 ): Promise<{
   score: number;
   percentage: number;
   correctAnswers: number;
   wrongAnswers: number;
   totalQuestions: number;
+  cheatingDetected?: boolean;
 }> {
   return request(`/student/quizzes/${quizId}/submit`, {
     method: 'POST',
-    body: JSON.stringify({ answers }),
+    body: JSON.stringify({ answers, cheatingDetected }),
   });
 }
 
@@ -402,6 +409,48 @@ export async function apiAdminUpdateQuizVisibility(
   });
 }
 
+export interface QuizSettings {
+  allowRetakes: boolean;
+  shuffleQuestions: boolean;
+}
+
+export async function apiAdminGetQuizSettings(quizId: string): Promise<QuizSettings> {
+  return request<QuizSettings>(`/admin/quizzes/${quizId}/settings`);
+}
+
+export async function apiAdminUpdateQuizSettings(
+  quizId: string,
+  settings: Partial<QuizSettings>,
+): Promise<QuizSettings> {
+  return request<QuizSettings>(`/admin/quizzes/${quizId}/settings`, {
+    method: 'PATCH',
+    body: JSON.stringify(settings),
+  });
+}
+
+export interface GlobalSearchResult {
+  users: Array<{
+    id: string;
+    name: string;
+    email: string;
+    username?: string;
+  }>;
+  quizzes: Array<{
+    id: string;
+    title: string;
+    description?: string;
+  }>;
+  questions: Array<{
+    id: string;
+    quizId: string;
+    text: string;
+  }>;
+}
+
+export async function apiAdminGlobalSearch(query: string): Promise<GlobalSearchResult> {
+  return request<GlobalSearchResult>(`/admin/search?q=${encodeURIComponent(query)}`);
+}
+
 export async function apiGetLeaderboard(quizId?: string): Promise<LeaderboardResponse> {
   const url = quizId ? `/leaderboard/public/${quizId}` : '/leaderboard/public';
   return request<LeaderboardResponse>(url);
@@ -445,6 +494,7 @@ export async function apiAdminCreateQuestion(
     optionD: string;
     correctOption: 'A' | 'B' | 'C' | 'D';
     marks: number;
+    negativeMarks?: number;
     difficulty?: string;
   },
 ): Promise<Question> {
@@ -464,6 +514,7 @@ export async function apiAdminBulkCreateQuestions(
     optionD: string;
     correctOption: 'A' | 'B' | 'C' | 'D';
     marks: number;
+    negativeMarks?: number;
     difficulty?: string;
   }>,
 ): Promise<Question[]> {

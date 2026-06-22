@@ -76,27 +76,29 @@ export class AuthService {
   }
 
   async initializeFirstAdmin(firstAdminEmail?: string, firstAdminPassword?: string) {
-    const adminCount = await this.adminRepo.count();
-    if (adminCount > 0) {
-      this.logger.log('Admin already exists, skipping initialization');
-      return;
-    }
-
     if (!firstAdminEmail || !firstAdminPassword) {
       this.logger.warn(
-        'No admin exists, but FIRST_ADMIN_EMAIL and FIRST_ADMIN_PASSWORD not provided. ' +
-        'Please set these environment variables to create the first admin account.'
+        'FIRST_ADMIN_EMAIL and FIRST_ADMIN_PASSWORD not provided. ' +
+        'Please set these environment variables to create/update the admin account.'
       );
       return;
     }
 
+    let admin = await this.adminRepo.findOne({ where: { email: firstAdminEmail } });
     const hashed = await bcrypt.hash(firstAdminPassword, 10);
-    const admin = this.adminRepo.create({
-      email: firstAdminEmail,
-      password: hashed,
-      role: Role.ADMIN,
-    });
-    await this.adminRepo.save(admin);
-    this.logger.log('First admin account created successfully');
+    
+    if (admin) {
+      admin.password = hashed;
+      await this.adminRepo.save(admin);
+      this.logger.log('Admin account password updated successfully');
+    } else {
+      admin = this.adminRepo.create({
+        email: firstAdminEmail,
+        password: hashed,
+        role: Role.ADMIN,
+      });
+      await this.adminRepo.save(admin);
+      this.logger.log('First admin account created successfully');
+    }
   }
 }

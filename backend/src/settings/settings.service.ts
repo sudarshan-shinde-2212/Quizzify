@@ -6,7 +6,7 @@ import { Setting } from '../entities/setting.entity';
 const DEFAULT_SETTINGS = {
   emailNotifications: true,
   allowRetakes: false,
-  maxTabSwitches: 3,
+  maxTabSwitches: 0, // Always 0
   questionShuffle: true,
   maintenanceMode: false,
   platformName: "Quizzify",
@@ -30,7 +30,7 @@ export class SettingsService {
       this.logger.log('No global settings found, returning defaults:', DEFAULT_SETTINGS);
       return DEFAULT_SETTINGS;
     }
-    const mergedSettings = { ...DEFAULT_SETTINGS, ...setting.value };
+    const mergedSettings = { ...DEFAULT_SETTINGS, ...setting.value, maxTabSwitches: 0 }; // Enforce maxTabSwitches=0
     this.logger.log('Loaded settings:', mergedSettings);
     return mergedSettings;
   }
@@ -38,10 +38,10 @@ export class SettingsService {
   async saveSettings(value: any) {
     let setting = await this.settingsRepo.findOne({ where: { key: 'global_settings' } });
     if (!setting) {
-      setting = this.settingsRepo.create({ key: 'global_settings', value: { ...DEFAULT_SETTINGS, ...value } });
+      setting = this.settingsRepo.create({ key: 'global_settings', value: { ...DEFAULT_SETTINGS, ...value, maxTabSwitches: 0 } });
     } else {
       // Merge new values into existing ones, preserving defaults if needed
-      setting.value = { ...DEFAULT_SETTINGS, ...setting.value, ...value };
+      setting.value = { ...DEFAULT_SETTINGS, ...setting.value, ...value, maxTabSwitches: 0 };
     }
     await this.settingsRepo.save(setting);
     this.logger.log(`Settings saved: ${JSON.stringify(setting.value)}`);

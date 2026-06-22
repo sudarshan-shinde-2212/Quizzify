@@ -4,6 +4,16 @@ import { useState, useEffect } from "react";
 import { apiGetLeaderboard, LeaderboardResponse, getErrorMessage } from "./api";
 import { Loader2, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 
+function formatCompletionTime(seconds: number | null): string {
+  if (seconds === null) return "N/A";
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return secs === 0 ? `${mins}m` : `${mins}m ${secs}s`;
+}
+
 export function Leaderboard() {
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,31 +103,38 @@ export function Leaderboard() {
         <div className="space-y-3">
           {data.leaderboard.map((entry) => {
             let rankStyle = "";
+            let rankBg = "bg-white border-gray-100";
+            let trophyIcon: React.ReactNode = null;
+            
             if (entry.rank === 1) {
-              rankStyle = "bg-yellow-50 border-yellow-200";
+              rankBg = "bg-yellow-50 border-yellow-200";
+              trophyIcon = <Trophy size={20} className="text-yellow-600" />;
             } else if (entry.rank === 2) {
-              rankStyle = "bg-gray-50 border-gray-200";
+              rankBg = "bg-gray-100 border-gray-300";
+              trophyIcon = <Trophy size={18} className="text-gray-500" />;
             } else if (entry.rank === 3) {
-              rankStyle = "bg-amber-50 border-amber-200";
-            } else {
-              rankStyle = "bg-white border-gray-100";
+              rankBg = "bg-amber-50 border-amber-200";
+              trophyIcon = <Trophy size={16} className="text-amber-700" />;
             }
 
             return (
               <div
                 key={entry.studentName + entry.attemptDate}
-                className={`border rounded-xl p-5 flex items-center justify-between ${rankStyle}`}
+                className={`border rounded-xl p-5 flex items-center justify-between ${rankBg}`}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">
-                    {entry.rank === 1 && <Trophy size={16} className="text-yellow-500" />}
-                    {entry.rank === 2 && <Trophy size={14} className="text-gray-400" />}
-                    {entry.rank === 3 && <Trophy size={12} className="text-amber-600" />}
-                    {entry.rank > 3 && <span className="text-gray-500">{entry.rank}</span>}
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white/60 shadow-sm border border-gray-200/50">
+                    {trophyIcon || (
+                      <span className="text-lg font-bold text-gray-500">{entry.rank}</span>
+                    )}
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-black">{entry.studentName}</p>
-                    <p className="text-xs text-gray-500">Attempted on {new Date(entry.attemptDate).toLocaleString()}</p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <span>Attempted: {new Date(entry.attemptDate).toLocaleDateString()}</span>
+                      <span className="text-gray-400">•</span>
+                      <span>Time: {formatCompletionTime(entry.completionTimeSeconds)}</span>
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">

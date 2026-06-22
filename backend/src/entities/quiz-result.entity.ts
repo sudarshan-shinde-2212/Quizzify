@@ -49,6 +49,9 @@ export class QuizResult {
   @Column({ type: 'decimal', precision: 5, scale: 2 })
   percentage: number;
 
+  @Column({ type: 'boolean', default: false })
+  cheatingDetected: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 }

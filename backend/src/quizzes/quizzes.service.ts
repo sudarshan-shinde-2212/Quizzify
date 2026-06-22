@@ -8,6 +8,7 @@ import { CreateQuizDto } from './dto/create-quiz.dto';
 import { UpdateQuizDto } from './dto/update-quiz.dto';
 import { PublishQuizDto } from './dto/publish-quiz.dto';
 import { UpdateVisibilityDto } from './dto/update-visibility.dto';
+import { UpdateQuizSettingsDto } from './dto/update-quiz-settings.dto';
 import { QuizResult } from '../entities/quiz-result.entity';
 import { Student } from '../entities/student.entity';
 
@@ -123,6 +124,25 @@ export class QuizzesService {
     const quiz = await this.findOne(id);
     quiz.visibility = dto.visibility;
     return this.quizRepo.save(quiz);
+  }
+
+  async getQuizSettings(id: string) {
+    const quiz = await this.findOne(id);
+    return {
+      allowRetakes: quiz.allowRetakes,
+      shuffleQuestions: quiz.shuffleQuestions,
+    };
+  }
+
+  async updateQuizSettings(id: string, dto: UpdateQuizSettingsDto) {
+    const quiz = await this.findOne(id);
+    if (dto.allowRetakes !== undefined) quiz.allowRetakes = dto.allowRetakes;
+    if (dto.shuffleQuestions !== undefined) quiz.shuffleQuestions = dto.shuffleQuestions;
+    await this.quizRepo.save(quiz);
+    return {
+      allowRetakes: quiz.allowRetakes,
+      shuffleQuestions: quiz.shuffleQuestions,
+    };
   }
 
   async findActiveQuizzes(): Promise<Quiz[]> {
@@ -245,8 +265,8 @@ export class QuizzesService {
       throw new BadRequestException('Invalid startDate or endDate');
     }
 
-    if (start >= end) {
-      throw new BadRequestException('startDate must be before endDate');
+    if (start > end) {
+      throw new BadRequestException('startDate must be before or equal to endDate');
     }
 
     return { start, end };

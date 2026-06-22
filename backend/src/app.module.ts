@@ -22,6 +22,7 @@ import { Setting } from './entities/setting.entity';
 import { SettingsModule } from './settings/settings.module';
 import { AiQuizModule } from './ai-quiz/ai-quiz.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { GlobalSearchModule } from './global-search/global-search.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
     SettingsModule,
     AiQuizModule,
     LeaderboardModule,
+    GlobalSearchModule,
   ],
   controllers: [HealthController],
 })

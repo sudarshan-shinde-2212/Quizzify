@@ -38,4 +38,10 @@ export class CreateQuestionDto {
   @Min(0.5, { message: 'Question marks must be at least 0.5.' })
   @Validate(IsHalfMark)
   marks: number;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(99.99)
+  negativeMarks?: number;
 }

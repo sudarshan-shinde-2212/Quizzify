@@ -124,9 +124,10 @@ export class AttemptsService {
         score += Number(question.marks);
       } else {
         wrongAnswers++;
-        // Apply negative marking from quiz level (0 = disabled)
-        if (quizNegMark > 0) {
-          score -= quizNegMark;
+        // Apply negative marking: per-question if set, else quiz-level (0 = disabled)
+        const negMark = Number(question.negativeMarks ?? quizNegMark ?? 0);
+        if (negMark > 0) {
+          score -= negMark;
         }
       }
     }
@@ -154,6 +155,7 @@ export class AttemptsService {
       wrongAnswers,
       score: parseFloat(score.toFixed(2)),
       percentage: parseFloat(percentage.toFixed(2)),
+      cheatingDetected: dto.cheatingDetected ?? false,
     });
     await this.resultRepo.save(result);
 

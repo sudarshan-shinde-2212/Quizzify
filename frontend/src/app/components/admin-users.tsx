@@ -138,7 +138,7 @@ export function AdminUsers() {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Local Search (for users page only) */}
       <div className="relative mb-5">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
@@ -248,9 +248,9 @@ export function AdminUsers() {
       <AnimatePresence>
         {selectedUserId && (
           <Sheet open={!!selectedUserId} onOpenChange={(open) => !open && setSelectedUserId(null)}>
-            <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
-              <SheetHeader className="mb-6">
-                <div className="flex items-center gap-2 mb-2">
+            <SheetContent side="right" className="w-full sm:w-3/4 md:max-w-2xl overflow-y-auto p-0">
+              <SheetHeader className="mb-0 p-4 border-b border-gray-100">
+                <div className="flex items-center gap-2 mb-1">
                   <button
                     onClick={() => setSelectedUserId(null)}
                     className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
@@ -262,134 +262,136 @@ export function AdminUsers() {
                 <SheetDescription>Complete profile and quiz history</SheetDescription>
               </SheetHeader>
 
-              {loadingDetails ? (
-                <div className="py-20 flex flex-col items-center justify-center">
-                  <Loader2 className="animate-spin text-black mb-2" size={24} />
-                  <p className="text-sm text-gray-500">Loading user details…</p>
-                </div>
-              ) : userDetails ? (
-                <>
-                  {/* Profile Info */}
-                  <div className="bg-gray-50 rounded-xl p-6 mb-6">
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-600">
-                        {(userDetails.student.fullName || "S")[0].toUpperCase()}
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-bold text-black">{userDetails.student.fullName}</h2>
-                        <p className="text-sm text-gray-500">{userDetails.student.email}</p>
-                        <span className="inline-block mt-1 text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-full">
-                          {userDetails.student.role}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-white rounded-lg p-4">
-                        <p className="text-xs text-gray-500 mb-1">Total Quizzes Attempted</p>
-                        <p className="text-2xl font-bold text-black">{userDetails.stats.totalQuizzesAttempted}</p>
-                      </div>
-                      <div className="bg-white rounded-lg p-4">
-                        <p className="text-xs text-gray-500 mb-1">Average Score</p>
-                        <p className="text-2xl font-bold text-black">{userDetails.stats.averageScore}%</p>
-                      </div>
-                      <div className="bg-white rounded-lg p-4">
-                        <p className="text-xs text-gray-500 mb-1">Highest Score</p>
-                        <p className="text-2xl font-bold text-green-600">{userDetails.stats.highestScore}%</p>
-                      </div>
-                      <div className="bg-white rounded-lg p-4">
-                        <p className="text-xs text-gray-500 mb-1">Lowest Score</p>
-                        <p className="text-2xl font-bold text-red-600">{userDetails.stats.lowestScore}%</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <p className="text-xs text-gray-500 mb-1">Registration Date</p>
-                      <p className="text-sm text-black">{formatJoinedDate(userDetails.student.createdAt)}</p>
-                      <p className="text-xs text-gray-500 mt-2 mb-1">Last Activity</p>
-                      <p className="text-sm text-black">{formatDateTime(userDetails.stats.lastActivity)}</p>
-                    </div>
+              <div className="p-6">
+                {loadingDetails ? (
+                  <div className="py-20 flex flex-col items-center justify-center">
+                    <Loader2 className="animate-spin text-black mb-2" size={24} />
+                    <p className="text-sm text-gray-500">Loading user details…</p>
                   </div>
-
-                  {/* Exam History */}
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-black">Exam History</h3>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setHistorySortBy(historySortBy === "date" ? "score" : "date")}
-                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                        >
-                          {historySortBy === "date" ? <Calendar size={14} /> : <Trophy size={14} />}
-                          {historySortBy === "date" ? "Date" : "Score"}
-                        </button>
-                        <button
-                          onClick={() => {
-                            const newSortOrder = historySortOrder === "DESC" ? "ASC" : "DESC";
-                            setHistorySortOrder(newSortOrder);
-                          }}
-                          className="flex items-center justify-center w-8 h-8 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                        >
-                          {historySortOrder === "DESC" ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
-                        </button>
-                        <div className="relative">
-                          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                          <input
-                            type="text"
-                            placeholder="Search quizzes..."
-                            value={historySearch}
-                            onChange={(e) => setHistorySearch(e.target.value)}
-                            className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-black"
-                          />
+                ) : userDetails ? (
+                  <>
+                    {/* Profile Info */}
+                    <div className="bg-gray-50 rounded-xl p-6 mb-6">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-600">
+                          {(userDetails.student.fullName || "S")[0].toUpperCase()}
                         </div>
+                        <div>
+                          <h2 className="text-xl font-bold text-black">{userDetails.student.fullName}</h2>
+                          <p className="text-sm text-gray-500">{userDetails.student.email}</p>
+                          <span className="inline-block mt-1 text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-full">
+                            {userDetails.student.role}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white rounded-lg p-4">
+                          <p className="text-xs text-gray-500 mb-1">Total Quizzes Attempted</p>
+                          <p className="text-2xl font-bold text-black">{userDetails.stats.totalQuizzesAttempted}</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-4">
+                          <p className="text-xs text-gray-500 mb-1">Average Score</p>
+                          <p className="text-2xl font-bold text-black">{userDetails.stats.averageScore}%</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-4">
+                          <p className="text-xs text-gray-500 mb-1">Highest Score</p>
+                          <p className="text-2xl font-bold text-green-600">{userDetails.stats.highestScore}%</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-4">
+                          <p className="text-xs text-gray-500 mb-1">Lowest Score</p>
+                          <p className="text-2xl font-bold text-red-600">{userDetails.stats.lowestScore}%</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <p className="text-xs text-gray-500 mb-1">Registration Date</p>
+                        <p className="text-sm text-black">{formatJoinedDate(userDetails.student.createdAt)}</p>
+                        <p className="text-xs text-gray-500 mt-2 mb-1">Last Activity</p>
+                        <p className="text-sm text-black">{formatDateTime(userDetails.stats.lastActivity)}</p>
                       </div>
                     </div>
 
-                    <div className="space-y-3">
-                      {userHistory.length === 0 ? (
-                        <div className="bg-white border border-gray-100 rounded-xl py-12 text-center text-sm text-gray-400">
-                          No quiz attempts yet
-                        </div>
-                      ) : (
-                        userHistory.map((item, idx) => (
-                          <div key={idx} className="bg-white border border-gray-100 rounded-xl p-5">
-                            <div className="flex items-center justify-between mb-3">
-                              <h4 className="font-medium text-black">{item.quizName}</h4>
-                              <span className={`text-xs px-2.5 py-1 rounded-full border ${getStatusColor(item.percentage)}`}>
-                                {item.status}
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                              <div>
-                                <p className="text-xs text-gray-500">Date</p>
-                                <p className="text-gray-700">{formatDateTime(item.dateAttempted)}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-gray-500">Score</p>
-                                <p className="text-gray-700">{item.score}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-gray-500">Percentage</p>
-                                <p className="text-gray-700 font-medium">{item.percentage}%</p>
-                              </div>
-                              <div className="flex gap-4">
-                                <div>
-                                  <p className="text-xs text-gray-500">Correct</p>
-                                  <p className="text-green-600 font-medium">{item.correctAnswers}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-500">Wrong</p>
-                                  <p className="text-red-600 font-medium">{item.wrongAnswers}</p>
-                                </div>
-                              </div>
-                            </div>
+                    {/* Exam History */}
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-black">Exam History</h3>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setHistorySortBy(historySortBy === "date" ? "score" : "date")}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                          >
+                            {historySortBy === "date" ? <Calendar size={14} /> : <Trophy size={14} />}
+                            {historySortBy === "date" ? "Date" : "Score"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              const newSortOrder = historySortOrder === "DESC" ? "ASC" : "DESC";
+                              setHistorySortOrder(newSortOrder);
+                            }}
+                            className="flex items-center justify-center w-8 h-8 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                          >
+                            {historySortOrder === "DESC" ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
+                          </button>
+                          <div className="relative">
+                            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Search quizzes..."
+                              value={historySearch}
+                              onChange={(e) => setHistorySearch(e.target.value)}
+                              className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-black"
+                            />
                           </div>
-                        ))
-                      )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {userHistory.length === 0 ? (
+                          <div className="bg-white border border-gray-100 rounded-xl py-12 text-center text-sm text-gray-400">
+                            No quiz attempts yet
+                          </div>
+                        ) : (
+                          userHistory.map((item, idx) => (
+                            <div key={idx} className="bg-white border border-gray-100 rounded-xl p-5">
+                              <div className="flex items-center justify-between mb-3">
+                                <h4 className="font-medium text-black">{item.quizName}</h4>
+                                <span className={`text-xs px-2.5 py-1 rounded-full border ${getStatusColor(item.percentage)}`}>
+                                  {item.status}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                  <p className="text-xs text-gray-500">Date</p>
+                                  <p className="text-gray-700">{formatDateTime(item.dateAttempted)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">Score</p>
+                                  <p className="text-gray-700">{item.score}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">Percentage</p>
+                                  <p className="text-gray-700 font-medium">{item.percentage}%</p>
+                                </div>
+                                <div className="flex gap-4">
+                                  <div>
+                                    <p className="text-xs text-gray-500">Correct</p>
+                                    <p className="text-green-600 font-medium">{item.correctAnswers}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-gray-500">Wrong</p>
+                                    <p className="text-red-600 font-medium">{item.wrongAnswers}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </>
-              ) : null}
+                  </>
+                ) : null}
+              </div>
             </SheetContent>
           </Sheet>
         )}

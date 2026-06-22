@@ -213,6 +213,7 @@ export function QuizPage() {
   const [modal, setModal] = useState<ModalType>(null);
   const [startTime] = useState(Date.now());
   const [submitting, setSubmitting] = useState(false);
+  const [cheatingDetected, setCheatingDetected] = useState(false);
 
   const [settings, setSettings] = useState<any>(null);
 
@@ -301,7 +302,7 @@ export function QuizPage() {
           selectedOption: ["A", "B", "C", "D"][val as number] as "A" | "B" | "C" | "D",
         }));
 
-      const res = await apiSubmitQuizAttempt(quizId, formattedAnswers);
+      const res = await apiSubmitQuizAttempt(quizId, formattedAnswers, cheatingDetected);
 
       sessionStorage.setItem("quizResult", JSON.stringify({
         score: res.score,
@@ -324,23 +325,60 @@ export function QuizPage() {
     }
   }, [answers, router, quiz, quizId, startTime, submitting, getUnansweredInfo]);
 
-  // Tab visibility monitoring
+  // Tab visibility monitoring and cheating prevention
   useEffect(() => {
     if (loading || error || !settings) return;
-    const maxSwitches = settings?.maxTabSwitches ?? 3;
+    const maxSwitches = 0; // Any tab switch is considered cheating
     const handleVisibility = () => {
       if (document.hidden) {
+        setCheatingDetected(true);
         setTabSwitches((prev) => {
           const next = prev + 1;
-          if (next >= maxSwitches) setModal("final-warning");
-          else if (next === maxSwitches - 1) setModal("security-warning");
-          else setModal("tab-switch");
+          if (next > maxSwitches) setModal("final-warning");
           return next;
         });
       }
     };
+    const handleCopyCutPaste = (e: ClipboardEvent) => {
+      e.preventDefault();
+      setCheatingDetected(true);
+      setModal("tab-switch");
+      setTabSwitches(prev => prev + 1);
+    };
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent Ctrl/Cmd+C, Ctrl/Cmd+X, Ctrl/Cmd+V, Ctrl/Cmd+P, PrintScreen
+      if ((e.ctrlKey || e.metaKey) && (e.key === "c" || e.key === "C" || e.key === "x" || e.key === "X" || e.key === "v" || e.key === "V" || e.key === "p" || e.key === "P")) {
+        e.preventDefault();
+        setCheatingDetected(true);
+        setModal("tab-switch");
+        setTabSwitches(prev => prev + 1);
+      }
+      // Prevent PrintScreen key
+      if (e.key === "PrintScreen" || e.key === "prtsc" || e.key === "PrtScr") {
+        e.preventDefault();
+        setCheatingDetected(true);
+        setModal("tab-switch");
+        setTabSwitches(prev => prev + 1);
+      }
+    };
     document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
+    document.addEventListener("copy", handleCopyCutPaste);
+    document.addEventListener("cut", handleCopyCutPaste);
+    document.addEventListener("paste", handleCopyCutPaste);
+    document.addEventListener("contextmenu", handleContextMenu);
+    document.addEventListener("keydown", handleKeyDown);
+    
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      document.removeEventListener("copy", handleCopyCutPaste);
+      document.removeEventListener("cut", handleCopyCutPaste);
+      document.removeEventListener("paste", handleCopyCutPaste);
+      document.removeEventListener("contextmenu", handleContextMenu);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [loading, error, settings]);
 
   const { minutes, secs, isLow } = useTimer((quiz?.durationInMinutes ?? 30) * 60, () => {
@@ -572,7 +610,7 @@ export function QuizPage() {
                             left: `${5 + col * 25}%`,
                             transform: "rotate(-30deg)",
                             fontSize: "clamp(10px, 1.4vw, 14px)",
-                            color: "rgba(0,0,0,0.06)",
+                            color: "rgba(0,0,0,0.12)",
                             fontWeight: 600,
                             letterSpacing: "0.05em",
                             whiteSpace: "nowrap",
