@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { AuthService } from './auth/auth.service';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -32,12 +33,12 @@ async function bootstrap() {
     }),
   );
 
-  // Seed Admin
+  // Initialize First Admin
   const authService = app.get(AuthService);
-  await authService.seedAdmin(
-    'sudarshanshinde1012@gmail.com',
-    'sudarshan123',
-  );
+  const configService = app.get(ConfigService);
+  const firstAdminEmail = configService.get<string>('firstAdmin.email');
+  const firstAdminPassword = configService.get<string>('firstAdmin.password');
+  await authService.initializeFirstAdmin(firstAdminEmail, firstAdminPassword);
 
   const port = Number(process.env.PORT) || 3000;
 
