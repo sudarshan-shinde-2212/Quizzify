@@ -1,7 +1,8 @@
 import {
   IsString, IsNotEmpty, IsOptional, IsDateString,
-  IsInt, Min, IsBoolean, IsNumber,
+  IsInt, Min, IsBoolean, IsNumber, IsEnum,
 } from 'class-validator';
+import { Visibility } from '../../common/enums/visibility.enum';
 
 export class CreateQuizDto {
   @IsString()
@@ -44,4 +45,8 @@ export class CreateQuizDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   negativeMarks?: number;
+
+  @IsOptional()
+  @IsEnum(Visibility)
+  visibility?: Visibility;
 }

@@ -6,6 +6,7 @@ import { QuizzesService } from './quizzes.service';
 import { CreateQuizDto } from './dto/create-quiz.dto';
 import { UpdateQuizDto } from './dto/update-quiz.dto';
 import { PublishQuizDto } from './dto/publish-quiz.dto';
+import { UpdateVisibilityDto } from './dto/update-visibility.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -67,5 +68,10 @@ export class QuizzesController {
   @Patch(':id/publish')
   publish(@Param('id') id: string, @Body() dto: PublishQuizDto) {
     return this.quizzesService.publish(id, dto);
+  }
+
+  @Patch(':id/visibility')
+  updateVisibility(@Param('id') id: string, @Body() dto: UpdateVisibilityDto) {
+    return this.quizzesService.updateVisibility(id, dto);
   }
 }

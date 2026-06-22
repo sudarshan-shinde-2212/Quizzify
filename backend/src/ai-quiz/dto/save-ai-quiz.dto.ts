@@ -3,6 +3,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CorrectOption } from '../../common/enums/option.enum';
+import { Visibility } from '../../common/enums/visibility.enum';
 
 export class SaveAiQuizQuestionDto {
   @IsString()
@@ -59,6 +60,10 @@ export class SaveAiQuizDto {
   @IsInt()
   @Min(1)
   expectedQuestionCount?: number;
+
+  @IsOptional()
+  @IsEnum(Visibility)
+  visibility?: Visibility;
 
   @IsArray()
   @ValidateNested({ each: true })

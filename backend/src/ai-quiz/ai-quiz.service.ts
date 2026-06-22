@@ -77,6 +77,7 @@ Return ONLY valid JSON matching this schema exactly, with no markdown formatting
       totalMarks: quizData.questions.reduce((acc: number, q: any) => acc + (Number(q.marks) || 1), 0),
       questionCount: quizData.questions.length,
       isPublished: true,
+      visibility: quizData.visibility,
     }, adminId);
 
     for (const q of quizData.questions) {

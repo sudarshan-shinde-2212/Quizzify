@@ -7,6 +7,7 @@ import { Quiz } from '../entities/quiz.entity';
 import { CreateQuizDto } from './dto/create-quiz.dto';
 import { UpdateQuizDto } from './dto/update-quiz.dto';
 import { PublishQuizDto } from './dto/publish-quiz.dto';
+import { UpdateVisibilityDto } from './dto/update-visibility.dto';
 import { QuizResult } from '../entities/quiz-result.entity';
 import { Student } from '../entities/student.entity';
 
@@ -115,6 +116,12 @@ export class QuizzesService {
     }
 
     quiz.isPublished = dto.isPublished;
+    return this.quizRepo.save(quiz);
+  }
+
+  async updateVisibility(id: string, dto: UpdateVisibilityDto): Promise<Quiz> {
+    const quiz = await this.findOne(id);
+    quiz.visibility = dto.visibility;
     return this.quizRepo.save(quiz);
   }
 

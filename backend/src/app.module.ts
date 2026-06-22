@@ -21,6 +21,7 @@ import { QuizResult } from './entities/quiz-result.entity';
 import { Setting } from './entities/setting.entity';
 import { SettingsModule } from './settings/settings.module';
 import { AiQuizModule } from './ai-quiz/ai-quiz.module';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { AiQuizModule } from './ai-quiz/ai-quiz.module';
     AiChatModule,
     SettingsModule,
     AiQuizModule,
+    LeaderboardModule,
   ],
   controllers: [HealthController],
 })

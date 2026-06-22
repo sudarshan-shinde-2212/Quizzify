@@ -14,6 +14,7 @@ const sidebarLinks = [
   { label: "Quizzes", href: "/admin/quizzes", icon: BookOpen },
   { label: "Questions", href: "/admin/questions", icon: FileQuestion },
   { label: "Users", href: "/admin/users", icon: Users },
+  { label: "Leaderboard", href: "/admin/leaderboard", icon: Trophy },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 

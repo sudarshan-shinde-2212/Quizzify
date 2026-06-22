@@ -10,6 +10,7 @@ import {
   apiAdminPublishQuiz,
   apiAdminGetQuizStats,
   apiAdminGetQuizResults,
+  apiAdminUpdateQuizVisibility,
   getErrorMessage,
   Quiz,
   QuizStats,
@@ -70,6 +71,7 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
     negativeMarks: quiz?.negativeMarks ?? 0,
     startDate: toDateInputValue(quiz?.startDate),
     endDate: toDateInputValue(quiz?.endDate),
+    visibility: quiz?.visibility ?? "private",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -137,6 +139,7 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
       totalMarks,
       questionCount,
       negativeMarks,
+      visibility: form.visibility,
     };
 
     try {
@@ -324,6 +327,21 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
             </p>
           </div>
 
+          {/* Row 7: Quiz Visibility */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Quiz Visibility <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={form.visibility}
+              onChange={(e) => setForm({ ...form, visibility: e.target.value as "public" | "private" })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black"
+            >
+              <option value="private">Private (No leaderboard)</option>
+              <option value="public">Public (Show leaderboard)</option>
+            </select>
+          </div>
+
           {error && (
             <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
               {error}
@@ -358,9 +376,12 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
 export function AdminQuizzes() {
   const router = useRouter();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [allQuizzes, setAllQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editQuiz, setEditQuiz] = useState<Quiz | undefined>();
+  const [quizSearch, setQuizSearch] = useState("");
+  const debouncedQuizSearch = useDebounce(quizSearch, 300);
 
   // Analytics sheet state
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
@@ -375,6 +396,7 @@ export function AdminQuizzes() {
   const loadQuizzes = async () => {
     try {
       const data = await apiAdminGetQuizzes();
+      setAllQuizzes(data);
       setQuizzes(data);
     } catch (err) {
       console.error("Failed to fetch quizzes", err);
@@ -382,6 +404,19 @@ export function AdminQuizzes() {
       setLoading(false);
     }
   };
+
+  // Filter quizzes based on search
+  useEffect(() => {
+    if (!debouncedQuizSearch) {
+      setQuizzes(allQuizzes);
+    } else {
+      const filtered = allQuizzes.filter(q => 
+        q.title.toLowerCase().includes(debouncedQuizSearch.toLowerCase()) ||
+        q.description?.toLowerCase().includes(debouncedQuizSearch.toLowerCase())
+      );
+      setQuizzes(filtered);
+    }
+  }, [debouncedQuizSearch, allQuizzes]);
 
   useEffect(() => {
     loadQuizzes();
@@ -492,6 +527,20 @@ export function AdminQuizzes() {
     }
   };
 
+  // ── Toggle Visibility ──────────────────────────────────────────────────────
+  const handleToggleVisibility = async (quiz: Quiz) => {
+    try {
+      await apiAdminUpdateQuizVisibility(
+        quiz.id,
+        quiz.visibility === "public" ? "private" : "public"
+      );
+      loadQuizzes();
+    } catch (err) {
+      console.error("Failed to update quiz visibility", err);
+      alert(getErrorMessage(err, "Visibility update failed."));
+    }
+  };
+
   const getQuizStatus = (quiz: Quiz): "live" | "upcoming" | "closed" | "draft" => {
     if (!quiz.isPublished) return "draft";
     const now = new Date();
@@ -511,13 +560,23 @@ export function AdminQuizzes() {
 
   return (
     <AdminLayout>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <div>
           <h1 className="text-xl font-bold text-black">Quizzes</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{quizzes.length} total quizzes</p>
+          <p className="text-sm text-gray-500 mt-0.5">{quizzes.length} quiz{quizzes.length !== 1 ? "zes" : ""}</p>
         </div>
-        {/* Action buttons: AI Generator first, then Create Quiz */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Search box */}
+          <div className="relative flex-1 sm:flex-none sm:w-64">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search quizzes..."
+              value={quizSearch}
+              onChange={(e) => setQuizSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-black"
+            />
+          </div>
           <button
             onClick={() => router.push("/admin/ai-quiz")}
             className="flex items-center gap-1.5 border border-gray-200 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
@@ -563,6 +622,17 @@ export function AdminQuizzes() {
                     <h3 className="text-sm font-semibold text-black">{quiz.title}</h3>
                     <span className={`text-xs px-2 py-0.5 rounded-full border ${color}`}>
                       {status.toUpperCase()}
+                    </span>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full border cursor-pointer hover:opacity-80 transition-opacity ${
+                        quiz.visibility === "public"
+                          ? "bg-green-50 text-green-700 border-green-200"
+                          : "bg-gray-100 text-gray-600 border-gray-200"
+                      }`}
+                      onClick={() => handleToggleVisibility(quiz)}
+                      title="Click to toggle visibility"
+                    >
+                      {quiz.visibility === "public" ? "PUBLIC" : "PRIVATE"}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 mb-3 line-clamp-1">{quiz.description}</p>

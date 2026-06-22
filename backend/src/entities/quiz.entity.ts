@@ -5,6 +5,7 @@ import {
 import { Admin } from './admin.entity';
 import { Question } from './question.entity';
 import { QuizAttempt } from './quiz-attempt.entity';
+import { Visibility } from '../common/enums/visibility.enum';
 
 @Entity('quizzes')
 @Unique(['title'])
@@ -35,6 +36,13 @@ export class Quiz {
 
   @Column({ default: false })
   isPublished: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: Visibility,
+    default: Visibility.PRIVATE,
+  })
+  visibility: Visibility;
 
  @ManyToOne(() => Admin, { nullable: false, eager: false })
 @JoinColumn({ name: 'createdBy' })

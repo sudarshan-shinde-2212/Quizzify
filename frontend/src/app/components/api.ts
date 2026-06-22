@@ -72,6 +72,7 @@ export interface Quiz {
   questionCount: number;
   negativeMarks: number;
   isPublished: boolean;
+  visibility: 'public' | 'private';
   createdById: string;
   createdAt: string;
   updatedAt: string;
@@ -179,6 +180,21 @@ export interface QuizResultsItem {
   score: number;
   percentage: number;
   attemptDate: string;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  studentName: string;
+  score: number;
+  percentage: number;
+  attemptDate: string;
+}
+
+export interface LeaderboardResponse {
+  publicQuizzes: Array<{ id: string; title: string }>;
+  currentQuizId: string | null;
+  currentQuizTitle: string | null;
+  leaderboard: LeaderboardEntry[];
 }
 
 // ── HTTP helper ──────────────────────────────────────────────────────────────
@@ -342,6 +358,7 @@ export async function apiAdminCreateQuiz(data: {
   questionCount: number;
   negativeMarks?: number;
   isPublished?: boolean;
+  visibility?: 'public' | 'private';
 }): Promise<Quiz> {
   return request<Quiz>('/admin/quizzes', {
     method: 'POST',
@@ -373,6 +390,21 @@ export async function apiAdminPublishQuiz(
     method: 'PATCH',
     body: JSON.stringify({ isPublished }),
   });
+}
+
+export async function apiAdminUpdateQuizVisibility(
+  id: string,
+  visibility: 'public' | 'private',
+): Promise<Quiz> {
+  return request<Quiz>(`/admin/quizzes/${id}/visibility`, {
+    method: 'PATCH',
+    body: JSON.stringify({ visibility }),
+  });
+}
+
+export async function apiGetLeaderboard(quizId?: string): Promise<LeaderboardResponse> {
+  const url = quizId ? `/leaderboard/public/${quizId}` : '/leaderboard/public';
+  return request<LeaderboardResponse>(url);
 }
 
 // New quiz endpoints

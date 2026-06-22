@@ -11,6 +11,7 @@ import { LogoutConfirmationModal } from "./logout-confirmation-modal";
 const navLinks = [
   { label: "Quiz", href: "/dashboard" },
   { label: "History", href: "/history" },
+  { label: "Leaderboard", href: "/leaderboard" },
   { label: "Profile", href: "/profile" }
 ];
 

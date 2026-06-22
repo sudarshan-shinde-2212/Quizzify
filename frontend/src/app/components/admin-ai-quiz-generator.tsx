@@ -34,6 +34,7 @@ export function AdminAiQuizGenerator() {
   const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 10); });
   const [durationInMinutes, setDurationInMinutes] = useState<number>(30);
+  const [visibility, setVisibility] = useState<"public" | "private">("private");
 
   const [step, setStep] = useState<WorkflowStep>("configure");
   const [loading, setLoading] = useState(false);
@@ -139,6 +140,7 @@ export function AdminAiQuizGenerator() {
         totalMarks: parseFloat(totalMarks.toFixed(2)),
         questionCount: generatedQuiz.questions.length,
         negativeMarks,
+        visibility,
       });
 
       for (let i = 0; i < generatedQuiz.questions.length; i++) {
@@ -393,6 +395,21 @@ export function AdminAiQuizGenerator() {
                   placeholder="e.g. 30"
                 />
               </div>
+            </div>
+
+            {/* Visibility */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Quiz Visibility <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value as "public" | "private")}
+                className="w-full px-3 py-2.5 border rounded-lg focus:border-black outline-none"
+              >
+                <option value="private">Private (No leaderboard)</option>
+                <option value="public">Public (Show leaderboard)</option>
+              </select>
             </div>
 
             {error && <p className="text-red-500 text-sm bg-red-50 p-2.5 rounded-lg border border-red-100">{error}</p>}
