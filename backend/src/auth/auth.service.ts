@@ -58,7 +58,13 @@ export class AuthService {
 
   async seedAdmin(email: string, password: string) {
     const existing = await this.adminRepo.findOne({ where: { email } });
-    if (existing) return existing;
+    if (existing) {
+      if (existing.role !== Role.ADMIN) {
+        existing.role = Role.ADMIN;
+        await this.adminRepo.save(existing);
+      }
+      return existing;
+    }
     const hashed = await bcrypt.hash(password, 10);
     const admin = this.adminRepo.create({ email, password: hashed });
     return this.adminRepo.save(admin);

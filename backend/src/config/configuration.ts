@@ -19,7 +19,4 @@ export default () => ({
   groq: {
     apiKey: process.env.GROQ_API_KEY || '',
   },
-  admin: {
-    email: process.env.ADMIN_EMAIL || '',
-  },
 });

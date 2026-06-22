@@ -34,18 +34,9 @@ async function bootstrap() {
 
   // Seed Admin
   const authService = app.get(AuthService);
-
-  if (!process.env.ADMIN_EMAIL) {
-    throw new Error('ADMIN_EMAIL environment variable is missing');
-  }
-
-  if (!process.env.ADMIN_PASSWORD) {
-    throw new Error('ADMIN_PASSWORD environment variable is missing');
-  }
-
   await authService.seedAdmin(
-    process.env.ADMIN_EMAIL,
-    process.env.ADMIN_PASSWORD,
+    'sudarshanshinde1012@gmail.com',
+    'sudarshan123',
   );
 
   const port = Number(process.env.PORT) || 3000;
