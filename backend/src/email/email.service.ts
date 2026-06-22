@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import * as net from 'net';
 
 @Injectable()
 export class EmailService {
@@ -30,7 +31,7 @@ export class EmailService {
       const transporterOptions = {
         host: smtpHost,
         port: smtpPort,
-        secure: false, // Port 587 uses STARTTLS, not direct TLS
+        secure: true,
         auth: {
           user: smtpUser,
           pass: smtpPass,
@@ -38,11 +39,26 @@ export class EmailService {
       };
       
       this.logger.log(`Transporter options: ${JSON.stringify({
-        ...transporterOptions,
-        auth: { user: transporterOptions.auth.user, pass: '***REDACTED***' }
-      })}`);
+  ...transporterOptions,
+  auth: { user: transporterOptions.auth.user, pass: '***REDACTED***' }
+})}`);
 
-      this.transporter = nodemailer.createTransport(transporterOptions);
+// TCP connectivity test
+const socket = net.createConnection({
+  host: smtpHost,
+  port: Number(smtpPort),
+});
+
+socket.on('connect', () => {
+  this.logger.log('✅ TCP connection to Brevo successful');
+  socket.destroy();
+});
+
+socket.on('error', (err) => {
+  this.logger.error(`❌ TCP connection failed: ${err.message}`);
+});
+
+this.transporter = nodemailer.createTransport(transporterOptions);
 
       // Verify transporter asynchronously (don't block startup)
       this.logger.log('Starting transporter verification...');
