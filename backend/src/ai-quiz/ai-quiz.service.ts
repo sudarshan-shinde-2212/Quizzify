@@ -80,16 +80,38 @@ Return ONLY valid JSON matching this schema exactly, with no markdown formatting
     }, adminId);
 
     for (const q of quizData.questions) {
-      await this.questionsService.create(quiz.id, {
-        questionText: q.questionText,
-        optionA: q.optionA,
-        optionB: q.optionB,
-        optionC: q.optionC,
-        optionD: q.optionD,
-        correctOption: q.correctOption,
-        marks: Number(q.marks) || 1,
-        // negativeMarks field removed as it is not part of CreateQuestionDto
+      // Map AI response (question, options, correctAnswer) to CreateQuestionDto (text, optionA-D, correctOption)
+      const questionText = q.question || q.text || q.questionText;
+      const options = q.options || [q.optionA, q.optionB, q.optionC, q.optionD];
+      const correctAnswer = q.correctAnswer || q.correctOption;
+      
+      // Find correctOption index to determine A/B/C/D
+      let correctOptionIndex = -1;
+      if (typeof correctAnswer === 'string') {
+        correctOptionIndex = options.findIndex((opt: string) => opt.trim().toLowerCase() === correctAnswer.trim().toLowerCase());
+      } else if (typeof correctAnswer === 'number') {
+        correctOptionIndex = correctAnswer;
+      } else {
+        // If AI returns A/B/C/D directly
+        const optionMap = { A: 0, B: 1, C: 2, D: 3 };
+        correctOptionIndex = optionMap[correctAnswer as keyof typeof optionMap] ?? -1;
+      }
 
+      // Default to first option if correct answer not found
+      if (correctOptionIndex < 0 || correctOptionIndex >= 4) {
+        correctOptionIndex = 0;
+      }
+
+      const correctOption = ['A', 'B', 'C', 'D'][correctOptionIndex] as any;
+
+      await this.questionsService.create(quiz.id, {
+        text: questionText,
+        optionA: options[0] || '',
+        optionB: options[1] || '',
+        optionC: options[2] || '',
+        optionD: options[3] || '',
+        correctOption,
+        marks: Number(q.marks) || 1,
       });
     }
 
