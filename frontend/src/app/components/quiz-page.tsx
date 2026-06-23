@@ -585,14 +585,14 @@ export function QuizPage() {
                     <button
                       disabled={currentQ === 0}
                       onClick={() => setCurrentQ((c) => c - 1)}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm px-4 sm:px-5 py-2.5 sm:py-3 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm px-4 sm:px-5 py-2.5 sm:py-3 bg-black text-white rounded-lg hover:bg-gray-900 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                     >
                       <ChevronLeft size={16} /> Previous
                     </button>
                     <button
                       disabled={currentQ === questions.length - 1}
                       onClick={() => setCurrentQ((c) => c + 1)}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm px-4 sm:px-5 py-2.5 sm:py-3 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm px-4 sm:px-5 py-2.5 sm:py-3 bg-black text-white rounded-lg hover:bg-gray-900 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                     >
                       Next <ChevronRight size={16} />
                     </button>
@@ -607,7 +607,7 @@ export function QuizPage() {
                     <button
                       onClick={validateAndTrySubmit}
                       disabled={submitting || (!cheatingDetected && getUnansweredInfo().unansweredCount > 0)}
-                      className="flex items-center justify-center gap-1.5 text-sm px-5 py-2.5 sm:py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-900 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                      className="flex items-center justify-center gap-1.5 text-sm px-5 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                     >
                       {submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                       Submit

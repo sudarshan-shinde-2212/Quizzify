@@ -13,6 +13,7 @@ interface GeneratedQuestion {
   imageUrl?: string;
   options: string[];
   correctAnswer: string;
+  marks?: number;
 }
 
 interface GeneratedQuiz {
@@ -215,8 +216,9 @@ export function AdminAiQuizGenerator() {
   };
 
   // ── Total marks summary ──────────────────────────────────────────────────────
+  const perQuestionMarks = generatedQuiz ? calculatePerQuestionMarks() : 0;
   const computedTotalMarks = generatedQuiz
-    ? generatedQuiz.questions.reduce((s, q) => s + Number(q.marks), 0).toFixed(2)
+    ? (perQuestionMarks * generatedQuiz.questions.length).toFixed(2)
     : "0.00";
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -422,7 +424,7 @@ export function AdminAiQuizGenerator() {
 
             <button
               type="submit"
-              disabled={loading || !!marksError}
+              disabled={loading}
               className="w-full py-2.5 bg-black text-white rounded-lg flex justify-center items-center gap-2 hover:bg-gray-900 transition-colors disabled:opacity-50"
             >
               {loading && <Loader2 className="animate-spin" size={16} />}

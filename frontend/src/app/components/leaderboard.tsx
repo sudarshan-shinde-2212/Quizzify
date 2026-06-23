@@ -2,16 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { apiGetLeaderboard, LeaderboardResponse, getErrorMessage } from "./api";
-import { Loader2, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
+import { Loader2, Trophy } from "lucide-react";
 
 function formatCompletionTime(seconds: number | null): string {
   if (seconds === null) return "N/A";
   if (seconds < 60) {
-    return `${seconds}s`;
+    return `${seconds} sec`;
   }
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
-  return secs === 0 ? `${mins}m` : `${mins}m ${secs}s`;
+  if (secs === 0) {
+    return `${mins} min`;
+  }
+  return `${mins} min ${secs.toString().padStart(2, "0")} sec`;
 }
 
 export function Leaderboard() {
@@ -68,32 +71,18 @@ export function Leaderboard() {
       {/* Header with navigation */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-black">Leaderboard</h2>
-        {hasMultiple && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleQuizChange(Math.max(0, currentIndex - 1))}
-              disabled={currentIndex === 0}
-              className="p-2 text-gray-400 hover:text-black disabled:opacity-30 transition-colors"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <span className="text-sm font-medium text-black min-w-[150px] text-center">
-              {data.currentQuizTitle}
-            </span>
-            <button
-              onClick={() => handleQuizChange(Math.min(data.publicQuizzes.length - 1, currentIndex + 1))}
-              disabled={currentIndex === data.publicQuizzes.length - 1}
-              className="p-2 text-gray-400 hover:text-black disabled:opacity-30 transition-colors"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        )}
+        <select
+          value={currentQuizId || ""}
+          onChange={(e) => loadLeaderboard(e.target.value)}
+          className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black"
+        >
+          {data.publicQuizzes.map((quiz) => (
+            <option key={quiz.id} value={quiz.id}>
+              {quiz.title}
+            </option>
+          ))}
+        </select>
       </div>
-
-      {!hasMultiple && (
-        <h3 className="text-base font-semibold text-gray-800">{data.currentQuizTitle}</h3>
-      )}
 
       {data.leaderboard.length === 0 ? (
         <div className="bg-white border border-gray-100 rounded-xl py-12 text-center text-gray-400">
@@ -110,8 +99,8 @@ export function Leaderboard() {
               rankBg = "bg-yellow-50 border-yellow-200";
               trophyIcon = <Trophy size={20} className="text-yellow-600" />;
             } else if (entry.rank === 2) {
-              rankBg = "bg-gray-100 border-gray-300";
-              trophyIcon = <Trophy size={18} className="text-gray-500" />;
+              rankBg = "bg-slate-100 border-slate-300";
+              trophyIcon = <Trophy size={18} className="text-slate-500" />;
             } else if (entry.rank === 3) {
               rankBg = "bg-amber-50 border-amber-200";
               trophyIcon = <Trophy size={16} className="text-amber-700" />;

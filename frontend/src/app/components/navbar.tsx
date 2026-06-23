@@ -12,7 +12,6 @@ const navLinks = [
   { label: "Quiz", href: "/dashboard" },
   { label: "History", href: "/history" },
   { label: "Leaderboard", href: "/leaderboard" },
-  { label: "Profile", href: "/profile" }
 ];
 
 export function Navbar() {
@@ -108,6 +107,16 @@ export function Navbar() {
                       <button
                         onClick={() => {
                           setProfileOpen(false);
+                          router.push("/profile");
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <ChevronDown size={13} />
+                        Profile
+                      </button>
+                      <button
+                        onClick={() => {
+                          setProfileOpen(false);
                           setShowLogoutModal(true);
                         }}
                         className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
@@ -163,6 +172,16 @@ export function Navbar() {
                       <p className="text-xs text-gray-400">{user?.email}</p>
                     </div>
                   </div>
+                  <button
+                    onClick={() => {
+                      setMobileOpen(false);
+                      router.push("/profile");
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-800 flex items-center gap-2"
+                  >
+                    <ChevronDown size={13} />
+                    Profile
+                  </button>
                   <button
                     onClick={() => {
                       setMobileOpen(false);

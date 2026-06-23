@@ -152,49 +152,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* User Profile & Stats Card (Vertical Stack) */}
-        <div className="w-full md:w-[30%] lg:w-[25%] flex-shrink-0 space-y-4">
-          <div className="bg-white border border-gray-100 rounded-xl p-5 flex flex-col items-start text-left space-y-4">
-            {/* User Info Section */}
-            <div className="flex items-center gap-3">
-              {user?.avatar ? (
-                <img src={user.avatar} alt={user?.fullName || user?.name || "User"} className="w-16 h-16 rounded-full object-cover" />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-2xl font-bold text-gray-600">
-                  {(user?.fullName || user?.name || "A")[0].toUpperCase()}
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <h2 className="text-base font-bold text-black leading-tight truncate">
-                  {user?.fullName || user?.name}
-                </h2>
-                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-              </div>
-            </div>
-            
-            <div className="w-full h-px bg-gray-100" />
-            
-            {/* Stats Section (Vertical Stack) */}
-            <div className="w-full space-y-3">
-              {[
-                { label: "Total Attempts", value: stats.totalAttempts, icon: CheckCircle2, color: "text-gray-500" },
-                { label: "Average Score", value: `${stats.averageScore}%`, icon: Trophy, color: "text-purple-600" },
-                { label: "Highest Score", value: `${stats.highestScore}%`, icon: Zap, color: "text-green-600" },
-                { label: "Live Quizzes", value: stats.liveCount, icon: Zap, color: "text-blue-600" },
-              ].map(({ label, value, icon: Icon, color }) => (
-                <div key={label} className="flex items-center justify-between py-1">
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <Icon size={16} className={color} />
-                    {label}
-                  </div>
-                  <span className="text-sm font-bold text-black">{value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
+      <div className="w-full">
         {/* Available Assessments (80% Desktop, 70% Tablet) */}
         <div className="w-full md:w-[70%] lg:w-[80%]">
 

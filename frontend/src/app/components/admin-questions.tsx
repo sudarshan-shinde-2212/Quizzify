@@ -9,13 +9,14 @@ import {
   apiAdminUpdateQuestion,
   apiAdminDeleteQuestion,
   apiAdminSearchQuestions,
+  apiAdminGenerateAiImage,
   getErrorMessage,
   Quiz,
   Question,
 } from "./api";
 import { ConfirmModal } from "./ui/confirm-modal";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, Edit2, Trash2, X, Loader2, Search } from "lucide-react";
+import { Plus, Edit2, Trash2, X, Loader2, Search, Image } from "lucide-react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useDebounce } from "./use-debounce";
 
@@ -51,6 +52,23 @@ function QuestionModal({ quizId, question, selectedQuiz, onClose, onRefresh }: Q
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [generatingImage, setGeneratingImage] = useState(false);
+
+  const handleGenerateImage = async () => {
+    if (!form.text.trim()) return;
+
+    setGeneratingImage(true);
+    try {
+      const result = await apiAdminGenerateAiImage(
+        `A clear, educational diagram or illustration for this quiz question: "${form.text}". Simple, professional style, suitable for an online quiz.`
+      );
+      setForm({ ...form, imageUrl: result.imageUrl });
+    } catch (err) {
+      console.error("Failed to generate image", err);
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,13 +139,22 @@ function QuestionModal({ quizId, question, selectedQuiz, onClose, onRefresh }: Q
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-xs font-medium text-gray-700">Image URL (Optional)</label>
+              <button
+                type="button"
+                onClick={handleGenerateImage}
+                disabled={generatingImage || !form.text.trim()}
+                className="flex items-center gap-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 px-2 py-1 rounded-lg"
+              >
+                {generatingImage ? <Loader2 size={12} className="animate-spin" /> : <Image size={12} />}
+                Generate Image
+              </button>
             </div>
             <input
               type="url"
               value={form.imageUrl}
               onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-black"
-              placeholder="Enter image URL..."
+              placeholder="Enter image URL or generate one"
             />
             {/* Preview */}
             {form.imageUrl && (

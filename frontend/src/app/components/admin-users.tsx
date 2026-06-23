@@ -140,11 +140,11 @@ export function AdminUsers() {
 
       {/* Local Search (for users page only) */}
       <div className="relative mb-5">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-sm pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-black"
+          className="w-full md:w-[450px] pl-12 pr-4 py-3 border border-gray-200 rounded-lg text-sm outline-none focus:border-black"
           placeholder="Search students, emails..."
         />
       </div>
