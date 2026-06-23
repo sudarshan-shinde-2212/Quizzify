@@ -96,14 +96,14 @@ export function Leaderboard() {
             let trophyIcon: React.ReactNode = null;
             
             if (entry.rank === 1) {
-              rankBg = "bg-yellow-50 border-yellow-200";
+              rankBg = "bg-yellow-50 border-yellow-300";
               trophyIcon = <Trophy size={20} className="text-yellow-600" />;
             } else if (entry.rank === 2) {
-              rankBg = "bg-slate-100 border-slate-300";
-              trophyIcon = <Trophy size={18} className="text-slate-500" />;
+              rankBg = "bg-gray-100 border-gray-400";
+              trophyIcon = <Trophy size={18} className="text-gray-500" />;
             } else if (entry.rank === 3) {
-              rankBg = "bg-amber-50 border-amber-200";
-              trophyIcon = <Trophy size={16} className="text-amber-700" />;
+              rankBg = "bg-amber-50 border-amber-400";
+              trophyIcon = <Trophy size={16} className="text-amber-600" />;
             }
 
             return (
@@ -112,17 +112,18 @@ export function Leaderboard() {
                 className={`border rounded-xl p-5 flex items-center justify-between ${rankBg}`}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white/60 shadow-sm border border-gray-200/50">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-sm border border-gray-200">
                     {trophyIcon || (
                       <span className="text-lg font-bold text-gray-500">{entry.rank}</span>
                     )}
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-black">{entry.studentName}</p>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <div className="flex flex-col gap-1 text-xs text-gray-500">
                       <span>Attempted: {new Date(entry.attemptDate).toLocaleDateString()}</span>
-                      <span className="text-gray-400">•</span>
-                      <span>Time: {formatCompletionTime(entry.completionTimeSeconds)}</span>
+                      <span className="flex items-center gap-1">
+                        ⏱ Completed in {formatCompletionTime(entry.completionTimeSeconds)}
+                      </span>
                     </div>
                   </div>
                 </div>
