@@ -949,7 +949,11 @@ export function AdminQuizzes() {
                         </p>
                       </div>
                       <button
-                        onClick={() => setQuizSettings({ ...quizSettings, allowRetakes: !quizSettings.allowRetakes, maxRetakes: !quizSettings.allowRetakes ? (quizSettings.maxRetakes || 1) : 0 })}
+                        onClick={() => setQuizSettings({ 
+                          ...quizSettings, 
+                          allowRetakes: !quizSettings.allowRetakes, 
+                          maxRetakes: !quizSettings.allowRetakes ? 0 : (quizSettings.maxRetakes || 1) 
+                        })}
                         className={`w-12 h-6 rounded-full transition-colors relative ${
                           quizSettings.allowRetakes ? "bg-black" : "bg-gray-300"
                         }`}

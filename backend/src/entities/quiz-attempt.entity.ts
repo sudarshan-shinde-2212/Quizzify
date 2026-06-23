@@ -1,6 +1,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany,
-  JoinColumn, CreateDateColumn, Unique,
+  JoinColumn, CreateDateColumn,
 } from 'typeorm';
 import { Student } from './student.entity';
 import { Quiz } from './quiz.entity';
@@ -8,7 +8,6 @@ import { QuizAnswer } from './quiz-answer.entity';
 import { QuizResult } from './quiz-result.entity';
 
 @Entity('quiz_attempts')
-@Unique(['studentId', 'quizId'])
 export class QuizAttempt {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -35,6 +34,9 @@ export class QuizAttempt {
 
   @Column({ default: false })
   isSubmitted: boolean;
+
+  @Column({ default: false })
+  isCheating: boolean;
 
   @OneToMany(() => QuizAnswer, (a) => a.attempt, { cascade: true })
   answers: QuizAnswer[];

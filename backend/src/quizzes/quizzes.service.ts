@@ -185,7 +185,7 @@ export class QuizzesService {
   async getQuizStats(quizId: string) {
     const quiz = await this.findOne(quizId);
     const results = await this.resultRepo.find({
-      where: { quizId },
+      where: { quizId, cheatingDetected: false },
       relations: { attempt: true, student: true },
     });
 
@@ -247,7 +247,8 @@ export class QuizzesService {
       .createQueryBuilder('result')
       .leftJoinAndSelect('result.student', 'student')
       .leftJoinAndSelect('result.attempt', 'attempt')
-      .where('result.quizId = :quizId', { quizId });
+      .where('result.quizId = :quizId', { quizId })
+      .andWhere('result.cheatingDetected = false');
 
     if (search) {
       queryBuilder.andWhere('(student.fullName ILIKE :search OR student.email ILIKE :search)', { search: `%${search}%` });

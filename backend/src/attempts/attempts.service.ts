@@ -68,7 +68,8 @@ export class AttemptsService {
     const quiz = await this.quizzesService.findOneActive(quizId);
 
     const attempt = await this.attemptRepo.findOne({
-      where: { studentId, quizId },
+      where: { studentId, quizId, isSubmitted: false },
+      order: { createdAt: 'DESC' },
     });
     if (!attempt) throw new NotFoundException('Quiz not started');
     if (attempt.isSubmitted) throw new ConflictException('Quiz already submitted');
@@ -145,6 +146,7 @@ export class AttemptsService {
     // Mark attempt as submitted
     attempt.isSubmitted = true;
     attempt.submittedAt = now;
+    attempt.isCheating = dto.cheatingDetected ?? false;
     await this.attemptRepo.save(attempt);
     this.logger.log(`Attempt saved – score: ${score !== null ? score.toFixed(2) : 'NULL'}, percentage: ${percentage !== null ? percentage.toFixed(2) : 'NULL'}%`);
 
