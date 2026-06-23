@@ -52,13 +52,9 @@ export class LeaderboardService {
       .leftJoinAndSelect('result.student', 'student')
       .leftJoinAndSelect('result.attempt', 'attempt')
       .where('result.quizId = :quizId', { quizId: selectedQuiz.id })
-      .orderBy('result.score', 'DESC')
-      .addOrderBy('result.percentage', 'DESC')
-      .addOrderBy('attempt.submittedAt', 'ASC')
       .getMany();
 
-    const leaderboard = leaderboardData.map((res, index) => ({
-      rank: index + 1,
+    const transformedData = leaderboardData.map((res) => ({
       studentName: res.student.fullName || 'Anonymous',
       score: res.score,
       percentage: res.percentage,
@@ -67,6 +63,22 @@ export class LeaderboardService {
         res.attempt.startedAt,
         res.attempt.submittedAt
       ),
+    }));
+
+    // Sort the data: primary by percentage (descending), then by completion time (ascending)
+    transformedData.sort((a, b) => {
+      if (b.percentage !== a.percentage) {
+        return b.percentage - a.percentage;
+      }
+      // If percentages are equal, sort by completion time ascending (faster first)
+      if (a.completionTimeSeconds === null) return 1;
+      if (b.completionTimeSeconds === null) return -1;
+      return a.completionTimeSeconds - b.completionTimeSeconds;
+    });
+
+    const leaderboard = transformedData.map((res, index) => ({
+      rank: index + 1,
+      ...res,
     }));
 
     return {
