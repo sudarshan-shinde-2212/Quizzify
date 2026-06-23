@@ -74,7 +74,7 @@ export function HistoryPage() {
       </div>
 
       {/* Desktop table */}
-      <div className="hidden md:block bg-white border border-gray-100 rounded-xl overflow-hidden">
+      <div className="hidden md:block bg-white border border-gray-100 rounded-xl overflow-x-auto">
         {filteredHistory.length > 0 ? (
           <table className="w-full">
             <thead>

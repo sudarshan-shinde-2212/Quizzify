@@ -130,36 +130,64 @@ export function AdminDashboard() {
       <div className="mb-4">
         <div className="bg-white border border-gray-100 rounded-xl p-5">
           <h3 className="text-sm font-semibold text-black mb-4">Quiz Overview</h3>
-          <div className="space-y-3">
-            {filteredQuizzes.slice(0, 4).map((quiz) => (
-              <div key={quiz.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-black truncate">{quiz.title}</p>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-xs text-gray-400 flex items-center gap-1">
-                      <Clock size={11} /> {quiz.durationInMinutes}m
-                    </span>
-                    <span className="text-xs text-gray-400 flex items-center gap-1">
-                      <CheckCircle2 size={11} /> {quiz.totalMarks} marks
+          {filteredQuizzes.length === 0 && (
+            <div className="text-center text-xs text-gray-400 py-6">No quizzes found matching your search.</div>
+          )}
+          {filteredQuizzes.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Left column: first 5 quizzes */}
+              <div className="space-y-3">
+                {filteredQuizzes.slice(0, 5).map((quiz) => (
+                  <div key={quiz.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-black truncate">{quiz.title}</p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                          <Clock size={11} /> {quiz.durationInMinutes}m
+                        </span>
+                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                          <CheckCircle2 size={11} /> {quiz.totalMarks} marks
+                        </span>
+                      </div>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full border ml-3 ${
+                      quiz.isPublished ? "bg-green-50 text-green-700 border-green-200" : "bg-amber-50 text-amber-700 border-amber-200"
+                    }`}>
+                      {quiz.isPublished ? "PUBLISHED" : "DRAFT"}
                     </span>
                   </div>
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full border ml-3 ${
-                  quiz.isPublished ? "bg-green-50 text-green-700 border-green-200" : "bg-amber-50 text-amber-700 border-amber-200"
-                }`}>
-                  {quiz.isPublished ? "PUBLISHED" : "DRAFT"}
-                </span>
+                ))}
               </div>
-            ))}
-            {filteredQuizzes.length === 0 && (
-              <div className="text-center text-xs text-gray-400 py-6">No quizzes found matching your search.</div>
-            )}
-          </div>
+              {/* Right column: next 5 quizzes */}
+              <div className="space-y-3">
+                {filteredQuizzes.slice(5, 10).map((quiz) => (
+                  <div key={quiz.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-black truncate">{quiz.title}</p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                          <Clock size={11} /> {quiz.durationInMinutes}m
+                        </span>
+                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                          <CheckCircle2 size={11} /> {quiz.totalMarks} marks
+                        </span>
+                      </div>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full border ml-3 ${
+                      quiz.isPublished ? "bg-green-50 text-green-700 border-green-200" : "bg-amber-50 text-amber-700 border-amber-200"
+                    }`}>
+                      {quiz.isPublished ? "PUBLISHED" : "DRAFT"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Recent results */}
-      <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-100 rounded-xl overflow-x-auto">
         <div className="px-5 py-4 border-b border-gray-50">
           <h3 className="text-sm font-semibold text-black">Recent Results</h3>
         </div>

@@ -69,12 +69,12 @@ export function Leaderboard() {
   return (
     <div className="space-y-6">
       {/* Header with navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h2 className="text-lg font-bold text-black">Leaderboard</h2>
         <select
           value={currentQuizId || ""}
           onChange={(e) => loadLeaderboard(e.target.value)}
-          className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black"
+          className="w-full md:w-auto px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black"
         >
           {data.publicQuizzes.map((quiz) => (
             <option key={quiz.id} value={quiz.id}>
@@ -109,12 +109,12 @@ export function Leaderboard() {
             return (
               <div
                 key={entry.studentName + entry.attemptDate}
-                className={`border rounded-xl p-5 flex items-center justify-between ${rankBg}`}
+                className={`border rounded-xl p-4 md:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 ${rankBg}`}
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-sm border border-gray-200">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center bg-white shadow-sm border border-gray-200">
                     {trophyIcon || (
-                      <span className="text-lg font-bold text-gray-500">{entry.rank}</span>
+                      <span className="text-base md:text-lg font-bold text-gray-500">{entry.rank}</span>
                     )}
                   </div>
                   <div>
@@ -127,7 +127,7 @@ export function Leaderboard() {
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-left md:text-right w-full md:w-auto">
                   <p className="text-lg font-bold text-black">{entry.percentage}%</p>
                   <p className="text-xs text-gray-500">Score: {entry.score}</p>
                 </div>
