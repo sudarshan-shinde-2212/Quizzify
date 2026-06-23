@@ -112,39 +112,46 @@ export class AttemptsService {
     const attemptedQuestions = answerEntities.length;
     let correctAnswers = 0;
     let wrongAnswers = 0;
-    let score = 0;
+    let score: number | null = 0;
+    let percentage: number | null = 0;
 
-    const settings = await this.settingsService.getSettings();
-    const quizNegMark = Number(quiz.negativeMarks ?? settings.negativeMarking ?? 0);
+    if (!dto.cheatingDetected) {
+      const settings = await this.settingsService.getSettings();
+      const quizNegMark = Number(quiz.negativeMarks ?? settings.negativeMarking ?? 0);
 
-    for (const answer of answerEntities) {
-      const question = questionMap.get(answer.questionId);
-      if (!question) continue;
+      for (const answer of answerEntities) {
+        const question = questionMap.get(answer.questionId);
+        if (!question) continue;
 
-      if (answer.selectedOption === question.correctOption) {
-        correctAnswers++;
-        score += Number(question.marks);
-      } else {
-        wrongAnswers++;
-        // Apply negative marking: per-question if set, else quiz-level (0 = disabled)
-        const negMark = Number(question.negativeMarks ?? quizNegMark ?? 0);
-        if (negMark > 0) {
-          score -= negMark;
+        if (answer.selectedOption === question.correctOption) {
+          correctAnswers++;
+          score += Number(question.marks);
+        } else {
+          wrongAnswers++;
+          // Apply negative marking: per-question if set, else quiz-level (0 = disabled)
+          const negMark = Number(question.negativeMarks ?? quizNegMark ?? 0);
+          if (negMark > 0) {
+            score -= negMark;
+          }
         }
       }
+
+      // Clamp to 0
+      if (score < 0) score = 0;
+
+      const maxScore = questions.reduce((sum, q) => sum + Number(q.marks), 0);
+      percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+    } else {
+      // If cheating detected, set score and percentage to null
+      score = null;
+      percentage = null;
     }
-
-    // Clamp to 0
-    if (score < 0) score = 0;
-
-    const maxScore = questions.reduce((sum, q) => sum + Number(q.marks), 0);
-    const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
 
     // Mark attempt as submitted
     attempt.isSubmitted = true;
     attempt.submittedAt = now;
     await this.attemptRepo.save(attempt);
-    this.logger.log(`Attempt saved – score: ${score}, percentage: ${percentage.toFixed(2)}%`);
+    this.logger.log(`Attempt saved – score: ${score !== null ? score.toFixed(2) : 'NULL'}, percentage: ${percentage !== null ? percentage.toFixed(2) : 'NULL'}%`);
 
     // Save result
     const result = this.resultRepo.create({
@@ -155,8 +162,8 @@ export class AttemptsService {
       attemptedQuestions,
       correctAnswers,
       wrongAnswers,
-      score: parseFloat(score.toFixed(2)),
-      percentage: parseFloat(percentage.toFixed(2)),
+      score: score !== null ? parseFloat(score.toFixed(2)) : null,
+      percentage: percentage !== null ? parseFloat(percentage.toFixed(2)) : null,
       cheatingDetected: dto.cheatingDetected ?? false,
     });
     await this.resultRepo.save(result);

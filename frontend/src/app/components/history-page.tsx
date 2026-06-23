@@ -69,7 +69,7 @@ export function HistoryPage() {
             </thead>
             <tbody>
               {history.map((item, i) => {
-                const passed = item.percentage >= 60;
+                const passed = item.percentage !== null && item.percentage >= 60;
                 return (
                   <motion.tr
                     key={item.id}
@@ -82,7 +82,7 @@ export function HistoryPage() {
                       <p className="text-sm font-medium text-black">{item.quiz?.title || "Unknown Quiz"}</p>
                     </td>
                     <td className="px-5 py-4">
-                      {item.cheatingDetected ? (
+                      {item.cheatingDetected || item.score === null ? (
                         <span className="text-sm font-semibold text-gray-400">—</span>
                       ) : (
                         <span className="text-sm font-semibold text-black">
@@ -91,7 +91,7 @@ export function HistoryPage() {
                       )}
                     </td>
                     <td className="px-5 py-4">
-                      {item.cheatingDetected ? (
+                      {item.cheatingDetected || item.percentage === null ? (
                         <span className="text-sm font-semibold text-gray-400">—</span>
                       ) : (
                         <span className="text-sm text-gray-700 font-semibold">{item.percentage}%</span>
@@ -148,7 +148,7 @@ export function HistoryPage() {
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
         {history.map((item, i) => {
-          const passed = item.percentage >= 60;
+          const passed = item.percentage !== null && item.percentage >= 60;
           return (
             <motion.div
               key={item.id}
@@ -170,10 +170,10 @@ export function HistoryPage() {
                 )}
               </div>
               <div className="flex items-center gap-4 text-xs text-gray-500 mb-1">
-                {!item.cheatingDetected && (
+                {!item.cheatingDetected && item.score !== null && (
                   <span>Score: <span className="font-medium text-black">{item.score}/{item.quiz?.totalMarks}</span></span>
                 )}
-                {!item.cheatingDetected && (
+                {!item.cheatingDetected && item.percentage !== null && (
                   <span>Percentage: <span className="font-medium text-black">{item.percentage}%</span></span>
                 )}
                 <span>{new Date(item.createdAt).toLocaleDateString()}</span>

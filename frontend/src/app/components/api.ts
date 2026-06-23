@@ -116,8 +116,8 @@ export interface QuizResult {
   attemptedQuestions: number;
   correctAnswers: number;
   wrongAnswers: number;
-  score: number;
-  percentage: number;
+  score: number | null;
+  percentage: number | null;
   cheatingDetected: boolean;
   createdAt: string;
   quiz?: Quiz;
@@ -150,11 +150,11 @@ export interface UserDetailsResponse {
 export interface UserHistoryItem {
   quizName: string;
   dateAttempted: string;
-  score: number;
-  percentage: number;
+  score: number | null;
+  percentage: number | null;
   correctAnswers: number;
   wrongAnswers: number;
-  status: 'Pass' | 'Fail';
+  status: 'Pass' | 'Fail' | 'Cheating Detected';
 }
 
 export interface QuizStats {
@@ -190,8 +190,8 @@ export interface QuizResultsItem {
 export interface LeaderboardEntry {
   rank: number;
   studentName: string;
-  score: number;
-  percentage: number;
+  score: number | null;
+  percentage: number | null;
   attemptDate: string;
   completionTimeSeconds: number | null;
 }
@@ -328,8 +328,8 @@ export async function apiSubmitQuizAttempt(
   answers: { questionId: string; selectedOption: 'A' | 'B' | 'C' | 'D' }[],
   cheatingDetected: boolean = false,
 ): Promise<{
-  score: number;
-  percentage: number;
+  score: number | null;
+  percentage: number | null;
   correctAnswers: number;
   wrongAnswers: number;
   totalQuestions: number;
@@ -489,6 +489,7 @@ export async function apiAdminCreateQuestion(
   quizId: string,
   data: {
     text: string;
+    imageUrl?: string | null;
     optionA: string;
     optionB: string;
     optionC: string;

@@ -52,12 +52,13 @@ export class LeaderboardService {
       .leftJoinAndSelect('result.student', 'student')
       .leftJoinAndSelect('result.attempt', 'attempt')
       .where('result.quizId = :quizId', { quizId: selectedQuiz.id })
+      .andWhere('result.cheatingDetected = :cheatingDetected', { cheatingDetected: false })
       .getMany();
 
     const transformedData = leaderboardData.map((res) => ({
       studentName: res.student.fullName || 'Anonymous',
-      score: res.score,
-      percentage: res.percentage,
+      score: res.score as number,
+      percentage: res.percentage as number,
       attemptDate: res.attempt.submittedAt || res.attempt.startedAt,
       completionTimeSeconds: this.calculateCompletionTime(
         res.attempt.startedAt,

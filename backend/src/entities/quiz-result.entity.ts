@@ -43,11 +43,11 @@ export class QuizResult {
   @Column({ type: 'int' })
   wrongAnswers: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  score: number;
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  score: number | null;
 
-  @Column({ type: 'decimal', precision: 5, scale: 2 })
-  percentage: number;
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  percentage: number | null;
 
   @Column({ type: 'boolean', default: false })
   cheatingDetected: boolean;

@@ -23,7 +23,7 @@ const statusConfig: Record<QuizStatus | "attempted", { label: string; color: str
 export function Dashboard() {
   const { user } = useAuth();
   const router = useRouter();
-  const [quizzes, setQuizzes] = useState<(Quiz & { status: QuizStatus; attempted?: boolean; score?: number })[]>([]);
+  const [quizzes, setQuizzes] = useState<(Quiz & { status: QuizStatus; attempted?: boolean; score?: number | null })[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -66,15 +66,15 @@ export function Dashboard() {
             ...q,
             status,
             attempted: !!attempt,
-            score: attempt ? attempt.score : undefined,
+            score: attempt && !attempt.cheatingDetected ? attempt.score : null,
           };
         });
 
-        // Compute student stats
+        // Compute student stats: exclude cheating attempts
+        const validResults = results.filter(r => r.percentage !== null && !r.cheatingDetected);
         const totalAttempts = results.length;
-        const totalPct = results.reduce((sum, r) => sum + Number(r.percentage), 0);
-        const averageScore = totalAttempts > 0 ? Math.round(totalPct / totalAttempts) : 0;
-        const highestScore = totalAttempts > 0 ? Math.max(...results.map((r) => Number(r.percentage)), 0) : 0;
+        const averageScore = validResults.length > 0 ? Math.round(validResults.reduce((sum, r) => sum + Number(r.percentage), 0) / validResults.length) : 0;
+        const highestScore = validResults.length > 0 ? Math.max(...validResults.map((r) => Number(r.percentage)), 0) : 0;
         const liveCount = enrichedQuizzes.filter((q) => q.status === "live" && !q.attempted).length;
 
         setQuizzes(enrichedQuizzes);
@@ -136,7 +136,7 @@ export function Dashboard() {
         </div>
         
         <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <h2 className="text-base font-semibold text-gray-900 uppercase tracking-wide">
+          <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
             Available Assessments
           </h2>
           <div className="relative w-full md:w-[650px]">
@@ -180,9 +180,9 @@ export function Dashboard() {
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${bg} ${color}`}>
                         {label}
                       </span>
-                      {quiz.attempted && quiz.score !== undefined && (
+                      {quiz.attempted && (
                         <span className="text-xs text-gray-500">
-                          Score: <span className="font-medium text-black">{quiz.score}/{quiz.totalMarks}</span>
+                          Score: <span className="font-medium text-black">{quiz.score !== null ? `${quiz.score}/${quiz.totalMarks}` : "-"}</span>
                         </span>
                       )}
                     </div>

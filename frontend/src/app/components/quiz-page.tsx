@@ -322,13 +322,17 @@ export function QuizPage() {
     const handleVisibility = () => {
       if (document.hidden) {
         setCheatingDetected(true);
-        setModal("final-warning");
+        // Auto-submit immediately
+        handleSubmit();
+        // Show alert
+        alert("Tab switching detected. Your attempt has been automatically submitted and marked as cheating detected.");
       }
     };
     const handleCopyCutPaste = (e: ClipboardEvent) => {
       e.preventDefault();
       setCheatingDetected(true);
-      setModal("final-warning");
+      handleSubmit();
+      alert("Copy/paste detected. Your attempt has been automatically submitted and marked as cheating detected.");
     };
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
@@ -338,13 +342,15 @@ export function QuizPage() {
       if ((e.ctrlKey || e.metaKey) && (e.key === "c" || e.key === "C" || e.key === "x" || e.key === "X" || e.key === "v" || e.key === "V" || e.key === "p" || e.key === "P")) {
         e.preventDefault();
         setCheatingDetected(true);
-        setModal("final-warning");
+        handleSubmit();
+        alert("Keyboard shortcut detected. Your attempt has been automatically submitted and marked as cheating detected.");
       }
       // Prevent PrintScreen key
       if (e.key === "PrintScreen" || e.key === "prtsc" || e.key === "PrtScr") {
         e.preventDefault();
         setCheatingDetected(true);
-        setModal("final-warning");
+        handleSubmit();
+        alert("Screenshot detected. Your attempt has been automatically submitted and marked as cheating detected.");
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);

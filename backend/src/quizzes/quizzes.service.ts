@@ -188,17 +188,21 @@ export class QuizzesService {
     let lowestScore = Infinity;
     let passCount = 0;
     let failCount = 0;
+    let validResultCount = 0;
 
     results.forEach((res) => {
-      totalScore += res.score;
-      if (res.score > highestScore) highestScore = res.score;
-      if (res.score < lowestScore) lowestScore = res.score;
-      if (res.percentage >= 50) passCount++;
-      else failCount++;
+      if (res.score !== null && res.percentage !== null) {
+        validResultCount++;
+        totalScore += res.score;
+        if (res.score > highestScore) highestScore = res.score;
+        if (res.score < lowestScore) lowestScore = res.score;
+        if (res.percentage >= 50) passCount++;
+        else failCount++;
+      }
     });
 
-    const averageScore = totalAttempts > 0 ? totalScore / totalAttempts : 0;
-    const passPercentage = totalAttempts > 0 ? (passCount / totalAttempts) * 100 : 0;
+    const averageScore = validResultCount > 0 ? totalScore / validResultCount : 0;
+    const passPercentage = validResultCount > 0 ? (passCount / validResultCount) * 100 : 0;
 
     return {
       overview: {

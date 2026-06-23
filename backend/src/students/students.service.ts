@@ -55,14 +55,18 @@ export class StudentsService {
     let totalScore = 0;
     let highestScore = 0;
     let lowestScore = Infinity;
+    let validResultCount = 0;
 
     results.forEach((res) => {
-      totalScore += res.score;
-      if (res.score > highestScore) highestScore = res.score;
-      if (res.score < lowestScore) lowestScore = res.score;
+      if (res.score !== null) {
+        validResultCount++;
+        totalScore += res.score;
+        if (res.score > highestScore) highestScore = res.score;
+        if (res.score < lowestScore) lowestScore = res.score;
+      }
     });
 
-    const averageScore = totalAttempted > 0 ? totalScore / totalAttempted : 0;
+    const averageScore = validResultCount > 0 ? totalScore / validResultCount : 0;
 
     // Find last activity
     let lastActivity = student.createdAt;
@@ -111,7 +115,7 @@ export class StudentsService {
       percentage: res.percentage,
       correctAnswers: res.correctAnswers,
       wrongAnswers: res.wrongAnswers,
-      status: res.percentage >= 50 ? 'Pass' : 'Fail',
+      status: res.cheatingDetected ? 'Cheating Detected' : (res.percentage !== null && res.percentage >= 50 ? 'Pass' : 'Fail'),
     }));
   }
 }

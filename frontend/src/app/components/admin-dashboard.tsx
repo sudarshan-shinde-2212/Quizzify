@@ -43,9 +43,12 @@ export function AdminDashboard() {
   const totalUsers = students.length;
   const totalQuizzes = quizzes.length;
   const totalAttempts = results.length;
+  
+  // Calculate average score only from non-cheating attempts
+  const validResults = results.filter(r => r.percentage !== null && !r.cheatingDetected);
   const averageScore =
-    totalAttempts > 0
-      ? Math.round(results.reduce((sum, r) => sum + Number(r.percentage), 0) / totalAttempts)
+    validResults.length > 0
+      ? Math.round(validResults.reduce((sum, r) => sum + Number(r.percentage), 0) / validResults.length)
       : 0;
 
   const filteredQuizzes = useMemo(() => {
@@ -124,7 +127,7 @@ export function AdminDashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div className="mb-4">
         <div className="bg-white border border-gray-100 rounded-xl p-5">
           <h3 className="text-sm font-semibold text-black mb-4">Quiz Overview</h3>
           <div className="space-y-3">
@@ -173,15 +176,17 @@ export function AdminDashboard() {
             </thead>
             <tbody>
               {filteredResults.slice(0, 5).map((r) => {
-                const passed = r.percentage >= 60;
+                const passed = !r.cheatingDetected && r.percentage !== null && r.percentage >= 60;
                 return (
                   <tr key={r.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
                     <td className="px-5 py-3 text-sm font-medium text-black">{r.student?.fullName || "Student"}</td>
                     <td className="px-5 py-3 text-sm text-gray-600">{r.quiz?.title || "Quiz"}</td>
                     <td className="px-5 py-3 text-sm text-gray-700">
-                      {r.score}/{r.quiz?.totalMarks || r.totalQuestions * 3}
+                      {!r.cheatingDetected && r.score !== null ? `${r.score}/${r.quiz?.totalMarks || r.totalQuestions * 3}` : "-"}
                     </td>
-                    <td className="px-5 py-3 text-sm font-semibold text-black">{r.percentage}%</td>
+                    <td className="px-5 py-3 text-sm font-semibold text-black">
+                      {!r.cheatingDetected && r.percentage !== null ? `${r.percentage}%` : "-"}
+                    </td>
                     <td className="px-5 py-3 text-sm text-gray-400">
                       {new Date(r.createdAt).toLocaleDateString()}
                     </td>
