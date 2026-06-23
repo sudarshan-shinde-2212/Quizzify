@@ -357,11 +357,12 @@ export function QuizPage() {
     if (loading || error || !settings) return;
     
     const autoSubmitCheating = () => {
-      if (!cheatingDetected) {
+      if (!cheatingDetected && !submitting) {
         setCheatingDetected(true);
         setIsAutoSubmit(true);
         setModal("cheating-detected");
-        // We'll handle submit when the user clicks the button or automatically
+        // Auto submit immediately!
+        setTimeout(() => handleSubmitRef.current(), 500); // Small delay to show modal first
       }
     };
     
@@ -414,13 +415,15 @@ export function QuizPage() {
       document.removeEventListener("contextmenu", handleContextMenu);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [loading, error, settings, cheatingDetected]);
+  }, [loading, error, settings, cheatingDetected, submitting]);
 
   // Timer expiry auto-submit
   const { minutes, secs, isLow } = useTimer((quiz?.durationInMinutes ?? 30) * 60, () => {
-    setIsAutoSubmit(true);
-    // No modal, auto-submit immediately
-    handleSubmit();
+    if (!cheatingDetected && !submitting) {
+      setIsAutoSubmit(true);
+      setModal("time-up");
+      setTimeout(() => handleSubmitRef.current(), 500); // Small delay to show modal first
+    }
   }, !loading);
 
   const getQuestionStatus = (qId: string): QuestionStatus => {

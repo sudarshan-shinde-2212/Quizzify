@@ -109,6 +109,16 @@ export interface QuizAttempt {
   isSubmitted: boolean;
 }
 
+export interface QuizAttempt {
+  id: string;
+  studentId: string;
+  quizId: string;
+  startedAt: string;
+  submittedAt: string | null;
+  isSubmitted: boolean;
+  isCheating: boolean;
+}
+
 export interface QuizResult {
   id: string;
   attemptId: string;
@@ -124,6 +134,7 @@ export interface QuizResult {
   createdAt: string;
   quiz?: Quiz;
   student?: StoredUser;
+  attempt?: QuizAttempt;
 }
 
 export interface AdminLoginResponse {

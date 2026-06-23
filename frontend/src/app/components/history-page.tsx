@@ -88,8 +88,9 @@ export function HistoryPage() {
             </thead>
             <tbody>
               {filteredHistory.map((item, i) => {
+                const isCheating = item.cheatingDetected || item.attempt?.isCheating;
                 const passingScore = item.quiz?.passingScore ?? 60;
-                const passed = !item.cheatingDetected && item.percentage !== null && item.percentage >= passingScore;
+                const passed = !isCheating && item.percentage !== null && item.percentage >= passingScore;
                 const isFirstAttempt = item.attemptNumber === 1;
                 return (
                   <motion.tr
@@ -105,7 +106,7 @@ export function HistoryPage() {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-black">#{item.attemptNumber}</span>
-                        {isFirstAttempt && !item.cheatingDetected && (
+                        {isFirstAttempt && !isCheating && (
                           <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
                             Official
                           </span>
@@ -113,7 +114,7 @@ export function HistoryPage() {
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      {item.cheatingDetected || item.score === null ? (
+                      {isCheating || item.score === null ? (
                         <span className="text-sm font-semibold text-gray-400">—</span>
                       ) : (
                         <span className="text-sm font-semibold text-black">
@@ -122,21 +123,21 @@ export function HistoryPage() {
                       )}
                     </td>
                     <td className="px-5 py-4">
-                      {item.cheatingDetected || item.percentage === null ? (
+                      {isCheating || item.percentage === null ? (
                         <span className="text-sm font-semibold text-gray-400">—</span>
                       ) : (
                         <span className="text-sm text-gray-700 font-semibold">{item.percentage}%</span>
                       )}
                     </td>
                     <td className="px-5 py-4">
-                      {item.cheatingDetected ? (
+                      {isCheating ? (
                         <span className="text-sm font-semibold text-gray-400">—</span>
                       ) : (
                         <span className="text-sm text-green-600 font-medium">{item.correctAnswers}</span>
                       )}
                     </td>
                     <td className="px-5 py-4">
-                      {item.cheatingDetected ? (
+                      {isCheating ? (
                         <span className="text-sm font-semibold text-gray-400">—</span>
                       ) : (
                         <span className="text-sm text-red-500 font-medium">{item.wrongAnswers}</span>
@@ -149,7 +150,7 @@ export function HistoryPage() {
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      {item.cheatingDetected ? (
+                      {isCheating ? (
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
                           <XCircle size={11} /> Disqualified
                         </span>
@@ -179,8 +180,9 @@ export function HistoryPage() {
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
         {filteredHistory.map((item, i) => {
+          const isCheating = item.cheatingDetected || item.attempt?.isCheating;
           const passingScore = item.quiz?.passingScore ?? 60;
-          const passed = !item.cheatingDetected && item.percentage !== null && item.percentage >= passingScore;
+          const passed = !isCheating && item.percentage !== null && item.percentage >= passingScore;
           const isFirstAttempt = item.attemptNumber === 1;
           return (
             <motion.div
@@ -197,14 +199,14 @@ export function HistoryPage() {
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs font-semibold text-gray-700">Attempt #{item.attemptNumber}</span>
-                    {isFirstAttempt && !item.cheatingDetected && (
+                    {isFirstAttempt && !isCheating && (
                       <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
                         Official
                       </span>
                     )}
                   </div>
                 </div>
-                {item.cheatingDetected ? (
+                {isCheating ? (
                   <span className="text-xs text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full shrink-0">Cheating Detected</span>
                 ) : passed ? (
                   <span className="text-xs text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full shrink-0">Passed</span>
@@ -213,21 +215,21 @@ export function HistoryPage() {
                 )}
               </div>
               <div className="flex items-center gap-4 text-xs text-gray-500 mb-1">
-                {!item.cheatingDetected && item.score !== null && (
+                {!isCheating && item.score !== null && (
                   <span>Score: <span className="font-medium text-black">{item.score}/{item.quiz?.totalMarks}</span></span>
                 )}
-                {!item.cheatingDetected && item.percentage !== null && (
+                {!isCheating && item.percentage !== null && (
                   <span>Percentage: <span className="font-medium text-black">{item.percentage}%</span></span>
                 )}
                 <span>{new Date(item.createdAt).toLocaleDateString()}</span>
               </div>
-              {!item.cheatingDetected && (
+              {!isCheating && (
                 <div className="flex items-center gap-4 text-xs text-gray-500">
                   <span>Correct: <span className="font-medium text-green-600">{item.correctAnswers}</span></span>
                   <span>Wrong: <span className="font-medium text-red-500">{item.wrongAnswers}</span></span>
                 </div>
               )}
-              {item.cheatingDetected && (
+              {isCheating && (
                 <div className="text-xs font-semibold text-red-700 mt-1">
                   Result: Disqualified
                 </div>

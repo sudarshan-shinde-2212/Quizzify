@@ -12,7 +12,7 @@ export class ResultsService {
   async getStudentResults(studentId: string): Promise<QuizResult[]> {
     return this.resultRepo.find({
       where: { studentId },
-      relations: ['quiz'],
+      relations: ['quiz', 'attempt'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -20,7 +20,7 @@ export class ResultsService {
   async getStudentResultByQuiz(studentId: string, quizId: string): Promise<QuizResult> {
     const result = await this.resultRepo.findOne({
       where: { studentId, quizId },
-      relations: ['quiz'],
+      relations: ['quiz', 'attempt'],
     });
     if (!result) throw new NotFoundException('Result not found');
     return result;
@@ -28,7 +28,7 @@ export class ResultsService {
 
   async getAllResults(): Promise<QuizResult[]> {
     return this.resultRepo.find({
-      relations: ['student', 'quiz'],
+      relations: ['student', 'quiz', 'attempt'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -36,7 +36,7 @@ export class ResultsService {
   async getResultsByQuiz(quizId: string): Promise<QuizResult[]> {
     return this.resultRepo.find({
       where: { quizId },
-      relations: ['student', 'quiz'],
+      relations: ['student', 'quiz', 'attempt'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -44,7 +44,7 @@ export class ResultsService {
   async getResultsByStudent(studentId: string): Promise<QuizResult[]> {
     return this.resultRepo.find({
       where: { studentId },
-      relations: ['student', 'quiz'],
+      relations: ['student', 'quiz', 'attempt'],
       order: { createdAt: 'DESC' },
     });
   }

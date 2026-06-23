@@ -176,23 +176,24 @@ export function AdminDashboard() {
             </thead>
             <tbody>
               {filteredResults.slice(0, 5).map((r) => {
+                const isCheating = r.cheatingDetected || r.attempt?.isCheating;
                 const passingScore = r.quiz?.passingScore ?? 60;
-                const passed = !r.cheatingDetected && r.percentage !== null && r.percentage >= passingScore;
+                const passed = !isCheating && r.percentage !== null && r.percentage >= passingScore;
                 return (
                   <tr key={r.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
                     <td className="px-5 py-3 text-sm font-medium text-black">{r.student?.fullName || "Student"}</td>
                     <td className="px-5 py-3 text-sm text-gray-600">{r.quiz?.title || "Quiz"}</td>
                     <td className="px-5 py-3 text-sm text-gray-700">
-                      {!r.cheatingDetected && r.score !== null ? `${r.score}/${r.quiz?.totalMarks || r.totalQuestions * 3}` : "-"}
+                      {!isCheating && r.score !== null ? `${r.score}/${r.quiz?.totalMarks || r.totalQuestions * 3}` : "-"}
                     </td>
                     <td className="px-5 py-3 text-sm font-semibold text-black">
-                      {!r.cheatingDetected && r.percentage !== null ? `${r.percentage}%` : "-"}
+                      {!isCheating && r.percentage !== null ? `${r.percentage}%` : "-"}
                     </td>
                     <td className="px-5 py-3 text-sm text-gray-400">
                       {new Date(r.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-5 py-3">
-                      {r.cheatingDetected ? (
+                      {isCheating ? (
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
                           Disqualified
                         </span>
