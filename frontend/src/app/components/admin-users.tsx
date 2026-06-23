@@ -139,12 +139,12 @@ export function AdminUsers() {
       </div>
 
       {/* Local Search (for users page only) */}
-      <div className="relative mb-5">
-        <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+      <div className="relative mb-6">
+        <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full md:w-[450px] pl-12 pr-4 py-3 border border-gray-200 rounded-lg text-sm outline-none focus:border-black"
+          className="w-full md:w-[500px] pl-12 pr-4 py-3 text-black placeholder-gray-500 bg-white border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all"
           placeholder="Search students, emails..."
         />
       </div>
@@ -334,15 +334,15 @@ export function AdminUsers() {
                             {historySortOrder === "DESC" ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
                           </button>
                           <div className="relative">
-                            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                             <input
                               type="text"
                               placeholder="Search quizzes..."
                               value={historySearch}
                               onChange={(e) => setHistorySearch(e.target.value)}
-                              className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-black"
+                              className="pl-10 pr-3 py-2 text-xs text-black placeholder-gray-500 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all"
                             />
-                          </div>
+                        </div>
                         </div>
                       </div>
 

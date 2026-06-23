@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { UserLayout } from "./user-layout";
 import { apiGetStudentResults, QuizResult } from "./api";
 import { motion } from "motion/react";
-import { CheckCircle2, XCircle, Trophy, Calendar, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Trophy, Calendar, Loader2, Search } from "lucide-react";
 
 export function HistoryPage() {
   const [history, setHistory] = useState<QuizResult[]>([]);
@@ -41,15 +41,18 @@ export function HistoryPage() {
 
   return (
     <UserLayout>
-      <div className="flex items-center mb-4">
-  <input
-    type="text"
-    placeholder="Search quizzes..."
-    value={searchTerm}
-    onChange={e => setSearchTerm(e.target.value)}
-    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-  />
-</div>
+      <div className="flex items-center mb-6">
+        <div className="relative w-full md:w-[600px]">
+          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Search quizzes..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 text-black placeholder-gray-500 bg-white border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all"
+          />
+        </div>
+      </div>
 
       {/* Desktop table */}
       <div className="hidden md:block bg-white border border-gray-100 rounded-xl overflow-hidden">

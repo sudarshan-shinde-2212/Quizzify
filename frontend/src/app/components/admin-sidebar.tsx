@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "./auth-context";
 import {
   BookOpen, LayoutDashboard, FileQuestion, Users,
-  Settings, LogOut, Trophy, Menu, X, ChevronDown
+  LogOut, Trophy, Menu, X, ChevronDown
 } from 'lucide-react';
 import { LogoutConfirmationModal } from "./logout-confirmation-modal";
 
@@ -15,7 +15,6 @@ const sidebarLinks = [
   { label: "Questions", href: "/admin/questions", icon: FileQuestion },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Leaderboard", href: "/admin/leaderboard", icon: Trophy },
-  { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 export function AdminSidebar({

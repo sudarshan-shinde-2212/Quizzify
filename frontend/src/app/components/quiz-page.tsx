@@ -203,6 +203,9 @@ export function QuizPage() {
 
   const [settings, setSettings] = useState<any>(null);
 
+  // Use a ref to store handleSubmit so it's always available
+  const handleSubmitRef = useRef<() => Promise<void>>(async () => {});
+
   useEffect(() => {
     async function loadQuizData() {
       if (!quizId || quizId === "undefined") return;
@@ -256,21 +259,6 @@ export function QuizPage() {
     };
   }, [questions, answers]);
 
-  // Check if all questions are answered before submitting
-  const validateAndTrySubmit = useCallback(() => {
-    if (cheatingDetected) {
-      // If cheating detected, allow submission directly
-      setModal("confirm-submit");
-      return;
-    }
-    const { unansweredCount } = getUnansweredInfo();
-    if (unansweredCount > 0) {
-      alert(`Please answer all questions first. ${unansweredCount} question${unansweredCount > 1 ? 's' : ''} remaining.`);
-      return;
-    }
-    setModal("confirm-submit");
-  }, [getUnansweredInfo, cheatingDetected]);
-
   const handleSubmit = useCallback(async () => {
     if (!quizId || !quiz || submitting) return;
     setSubmitting(true);
@@ -300,13 +288,33 @@ export function QuizPage() {
 
       router.push("/history");
     } catch (err) {
-      console.error("Failed to submit quiz", err);
-      // If backend rejected because of incomplete (though we should have caught it frontend)
-      alert("Submission failed. Please try again or check your internet connection.");
+      console.error("Quiz Submission Error:", err);
+      const message = getErrorMessage(err, "Submission failed. Please try again or check your internet connection.");
+      alert(message);
     } finally {
       setSubmitting(false);
     }
   }, [answers, router, quiz, quizId, startTime, submitting]);
+
+  // Update the ref whenever handleSubmit changes
+  useEffect(() => {
+    handleSubmitRef.current = handleSubmit;
+  }, [handleSubmit]);
+
+  // Check if all questions are answered before submitting - skip if cheating detected
+  const validateAndTrySubmit = useCallback(() => {
+    if (cheatingDetected) {
+      // If cheating detected, submit immediately, no checks
+      handleSubmitRef.current();
+      return;
+    }
+    const { unansweredCount } = getUnansweredInfo();
+    if (unansweredCount > 0) {
+      alert(`Please answer all questions first. ${unansweredCount} question${unansweredCount > 1 ? 's' : ''} remaining.`);
+      return;
+    }
+    setModal("confirm-submit");
+  }, [getUnansweredInfo, cheatingDetected]);
 
   // Tab visibility monitoring and cheating prevention - ANY violation = cheating
   useEffect(() => {

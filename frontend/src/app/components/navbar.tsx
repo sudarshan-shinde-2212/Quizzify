@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "./auth-context";
 import { apiGetSettings } from "./api";
-import { BookOpen, Menu, X, LogOut, ChevronDown } from "lucide-react";
+import { BookOpen, Menu, X, LogOut, ChevronDown, User } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { LogoutConfirmationModal } from "./logout-confirmation-modal";
 
@@ -111,7 +111,7 @@ export function Navbar() {
                         }}
                         className="w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 flex items-center gap-2"
                       >
-                        <ChevronDown size={13} />
+                        <User size={13} />
                         Profile
                       </button>
                       <button
@@ -179,7 +179,7 @@ export function Navbar() {
                     }}
                     className="w-full text-left px-3 py-2 text-sm text-gray-800 flex items-center gap-2"
                   >
-                    <ChevronDown size={13} />
+                    <User size={13} />
                     Profile
                   </button>
                   <button

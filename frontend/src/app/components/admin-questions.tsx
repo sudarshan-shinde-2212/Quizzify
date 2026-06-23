@@ -398,15 +398,15 @@ export function AdminQuestions() {
 
       {/* Local Search (for questions page only) */}
       <div className="relative mb-6">
-        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
         <input
           type="text"
           placeholder="Search all questions by text, quiz name, or difficulty..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm outline-none focus:border-black"
+          className="w-full pl-12 pr-4 py-3 text-black placeholder-gray-500 bg-white border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all"
         />
-        {searching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" size={18} />}
+        {searching && <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 animate-spin" size={20} />}
       </div>
 
       {/* Question limit / marks warning banners */}

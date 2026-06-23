@@ -12,7 +12,6 @@ export class AnswerItemDto {
 
 export class SubmitAnswersDto {
   @IsArray()
-  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => AnswerItemDto)
   answers: AnswerItemDto[];

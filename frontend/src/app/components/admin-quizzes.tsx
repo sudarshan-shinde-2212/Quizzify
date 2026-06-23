@@ -604,14 +604,14 @@ export function AdminQuizzes() {
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {/* Local Search (for quizzes page only) */}
-          <div className="relative flex-1 sm:flex-none sm:w-64">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <div className="relative flex-1 sm:flex-none sm:w-[400px]">
+            <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
             <input
               type="text"
               placeholder="Search quizzes..."
               value={quizSearch}
               onChange={(e) => setQuizSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-black"
+              className="w-full pl-10 pr-4 py-2.5 text-black placeholder-gray-500 bg-white border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all"
             />
           </div>
           <button
@@ -862,13 +862,13 @@ export function AdminQuizzes() {
                           {resultsSortOrder === "DESC" ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
                         </button>
                         <div className="relative">
-                          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                           <input
                             type="text"
                             placeholder="Search students..."
                             value={resultsSearch}
                             onChange={(e) => setResultsSearch(e.target.value)}
-                            className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-black"
+                            className="pl-10 pr-3 py-2 text-xs text-black placeholder-gray-500 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all"
                           />
                         </div>
                         <button

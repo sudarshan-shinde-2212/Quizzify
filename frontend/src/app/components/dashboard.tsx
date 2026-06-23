@@ -136,32 +136,32 @@ export function Dashboard() {
         </div>
         
         <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide pt-1">
+          <h2 className="text-base font-semibold text-gray-900 uppercase tracking-wide">
             Available Assessments
           </h2>
-          <div className="relative w-full md:w-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <div className="relative w-full md:w-[650px]">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
             <input
               type="text"
               placeholder="Search assessments..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full md:w-64 pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all"
+              className="w-full pl-12 pr-4 py-3 text-black placeholder-gray-500 bg-white border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all"
             />
           </div>
         </div>
       </div>
 
       <div className="w-full">
-        {/* Available Assessments (80% Desktop, 70% Tablet) */}
-        <div className="w-full md:w-[70%] lg:w-[80%]">
+        {/* Available Assessments */}
+        <div className="w-full">
 
           {filteredQuizzes.length === 0 ? (
             <div className="bg-white border border-gray-100 rounded-xl py-12 text-center text-gray-400">
               {searchQuery ? "No assessments match your search." : "No assessments assigned or published at this time."}
             </div>
           ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredQuizzes.map((quiz, i) => {
                 const statusKey = quiz.attempted ? "attempted" : quiz.status;
                 const { label, color, bg } = statusConfig[statusKey as keyof typeof statusConfig];
