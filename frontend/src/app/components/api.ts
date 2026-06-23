@@ -154,9 +154,9 @@ export interface UserHistoryItem {
   dateAttempted: string;
   score: number | null;
   percentage: number | null;
-  correctAnswers: number;
-  wrongAnswers: number;
-  status: 'Pass' | 'Fail' | 'Cheating Detected';
+  correctAnswers: number | null;
+  wrongAnswers: number | null;
+  status: 'Passed' | 'Failed' | 'Disqualified';
 }
 
 export interface QuizStats {
@@ -329,6 +329,7 @@ export async function apiSubmitQuizAttempt(
   quizId: string,
   answers: { questionId: string; selectedOption: 'A' | 'B' | 'C' | 'D' }[],
   cheatingDetected: boolean = false,
+  isAutoSubmit: boolean = false,
 ): Promise<{
   score: number | null;
   percentage: number | null;
@@ -339,7 +340,7 @@ export async function apiSubmitQuizAttempt(
 }> {
   return request(`/student/quizzes/${quizId}/submit`, {
     method: 'POST',
-    body: JSON.stringify({ answers, cheatingDetected }),
+    body: JSON.stringify({ answers, cheatingDetected, isAutoSubmit }),
   });
 }
 

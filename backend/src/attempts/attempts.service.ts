@@ -89,7 +89,14 @@ export class AttemptsService {
 
     const questionMap = new Map(questions.map((q) => [q.id, q]));
 
-    // REMOVED: Mandatory question validation - allow submission with unanswered questions
+    // Validate all questions are answered unless auto submit (cheating or timer)
+    if (!dto.isAutoSubmit && !dto.cheatingDetected) {
+      const answeredQuestionIds = new Set(dto.answers.map(a => a.questionId));
+      const allAnswered = questions.every(q => answeredQuestionIds.has(q.id));
+      if (!allAnswered) {
+        throw new BadRequestException('All questions must be answered before submission.');
+      }
+    }
 
     // Save answers
     const answerEntities = dto.answers

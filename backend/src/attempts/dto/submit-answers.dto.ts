@@ -19,4 +19,8 @@ export class SubmitAnswersDto {
   @IsOptional()
   @IsBoolean()
   cheatingDetected?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isAutoSubmit?: boolean;
 }

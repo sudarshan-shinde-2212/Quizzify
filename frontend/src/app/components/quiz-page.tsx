@@ -65,7 +65,7 @@ function useTimer(initialSeconds: number, onExpire: () => void, isLoaded: boolea
   return { minutes, secs, seconds, isLow };
 }
 
-type ModalType = "tab-switch" | "final-warning" | "submitted" | "confirm-submit" | "time-up" | "time-up-no-auto" | null;
+type ModalType = "tab-switch" | "final-warning" | "submitted" | "confirm-submit" | "time-up" | "time-up-no-auto" | "unanswered-questions" | "cheating-detected" | null;
 
 function Modal({ type, tabCount, onClose, onSubmit, settings, unansweredCount }: {
   type: ModalType;
@@ -78,6 +78,16 @@ function Modal({ type, tabCount, onClose, onSubmit, settings, unansweredCount }:
   if (!type) return null;
 
   const configs = {
+    "cheating-detected": {
+      title: "Cheating Detected!",
+      icon: <AlertTriangle size={24} className="text-red-500" />,
+      bg: "bg-red-50",
+      border: "border-red-200",
+      body: "Your attempt has been disqualified. Redirecting to results...",
+      action: "View Results",
+      actionFn: onSubmit,
+      showClose: false,
+    },
     "tab-switch": {
       title: "Cheating Detected!",
       icon: <AlertTriangle size={24} className="text-red-500" />,
@@ -138,6 +148,18 @@ function Modal({ type, tabCount, onClose, onSubmit, settings, unansweredCount }:
       actionFn: onSubmit,
       showClose: false,
     },
+    "unanswered-questions": {
+      title: "Incomplete Assessment!",
+      icon: <AlertTriangle size={24} className="text-red-500" />,
+      bg: "bg-red-50",
+      border: "border-red-200",
+      body: unansweredCount === 1 
+        ? "You still have 1 unanswered question. Please answer all questions before submitting."
+        : `You still have ${unansweredCount} unanswered questions. Please answer all questions before submitting.`,
+      action: "View Unanswered",
+      actionFn: onSubmit,
+      showClose: true,
+    },
   };
 
   const config = configs[type];
@@ -195,6 +217,9 @@ export function QuizPage() {
   const [startTime] = useState(Date.now());
   const [submitting, setSubmitting] = useState(false);
   const [cheatingDetected, setCheatingDetected] = useState(false);
+  const [isAutoSubmit, setIsAutoSubmit] = useState(false);
+  
+  const questionSectionRef = useRef<HTMLDivElement>(null);
   const [imageModal, setImageModal] = useState<{ isOpen: boolean; imageUrl: string; alt: string }>({
     isOpen: false,
     imageUrl: "",
@@ -270,10 +295,10 @@ export function QuizPage() {
         .filter(([_, val]) => val !== null && val !== undefined)
         .map(([qId, val]) => ({
           questionId: qId,
-          selectedOption: ["A", "B", "C", "D"][val as number] as "A" | "B" | "C" | "D",
+          selectedOption: ['A', 'B', 'C', 'D'][val as number] as 'A' | 'B' | 'C' | 'D',
         }));
 
-      const res = await apiSubmitQuizAttempt(quizId, formattedAnswers, cheatingDetected);
+      const res = await apiSubmitQuizAttempt(quizId, formattedAnswers, cheatingDetected, isAutoSubmit);
 
       sessionStorage.setItem("quizResult", JSON.stringify({
         score: res.score,
@@ -301,16 +326,31 @@ export function QuizPage() {
     handleSubmitRef.current = handleSubmit;
   }, [handleSubmit]);
 
-  // Check if all questions are answered before submitting - NO LONGER MANDATORY
+  // Check if all questions are answered before submitting
   const validateAndTrySubmit = useCallback(() => {
-    if (cheatingDetected) {
-      // If cheating detected, submit immediately, no checks
+    if (cheatingDetected || isAutoSubmit) {
+      // If cheating or auto submit, no checks
       handleSubmitRef.current();
       return;
     }
-    // No more mandatory question check - allow submitting with unanswered questions
+    const { unansweredCount, firstUnansweredIndex } = getUnansweredInfo();
+    if (unansweredCount > 0) {
+      // Show error modal
+      setModal("unanswered-questions");
+      return;
+    }
     setModal("confirm-submit");
-  }, [cheatingDetected]);
+  }, [cheatingDetected, isAutoSubmit, getUnansweredInfo]);
+
+  // Handle viewing unanswered questions
+  const handleViewUnanswered = useCallback(() => {
+    const { firstUnansweredIndex } = getUnansweredInfo();
+    if (firstUnansweredIndex !== null) {
+      setCurrentQ(firstUnansweredIndex);
+      questionSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    setModal(null);
+  }, [getUnansweredInfo]);
 
   // Tab visibility + window blur monitoring for cheating detection
   useEffect(() => {
@@ -319,8 +359,9 @@ export function QuizPage() {
     const autoSubmitCheating = () => {
       if (!cheatingDetected) {
         setCheatingDetected(true);
-        handleSubmit();
-        alert("Cheating detected. Your attempt has been automatically submitted.");
+        setIsAutoSubmit(true);
+        setModal("cheating-detected");
+        // We'll handle submit when the user clicks the button or automatically
       }
     };
     
@@ -377,6 +418,7 @@ export function QuizPage() {
 
   // Timer expiry auto-submit
   const { minutes, secs, isLow } = useTimer((quiz?.durationInMinutes ?? 30) * 60, () => {
+    setIsAutoSubmit(true);
     // No modal, auto-submit immediately
     handleSubmit();
   }, !loading);
@@ -482,7 +524,7 @@ export function QuizPage() {
           </div>
 
           {/* Center: Question */}
-          <div className="flex flex-col">
+          <div ref={questionSectionRef} className="flex flex-col">
             {/* Timer – centered above question */}
             <div className="flex justify-center mb-6">
               <div className={`flex items-center gap-2.5 px-7 py-3.5 rounded-2xl border text-base font-mono font-bold shadow-sm ${isLow ? "text-red-600 bg-red-50 border-red-200 animate-pulse" : "text-gray-800 bg-white border-gray-200"}`}>
@@ -716,10 +758,15 @@ export function QuizPage() {
               setModal(null);
             }}
             onSubmit={() => {
-              setModal(null);
-              handleSubmit();
+              if (modal === "unanswered-questions") {
+                handleViewUnanswered();
+              } else {
+                setModal(null);
+                handleSubmit();
+              }
             }}
             settings={settings}
+            unansweredCount={getUnansweredInfo().unansweredCount}
           />
         )}
       </AnimatePresence>
