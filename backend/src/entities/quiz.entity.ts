@@ -66,6 +66,9 @@ createdById: string;
   @Column({ type: 'boolean', default: false })
   allowRetakes: boolean;
 
+  @Column({ type: 'int', default: 0 })
+  maxRetakes: number;
+
   @Column({ type: 'boolean', default: true })
   shuffleQuestions: boolean;
 

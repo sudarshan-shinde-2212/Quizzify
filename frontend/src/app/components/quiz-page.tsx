@@ -301,59 +301,63 @@ export function QuizPage() {
     handleSubmitRef.current = handleSubmit;
   }, [handleSubmit]);
 
-  // Check if all questions are answered before submitting - skip if cheating detected
+  // Check if all questions are answered before submitting - NO LONGER MANDATORY
   const validateAndTrySubmit = useCallback(() => {
     if (cheatingDetected) {
       // If cheating detected, submit immediately, no checks
       handleSubmitRef.current();
       return;
     }
-    const { unansweredCount } = getUnansweredInfo();
-    if (unansweredCount > 0) {
-      alert(`Please answer all questions first. ${unansweredCount} question${unansweredCount > 1 ? 's' : ''} remaining.`);
-      return;
-    }
+    // No more mandatory question check - allow submitting with unanswered questions
     setModal("confirm-submit");
-  }, [getUnansweredInfo, cheatingDetected]);
+  }, [cheatingDetected]);
 
-  // Tab visibility monitoring and cheating prevention - ANY violation = cheating
+  // Tab visibility + window blur monitoring for cheating detection
   useEffect(() => {
     if (loading || error || !settings) return;
-    const handleVisibility = () => {
-      if (document.hidden) {
+    
+    const autoSubmitCheating = () => {
+      if (!cheatingDetected) {
         setCheatingDetected(true);
-        // Auto-submit immediately
         handleSubmit();
-        // Show alert
-        alert("Tab switching detected. Your attempt has been automatically submitted and marked as cheating detected.");
+        alert("Cheating detected. Your attempt has been automatically submitted.");
       }
     };
+    
+    const handleVisibility = () => {
+      if (document.hidden) {
+        autoSubmitCheating();
+      }
+    };
+    
+    const handleWindowBlur = () => {
+      autoSubmitCheating();
+    };
+    
     const handleCopyCutPaste = (e: ClipboardEvent) => {
       e.preventDefault();
-      setCheatingDetected(true);
-      handleSubmit();
-      alert("Copy/paste detected. Your attempt has been automatically submitted and marked as cheating detected.");
+      autoSubmitCheating();
     };
+    
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
     };
+    
     const handleKeyDown = (e: KeyboardEvent) => {
       // Prevent Ctrl/Cmd+C, Ctrl/Cmd+X, Ctrl/Cmd+V, Ctrl/Cmd+P, PrintScreen
       if ((e.ctrlKey || e.metaKey) && (e.key === "c" || e.key === "C" || e.key === "x" || e.key === "X" || e.key === "v" || e.key === "V" || e.key === "p" || e.key === "P")) {
         e.preventDefault();
-        setCheatingDetected(true);
-        handleSubmit();
-        alert("Keyboard shortcut detected. Your attempt has been automatically submitted and marked as cheating detected.");
+        autoSubmitCheating();
       }
       // Prevent PrintScreen key
       if (e.key === "PrintScreen" || e.key === "prtsc" || e.key === "PrtScr") {
         e.preventDefault();
-        setCheatingDetected(true);
-        handleSubmit();
-        alert("Screenshot detected. Your attempt has been automatically submitted and marked as cheating detected.");
+        autoSubmitCheating();
       }
     };
+    
     document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("blur", handleWindowBlur);
     document.addEventListener("copy", handleCopyCutPaste);
     document.addEventListener("cut", handleCopyCutPaste);
     document.addEventListener("paste", handleCopyCutPaste);
@@ -362,16 +366,18 @@ export function QuizPage() {
     
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("blur", handleWindowBlur);
       document.removeEventListener("copy", handleCopyCutPaste);
       document.removeEventListener("cut", handleCopyCutPaste);
       document.removeEventListener("paste", handleCopyCutPaste);
       document.removeEventListener("contextmenu", handleContextMenu);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [loading, error, settings]);
+  }, [loading, error, settings, cheatingDetected]);
 
+  // Timer expiry auto-submit
   const { minutes, secs, isLow } = useTimer((quiz?.durationInMinutes ?? 30) * 60, () => {
-    setModal("time-up");
+    // No modal, auto-submit immediately
     handleSubmit();
   }, !loading);
 
@@ -619,10 +625,10 @@ export function QuizPage() {
                       <RotateCcw size={14} /> Clear
                     </button>
                     <button
-                      onClick={validateAndTrySubmit}
-                      disabled={submitting || (!cheatingDetected && getUnansweredInfo().unansweredCount > 0)}
-                      className="flex items-center justify-center gap-1.5 text-sm px-5 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                    >
+              onClick={validateAndTrySubmit}
+              disabled={submitting}
+              className="flex items-center justify-center gap-1.5 text-sm px-5 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            >
                       {submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                       Submit
                     </button>

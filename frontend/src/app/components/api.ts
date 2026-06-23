@@ -77,6 +77,7 @@ export interface Quiz {
   createdAt: string;
   updatedAt: string;
   allowRetakes: boolean;
+  maxRetakes: number;
   shuffleQuestions: boolean;
   questions?: Question[];
 }
@@ -412,6 +413,7 @@ export async function apiAdminUpdateQuizVisibility(
 
 export interface QuizSettings {
   allowRetakes: boolean;
+  maxRetakes: number;
   shuffleQuestions: boolean;
 }
 

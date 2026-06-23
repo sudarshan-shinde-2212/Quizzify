@@ -23,7 +23,7 @@ const statusConfig: Record<QuizStatus | "attempted", { label: string; color: str
 export function Dashboard() {
   const { user } = useAuth();
   const router = useRouter();
-  const [quizzes, setQuizzes] = useState<(Quiz & { status: QuizStatus; attempted?: boolean; score?: number | null })[]>([]);
+  const [quizzes, setQuizzes] = useState<(Quiz & { status: QuizStatus; attemptCount: number; latestScore?: number | null })[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -50,10 +50,22 @@ export function Dashboard() {
           return;
         }
 
-        // Cross-reference attempts with results
-        const attemptedIds = new Map(results.map((r) => [r.quizId, r]));
+        // Count attempts and get latest result per quiz
+        const quizAttemptData = new Map<string, { count: number; latestResult: QuizResult | undefined }>();
+        results.forEach(result => {
+          const existing = quizAttemptData.get(result.quizId);
+          if (!existing) {
+            quizAttemptData.set(result.quizId, { count: 1, latestResult: result });
+          } else {
+            const latest = existing.latestResult && new Date(result.createdAt) > new Date(existing.latestResult.createdAt) 
+              ? result 
+              : existing.latestResult;
+            quizAttemptData.set(result.quizId, { count: existing.count + 1, latestResult: latest });
+          }
+        });
+        
         const enrichedQuizzes = activeQuizzes.map((q) => {
-          const attempt = attemptedIds.get(q.id);
+          const attemptData = quizAttemptData.get(q.id);
           const now = new Date();
           const start = new Date(q.startDate);
           const end = new Date(q.endDate);
@@ -65,8 +77,10 @@ export function Dashboard() {
           return {
             ...q,
             status,
-            attempted: !!attempt,
-            score: attempt && !attempt.cheatingDetected ? attempt.score : null,
+            attemptCount: attemptData?.count || 0,
+            latestScore: attemptData?.latestResult && !attemptData.latestResult.cheatingDetected 
+              ? attemptData.latestResult.score 
+              : null,
           };
         });
 
@@ -75,7 +89,7 @@ export function Dashboard() {
         const totalAttempts = results.length;
         const averageScore = validResults.length > 0 ? Math.round(validResults.reduce((sum, r) => sum + Number(r.percentage), 0) / validResults.length) : 0;
         const highestScore = validResults.length > 0 ? Math.max(...validResults.map((r) => Number(r.percentage)), 0) : 0;
-        const liveCount = enrichedQuizzes.filter((q) => q.status === "live" && !q.attempted).length;
+        const liveCount = enrichedQuizzes.filter((q) => q.status === "live").length;
 
         setQuizzes(enrichedQuizzes);
         setStats({ totalAttempts, averageScore, highestScore, liveCount });
@@ -163,9 +177,13 @@ export function Dashboard() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredQuizzes.map((quiz, i) => {
-                const statusKey = quiz.attempted ? "attempted" : quiz.status;
+                const statusKey = quiz.attemptCount > 0 ? "attempted" : quiz.status;
                 const { label, color, bg } = statusConfig[statusKey as keyof typeof statusConfig];
-                const canStart = quiz.status === "live" && !quiz.attempted;
+                
+                const maxAttempts = 1 + quiz.maxRetakes;
+                const remainingAttempts = Math.max(0, maxAttempts - quiz.attemptCount);
+                const canStart = quiz.status === "live" && 
+                  (quiz.attemptCount === 0 || (quiz.allowRetakes && quiz.attemptCount < maxAttempts));
 
                 return (
                   <motion.div
@@ -180,16 +198,28 @@ export function Dashboard() {
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${bg} ${color}`}>
                         {label}
                       </span>
-                      {quiz.attempted && (
+                      {quiz.attemptCount > 0 && (
                         <span className="text-xs text-gray-500">
-                          Score: <span className="font-medium text-black">{quiz.score !== null ? `${quiz.score}/${quiz.totalMarks}` : "-"}</span>
+                          Score: <span className="font-medium text-black">{quiz.latestScore !== null ? `${quiz.latestScore}/${quiz.totalMarks}` : "-"}</span>
                         </span>
                       )}
                     </div>
 
                     {/* Title & Description */}
                     <h3 className="text-sm font-semibold text-black leading-snug mb-1.5">{quiz.title}</h3>
-                    <p className="text-xs text-gray-500 leading-relaxed mb-4 flex-1">{quiz.description}</p>
+                    <p className="text-xs text-gray-500 leading-relaxed mb-3 flex-1">{quiz.description}</p>
+
+                    {/* Attempt counter */}
+                    {quiz.allowRetakes && quiz.attemptCount > 0 && (
+                      <div className="mb-3">
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <span>Attempts: {quiz.attemptCount}/{maxAttempts}</span>
+                          {remainingAttempts > 0 && <span className="text-green-600">({remainingAttempts} remaining)</span>}
+                          {remainingAttempts === 0 && <span className="text-red-500">(Limit reached)</span>}
+                        </div>
+                        <p className="text-xs text-blue-600 mt-0.5">Only your first attempt affects rankings</p>
+                      </div>
+                    )}
 
                     {/* Meta */}
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-4">
@@ -214,7 +244,9 @@ export function Dashboard() {
                           : "bg-gray-50 text-gray-400 cursor-not-allowed border border-gray-100"
                       }`}
                     >
-                      {quiz.attempted ? (
+                      {quiz.attemptCount > 0 && canStart ? (
+                        <>Retake Quiz <ChevronRight size={14} /></>
+                      ) : quiz.attemptCount > 0 ? (
                         <><CheckCircle2 size={14} /> Attempted</>
                       ) : quiz.status === "upcoming" ? (
                         <><Calendar size={14} /> Starts {new Date(quiz.startDate).toLocaleDateString()}</>

@@ -29,25 +29,31 @@ export class AttemptsService {
   ) {}
 
   async startQuiz(studentId: string, quizId: string): Promise<QuizAttempt> {
-    await this.quizzesService.findOneActive(quizId);
+    // Get the quiz first to check allowRetakes and maxRetakes settings
+    const quiz = await this.quizzesService.findOneActive(quizId);
 
-    const existing = await this.attemptRepo.findOne({
+    // Get all existing attempts for this student and quiz
+    const existingAttempts = await this.attemptRepo.find({
       where: { studentId, quizId },
+      order: { startedAt: 'ASC' },
     });
 
-    if (existing) {
-      if (existing.isSubmitted) {
-        // Check if retakes are allowed before permitting a new attempt
-        const settings = await this.settingsService.getSettings();
-        const allowRetakes = settings?.allowRetakes ?? false;
-        if (!allowRetakes) {
-          throw new ConflictException('Quiz already attempted. Retakes are not allowed.');
-        }
-      }
-      // Remove old attempt to allow a fresh start
-      await this.attemptRepo.remove(existing);
+    // Check if there's an unsubmitted attempt - return it immediately
+    const unsubmittedAttempt = existingAttempts.find(a => !a.isSubmitted);
+    if (unsubmittedAttempt) {
+      return unsubmittedAttempt;
     }
 
+    // Calculate max allowed attempts
+    const maxAttempts = 1 + quiz.maxRetakes;
+    const attemptCount = existingAttempts.length;
+
+    // Check if we've reached the limit
+    if (attemptCount >= maxAttempts) {
+      throw new ConflictException('Retake limit reached');
+    }
+
+    // Create new attempt
     const attempt = this.attemptRepo.create({
       studentId,
       quizId,
@@ -82,18 +88,7 @@ export class AttemptsService {
 
     const questionMap = new Map(questions.map((q) => [q.id, q]));
 
-    // Validate all questions have answers - skip if cheating detected
-    if (!dto.cheatingDetected) {
-      const answeredQuestionIds = new Set(dto.answers.map((a) => a.questionId));
-      const unansweredQuestionIds = questions
-        .map((q) => q.id)
-        .filter((id) => !answeredQuestionIds.has(id));
-      if (unansweredQuestionIds.length > 0) {
-        throw new BadRequestException(
-          `Incomplete submission: ${unansweredQuestionIds.length} question(s) remain unanswered. All questions are mandatory.`,
-        );
-      }
-    }
+    // REMOVED: Mandatory question validation - allow submission with unanswered questions
 
     // Save answers
     const answerEntities = dto.answers

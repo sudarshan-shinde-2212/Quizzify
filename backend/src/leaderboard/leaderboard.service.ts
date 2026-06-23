@@ -53,9 +53,19 @@ export class LeaderboardService {
       .leftJoinAndSelect('result.attempt', 'attempt')
       .where('result.quizId = :quizId', { quizId: selectedQuiz.id })
       .andWhere('result.cheatingDetected = :cheatingDetected', { cheatingDetected: false })
+      .orderBy('result.createdAt', 'ASC')
       .getMany();
 
-    const transformedData = leaderboardData.map((res) => ({
+    // Group by student, keep ONLY FIRST valid attempt (oldest)
+    const firstAttempts = new Map<string, typeof leaderboardData[0]>();
+    leaderboardData.forEach(result => {
+      const studentId = result.studentId;
+      if (!firstAttempts.has(studentId)) {
+        firstAttempts.set(studentId, result);
+      }
+    });
+
+    const transformedData = Array.from(firstAttempts.values()).map((res) => ({
       studentName: res.student.fullName || 'Anonymous',
       score: res.score as number,
       percentage: res.percentage as number,

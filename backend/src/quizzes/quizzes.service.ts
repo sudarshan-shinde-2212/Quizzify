@@ -130,17 +130,27 @@ export class QuizzesService {
     const quiz = await this.findOne(id);
     return {
       allowRetakes: quiz.allowRetakes,
+      maxRetakes: quiz.maxRetakes,
       shuffleQuestions: quiz.shuffleQuestions,
     };
   }
 
   async updateQuizSettings(id: string, dto: UpdateQuizSettingsDto) {
     const quiz = await this.findOne(id);
-    if (dto.allowRetakes !== undefined) quiz.allowRetakes = dto.allowRetakes;
+    if (dto.allowRetakes !== undefined) {
+      quiz.allowRetakes = dto.allowRetakes;
+      if (!dto.allowRetakes) {
+        quiz.maxRetakes = 0;
+      }
+    }
+    if (dto.maxRetakes !== undefined) {
+      quiz.maxRetakes = dto.maxRetakes;
+    }
     if (dto.shuffleQuestions !== undefined) quiz.shuffleQuestions = dto.shuffleQuestions;
     await this.quizRepo.save(quiz);
     return {
       allowRetakes: quiz.allowRetakes,
+      maxRetakes: quiz.maxRetakes,
       shuffleQuestions: quiz.shuffleQuestions,
     };
   }

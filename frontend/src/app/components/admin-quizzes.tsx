@@ -949,7 +949,7 @@ export function AdminQuizzes() {
                         </p>
                       </div>
                       <button
-                        onClick={() => setQuizSettings({ ...quizSettings, allowRetakes: !quizSettings.allowRetakes })}
+                        onClick={() => setQuizSettings({ ...quizSettings, allowRetakes: !quizSettings.allowRetakes, maxRetakes: !quizSettings.allowRetakes ? (quizSettings.maxRetakes || 1) : 0 })}
                         className={`w-12 h-6 rounded-full transition-colors relative ${
                           quizSettings.allowRetakes ? "bg-black" : "bg-gray-300"
                         }`}
@@ -960,6 +960,25 @@ export function AdminQuizzes() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Max Retakes */}
+                  {quizSettings.allowRetakes && (
+                    <div className="bg-gray-50 rounded-xl p-5">
+                      <div>
+                        <h3 className="text-sm font-semibold text-black">Maximum Retakes</h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Number of additional attempts allowed after the first attempt
+                        </p>
+                        <input
+                          type="number"
+                          min="1"
+                          value={quizSettings.maxRetakes || 1}
+                          onChange={(e) => setQuizSettings({ ...quizSettings, maxRetakes: Math.max(1, parseInt(e.target.value) || 1) })}
+                          className="mt-3 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Shuffle Questions */}
                   <div className="bg-gray-50 rounded-xl p-5">
@@ -981,6 +1000,13 @@ export function AdminQuizzes() {
                         }`} />
                       </button>
                     </div>
+                  </div>
+
+                  {/* Helper Text */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <p className="text-xs text-blue-800">
+                      Retakes are for practice only. Leaderboard rankings are based solely on the first valid attempt.
+                    </p>
                   </div>
 
                   {/* Save Button */}

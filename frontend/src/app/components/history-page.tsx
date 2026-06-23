@@ -6,11 +6,30 @@ import { apiGetStudentResults, QuizResult } from "./api";
 import { motion } from "motion/react";
 import { CheckCircle2, XCircle, Trophy, Calendar, Loader2, Search } from "lucide-react";
 
+interface QuizResultWithAttemptNumber extends QuizResult {
+  attemptNumber: number;
+}
+
 export function HistoryPage() {
   const [history, setHistory] = useState<QuizResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const filteredHistory = history.filter((item) =>
+
+  // Process history to add attempt numbers
+  const processedHistory = history.slice().sort((a, b) => 
+    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+
+  // Assign attempt numbers per quiz
+  const attemptCounter = new Map<string, number>();
+  const historyWithAttemptNumbers: QuizResultWithAttemptNumber[] = processedHistory.map(item => {
+    const currentCount = attemptCounter.get(item.quizId) || 0;
+    const attemptNumber = currentCount + 1;
+    attemptCounter.set(item.quizId, attemptNumber);
+    return { ...item, attemptNumber };
+  });
+
+  const filteredHistory = historyWithAttemptNumbers.filter((item) =>
     (item.quiz?.title ?? "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -56,11 +75,11 @@ export function HistoryPage() {
 
       {/* Desktop table */}
       <div className="hidden md:block bg-white border border-gray-100 rounded-xl overflow-hidden">
-        {history.length > 0 ? (
+        {filteredHistory.length > 0 ? (
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-50">
-                {["Quiz Name", "Score", "Percentage", "Correct", "Wrong", "Date", "Status"].map((h) => (
+                {["Quiz Name", "Attempt", "Score", "Percentage", "Correct", "Wrong", "Date", "Status", "Result"].map((h) => (
                   <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-5 py-3.5">
                     {h}
                   </th>
@@ -68,8 +87,9 @@ export function HistoryPage() {
               </tr>
             </thead>
             <tbody>
-              {history.map((item, i) => {
+              {filteredHistory.map((item, i) => {
                 const passed = item.percentage !== null && item.percentage >= 60;
+                const isFirstAttempt = item.attemptNumber === 1;
                 return (
                   <motion.tr
                     key={item.id}
@@ -80,6 +100,16 @@ export function HistoryPage() {
                   >
                     <td className="px-5 py-4">
                       <p className="text-sm font-medium text-black">{item.quiz?.title || "Unknown Quiz"}</p>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-black">#{item.attemptNumber}</span>
+                        {isFirstAttempt && !item.cheatingDetected && (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                            Official
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-5 py-4">
                       {item.cheatingDetected || item.score === null ? (
@@ -132,6 +162,13 @@ export function HistoryPage() {
                         </span>
                       )}
                     </td>
+                    <td className="px-5 py-4">
+                      {item.cheatingDetected ? (
+                        <span className="text-sm font-semibold text-red-700">Disqualified</span>
+                      ) : (
+                        <span className="text-sm font-semibold text-gray-700">Completed</span>
+                      )}
+                    </td>
                   </motion.tr>
                 );
               })}
@@ -147,8 +184,9 @@ export function HistoryPage() {
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
-        {history.map((item, i) => {
+        {filteredHistory.map((item, i) => {
           const passed = item.percentage !== null && item.percentage >= 60;
+          const isFirstAttempt = item.attemptNumber === 1;
           return (
             <motion.div
               key={item.id}
@@ -158,9 +196,19 @@ export function HistoryPage() {
               className="bg-white border border-gray-100 rounded-xl p-4"
             >
               <div className="flex items-start justify-between mb-2">
-                <p className="text-sm font-semibold text-black leading-tight flex-1 pr-2">
-                  {item.quiz?.title || "Unknown Quiz"}
-                </p>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-black leading-tight">
+                    {item.quiz?.title || "Unknown Quiz"}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs font-semibold text-gray-700">Attempt #{item.attemptNumber}</span>
+                    {isFirstAttempt && !item.cheatingDetected && (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                        Official
+                      </span>
+                    )}
+                  </div>
+                </div>
                 {item.cheatingDetected ? (
                   <span className="text-xs text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full shrink-0">Cheating Detected</span>
                 ) : passed ? (
@@ -182,6 +230,11 @@ export function HistoryPage() {
                 <div className="flex items-center gap-4 text-xs text-gray-500">
                   <span>Correct: <span className="font-medium text-green-600">{item.correctAnswers}</span></span>
                   <span>Wrong: <span className="font-medium text-red-500">{item.wrongAnswers}</span></span>
+                </div>
+              )}
+              {item.cheatingDetected && (
+                <div className="text-xs font-semibold text-red-700 mt-1">
+                  Result: Disqualified
                 </div>
               )}
             </motion.div>

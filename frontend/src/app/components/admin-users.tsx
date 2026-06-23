@@ -36,8 +36,11 @@ function formatDateTime(dateString?: string | Date) {
   return date.toLocaleString();
 }
 
-function getStatusColor(percentage: number) {
-  return percentage >= 50 ? "text-green-600 bg-green-50 border-green-200" : "text-red-600 bg-red-50 border-red-200";
+function getStatusColor(status: string) {
+  if (status === "Pass") return "text-green-600 bg-green-50 border-green-200";
+  if (status === "Fail") return "text-red-600 bg-red-50 border-red-200";
+  if (status === "Cheating Detected") return "text-red-700 bg-red-50 border-red-200";
+  return "text-gray-600 bg-gray-50 border-gray-200";
 }
 
 export function AdminUsers() {
@@ -356,7 +359,7 @@ export function AdminUsers() {
                             <div key={idx} className="bg-white border border-gray-100 rounded-xl p-5">
                               <div className="flex items-center justify-between mb-3">
                                 <h4 className="font-medium text-black">{item.quizName}</h4>
-                                <span className={`text-xs px-2.5 py-1 rounded-full border ${getStatusColor(item.percentage)}`}>
+                                <span className={`text-xs px-2.5 py-1 rounded-full border ${getStatusColor(item.status)}`}>
                                   {item.status}
                                 </span>
                               </div>
