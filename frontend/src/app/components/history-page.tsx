@@ -79,7 +79,7 @@ export function HistoryPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-50">
-                {["Quiz Name", "Attempt", "Score", "Percentage", "Correct", "Wrong", "Date", "Status", "Result"].map((h) => (
+                {["Quiz Name", "Attempt", "Score", "Percentage", "Correct", "Wrong", "Date", "Result"].map((h) => (
                   <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-5 py-3.5">
                     {h}
                   </th>
@@ -88,7 +88,8 @@ export function HistoryPage() {
             </thead>
             <tbody>
               {filteredHistory.map((item, i) => {
-                const passed = item.percentage !== null && item.percentage >= 60;
+                const passingScore = item.quiz?.passingScore ?? 60;
+                const passed = !item.cheatingDetected && item.percentage !== null && item.percentage >= passingScore;
                 const isFirstAttempt = item.attemptNumber === 1;
                 return (
                   <motion.tr
@@ -150,7 +151,7 @@ export function HistoryPage() {
                     <td className="px-5 py-4">
                       {item.cheatingDetected ? (
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
-                          <XCircle size={11} /> Cheating Detected
+                          <XCircle size={11} /> Disqualified
                         </span>
                       ) : passed ? (
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
@@ -160,13 +161,6 @@ export function HistoryPage() {
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
                           <XCircle size={11} /> Failed
                         </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4">
-                      {item.cheatingDetected ? (
-                        <span className="text-sm font-semibold text-red-700">Disqualified</span>
-                      ) : (
-                        <span className="text-sm font-semibold text-gray-700">Completed</span>
                       )}
                     </td>
                   </motion.tr>
@@ -185,7 +179,8 @@ export function HistoryPage() {
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
         {filteredHistory.map((item, i) => {
-          const passed = item.percentage !== null && item.percentage >= 60;
+          const passingScore = item.quiz?.passingScore ?? 60;
+          const passed = !item.cheatingDetected && item.percentage !== null && item.percentage >= passingScore;
           const isFirstAttempt = item.attemptNumber === 1;
           return (
             <motion.div

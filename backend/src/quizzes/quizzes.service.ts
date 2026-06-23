@@ -126,11 +126,66 @@ export class QuizzesService {
     return this.quizRepo.save(quiz);
   }
 
+  // Helper function to check if a quiz is currently active in IST
+  private isQuizActive(quiz: { startDate: Date; endDate: Date }): boolean {
+    const now = new Date();
+    // Get current time components in IST
+    const nowIST = new Intl.DateTimeFormat('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).format(now);
+    const [nowDatePart, nowTimePart] = nowIST.split(', ');
+    const [nowDay, nowMonth, nowYear] = nowDatePart.split('/').map(Number);
+    const [nowHour, nowMinute, nowSecond] = nowTimePart.split(':').map(Number);
+    const nowISTDate = new Date(nowYear, nowMonth - 1, nowDay, nowHour, nowMinute, nowSecond);
+
+    // Convert quiz startDate to IST
+    const startIST = new Intl.DateTimeFormat('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).format(quiz.startDate);
+    const [startDatePart, startTimePart] = startIST.split(', ');
+    const [startDay, startMonth, startYear] = startDatePart.split('/').map(Number);
+    const [startHour, startMinute, startSecond] = startTimePart.split(':').map(Number);
+    const startISTDate = new Date(startYear, startMonth - 1, startDay, startHour, startMinute, startSecond);
+
+    // Convert quiz endDate to IST, and set to 23:59:59 to include entire end day
+    const endIST = new Intl.DateTimeFormat('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).format(quiz.endDate);
+    const [endDatePart, endTimePart] = endIST.split(', ');
+    const [endDay, endMonth, endYear] = endDatePart.split('/').map(Number);
+    // Set end time to 23:59:59 to cover the entire end date
+    const endISTDate = new Date(endYear, endMonth - 1, endDay, 23, 59, 59);
+
+    return nowISTDate >= startISTDate && nowISTDate <= endISTDate;
+  }
+
   async getQuizSettings(id: string) {
     const quiz = await this.findOne(id);
     return {
       allowRetakes: quiz.allowRetakes,
       maxRetakes: quiz.maxRetakes,
+      passingScore: quiz.passingScore,
       shuffleQuestions: quiz.shuffleQuestions,
     };
   }
@@ -146,39 +201,38 @@ export class QuizzesService {
     if (dto.maxRetakes !== undefined) {
       quiz.maxRetakes = dto.maxRetakes;
     }
+    if (dto.passingScore !== undefined) {
+      quiz.passingScore = dto.passingScore;
+    }
     if (dto.shuffleQuestions !== undefined) quiz.shuffleQuestions = dto.shuffleQuestions;
     await this.quizRepo.save(quiz);
     return {
       allowRetakes: quiz.allowRetakes,
       maxRetakes: quiz.maxRetakes,
+      passingScore: quiz.passingScore,
       shuffleQuestions: quiz.shuffleQuestions,
     };
   }
 
   async findActiveQuizzes(): Promise<Quiz[]> {
-    const now = new Date();
-    return this.quizRepo.find({
-      where: {
-        isPublished: true,
-        startDate: LessThanOrEqual(now),
-        endDate: MoreThanOrEqual(now),
-      },
+    // Get all published quizzes first
+    const allPublishedQuizzes = await this.quizRepo.find({
+      where: { isPublished: true },
       order: { startDate: 'ASC' },
     });
+    // Filter active ones using IST timezone logic
+    return allPublishedQuizzes.filter(quiz => this.isQuizActive(quiz));
   }
 
   async findOneActive(id: string): Promise<Quiz> {
-    const now = new Date();
     const quiz = await this.quizRepo.findOne({
-      where: {
-        id,
-        isPublished: true,
-        startDate: LessThanOrEqual(now),
-        endDate: MoreThanOrEqual(now),
-      },
+      where: { id, isPublished: true },
       relations: ['questions'],
     });
-    if (!quiz) throw new NotFoundException('Quiz not found or not active');
+    if (!quiz) throw new NotFoundException('Quiz not found');
+    if (!this.isQuizActive(quiz)) {
+      throw new NotFoundException('This quiz has expired and is no longer available.');
+    }
     return quiz;
   }
 

@@ -69,6 +69,9 @@ createdById: string;
   @Column({ type: 'int', default: 0 })
   maxRetakes: number;
 
+  @Column({ type: 'decimal', precision: 5, scale: 2, default: 60 })
+  passingScore: number;
+
   @Column({ type: 'boolean', default: true })
   shuffleQuestions: boolean;
 
