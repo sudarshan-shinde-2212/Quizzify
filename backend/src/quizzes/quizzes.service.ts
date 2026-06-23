@@ -126,58 +126,68 @@ export class QuizzesService {
     return this.quizRepo.save(quiz);
   }
 
+  // Helper function to get date/time parts in a specific timezone
+  private getDatePartsInTimezone(date: Date, timeZone: string): {
+    year: number;
+    month: number;
+    day: number;
+    hour: number;
+    minute: number;
+    second: number;
+  } {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+
+    const parts = formatter.formatToParts(date);
+    const getPart = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0', 10);
+
+    return {
+      year: getPart('year'),
+      month: getPart('month') - 1, // months are 0-indexed for Date.UTC
+      day: getPart('day'),
+      hour: getPart('hour'),
+      minute: getPart('minute'),
+      second: getPart('second'),
+    };
+  }
+
   // Helper function to check if a quiz is currently active in IST
-  private isQuizActive(quiz: { startDate: Date; endDate: Date }): boolean {
-    const now = new Date();
-    // Get current time components in IST
-    const nowIST = new Intl.DateTimeFormat('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    }).format(now);
-    const [nowDatePart, nowTimePart] = nowIST.split(', ');
-    const [nowDay, nowMonth, nowYear] = nowDatePart.split('/').map(Number);
-    const [nowHour, nowMinute, nowSecond] = nowTimePart.split(':').map(Number);
-    const nowISTDate = new Date(nowYear, nowMonth - 1, nowDay, nowHour, nowMinute, nowSecond);
+  private isQuizActive(quiz: { id?: string; startDate: Date; endDate: Date }): boolean {
+    const nowUtc = new Date();
 
-    // Convert quiz startDate to IST
-    const startIST = new Intl.DateTimeFormat('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    }).format(quiz.startDate);
-    const [startDatePart, startTimePart] = startIST.split(', ');
-    const [startDay, startMonth, startYear] = startDatePart.split('/').map(Number);
-    const [startHour, startMinute, startSecond] = startTimePart.split(':').map(Number);
-    const startISTDate = new Date(startYear, startMonth - 1, startDay, startHour, startMinute, startSecond);
+    // Get all date/time parts in IST timezone
+    const nowParts = this.getDatePartsInTimezone(nowUtc, 'Asia/Kolkata');
+    const startParts = this.getDatePartsInTimezone(quiz.startDate, 'Asia/Kolkata');
+    const endParts = this.getDatePartsInTimezone(quiz.endDate, 'Asia/Kolkata');
 
-    // Convert quiz endDate to IST, and set to 23:59:59 to include entire end day
-    const endIST = new Intl.DateTimeFormat('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    }).format(quiz.endDate);
-    const [endDatePart, endTimePart] = endIST.split(', ');
-    const [endDay, endMonth, endYear] = endDatePart.split('/').map(Number);
-    // Set end time to 23:59:59 to cover the entire end date
-    const endISTDate = new Date(endYear, endMonth - 1, endDay, 23, 59, 59);
+    // Now create Date objects using UTC time (to avoid server timezone issues
+    const nowISTTimestamp = Date.UTC(nowParts.year, nowParts.month, nowParts.day, nowParts.hour, nowParts.minute, nowParts.second);
+    const startISTTimestamp = Date.UTC(startParts.year, startParts.month, startParts.day, startParts.hour, startParts.minute, startParts.second);
+    const endISTTimestamp = Date.UTC(endParts.year, endParts.month, endParts.day, 23, 59, 59); // extend end date to 23:59:59 IST
 
-    return nowISTDate >= startISTDate && nowISTDate <= endISTDate;
+    // Now create actual Date objects for logging
+    const nowIST = new Date(nowISTTimestamp);
+    const startIST = new Date(startISTTimestamp);
+    const endIST = new Date(endISTTimestamp);
+
+    console.log(`[QUIZ EXPIRY CHECK] Quiz ID: ${quiz.id || 'N/A'}`);
+    console.log(`  Current UTC Time: ${nowUtc.toISOString()}`);
+    console.log(`  Current IST (as UTC): ${nowIST.toISOString()}`);
+    console.log(`  Quiz Start (IST as UTC): ${startIST.toISOString()}`);
+    console.log(`  Quiz End (IST as UTC, 23:59:59): ${endIST.toISOString()}`);
+
+    const isActive = nowISTTimestamp >= startISTTimestamp && nowISTTimestamp <= endISTTimestamp;
+    console.log(`  Is Active: ${isActive}`);
+
+    return isActive;
   }
 
   async getQuizSettings(id: string) {

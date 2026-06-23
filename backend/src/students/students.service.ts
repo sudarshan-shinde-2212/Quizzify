@@ -108,14 +108,20 @@ export class StudentsService {
 
     const results = await queryBuilder.getMany();
 
-    return results.map((res) => ({
-      quizName: res.quiz.title,
-      dateAttempted: res.attempt.submittedAt || res.attempt.startedAt,
-      score: res.score,
-      percentage: res.percentage,
-      correctAnswers: res.correctAnswers,
-      wrongAnswers: res.wrongAnswers,
-      status: res.cheatingDetected ? 'Cheating Detected' : (res.percentage !== null && res.percentage >= 50 ? 'Pass' : 'Fail'),
-    }));
+    return results.map((res) => {
+      const passingScore = res.quiz.passingScore ?? 60;
+      const isCheating = res.cheatingDetected || res.attempt.isCheating;
+      const passed = !isCheating && res.percentage !== null && res.percentage >= passingScore;
+
+      return {
+        quizName: res.quiz.title,
+        dateAttempted: res.attempt.submittedAt || res.attempt.startedAt,
+        score: isCheating ? null : res.score,
+        percentage: isCheating ? null : res.percentage,
+        correctAnswers: isCheating ? null : res.correctAnswers,
+        wrongAnswers: isCheating ? null : res.wrongAnswers,
+        status: isCheating ? 'Disqualified' : (passed ? 'Passed' : 'Failed'),
+      };
+    });
   }
 }

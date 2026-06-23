@@ -167,7 +167,7 @@ export function AdminDashboard() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-50">
-                {["User", "Quiz", "Score", "Percentage", "Date", "Status"].map((h) => (
+                {["User", "Quiz", "Score", "Percentage", "Date", "Result"].map((h) => (
                   <th key={h} className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-5 py-3">
                     {h}
                   </th>
@@ -176,7 +176,8 @@ export function AdminDashboard() {
             </thead>
             <tbody>
               {filteredResults.slice(0, 5).map((r) => {
-                const passed = !r.cheatingDetected && r.percentage !== null && r.percentage >= 60;
+                const passingScore = r.quiz?.passingScore ?? 60;
+                const passed = !r.cheatingDetected && r.percentage !== null && r.percentage >= passingScore;
                 return (
                   <tr key={r.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
                     <td className="px-5 py-3 text-sm font-medium text-black">{r.student?.fullName || "Student"}</td>
@@ -193,7 +194,7 @@ export function AdminDashboard() {
                     <td className="px-5 py-3">
                       {r.cheatingDetected ? (
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
-                          Cheating Detected
+                          Disqualified
                         </span>
                       ) : passed ? (
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">

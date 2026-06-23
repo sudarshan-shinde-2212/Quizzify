@@ -37,9 +37,9 @@ function formatDateTime(dateString?: string | Date) {
 }
 
 function getStatusColor(status: string) {
-  if (status === "Pass") return "text-green-600 bg-green-50 border-green-200";
-  if (status === "Fail") return "text-red-600 bg-red-50 border-red-200";
-  if (status === "Cheating Detected") return "text-red-700 bg-red-50 border-red-200";
+  if (status === "Passed") return "text-green-600 bg-green-50 border-green-200";
+  if (status === "Failed") return "text-red-600 bg-red-50 border-red-200";
+  if (status === "Disqualified") return "text-red-700 bg-red-50 border-red-200";
   return "text-gray-600 bg-gray-50 border-gray-200";
 }
 
@@ -370,20 +370,20 @@ export function AdminUsers() {
                                 </div>
                                 <div>
                                   <p className="text-xs text-gray-500">Score</p>
-                                  <p className="text-gray-700">{item.score}</p>
+                                  <p className="text-gray-700">{item.score !== null ? item.score : "-"}</p>
                                 </div>
                                 <div>
                                   <p className="text-xs text-gray-500">Percentage</p>
-                                  <p className="text-gray-700 font-medium">{item.percentage}%</p>
+                                  <p className="text-gray-700 font-medium">{item.percentage !== null ? `${item.percentage}%` : "-"}</p>
                                 </div>
                                 <div className="flex gap-4">
                                   <div>
                                     <p className="text-xs text-gray-500">Correct</p>
-                                    <p className="text-green-600 font-medium">{item.correctAnswers}</p>
+                                    <p className="text-green-600 font-medium">{item.correctAnswers !== null ? item.correctAnswers : "-"}</p>
                                   </div>
                                   <div>
                                     <p className="text-xs text-gray-500">Wrong</p>
-                                    <p className="text-red-600 font-medium">{item.wrongAnswers}</p>
+                                    <p className="text-red-600 font-medium">{item.wrongAnswers !== null ? item.wrongAnswers : "-"}</p>
                                   </div>
                                 </div>
                               </div>
