@@ -4,12 +4,13 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { QuizAttempt } from '../entities/quiz-attempt.entity';
+import { QuizAttempt, ViolationType } from '../entities/quiz-attempt.entity';
 import { QuizAnswer } from '../entities/quiz-answer.entity';
 import { QuizResult } from '../entities/quiz-result.entity';
 import { Question } from '../entities/question.entity';
 import { QuizzesService } from '../quizzes/quizzes.service';
 import { SubmitAnswersDto } from './dto/submit-answers.dto';
+import { RecordViolationDto } from './dto/record-violation.dto';
 
 import { SettingsService } from '../settings/settings.service';
 import { StudentsService } from '../students/students.service';
@@ -60,6 +61,56 @@ export class AttemptsService {
       startedAt: new Date(),
     });
     return this.attemptRepo.save(attempt);
+  }
+
+  async recordViolation(studentId: string, quizId: string, dto: RecordViolationDto): Promise<{ shouldDisqualify: boolean; attempt: QuizAttempt }> {
+    this.logger.log(`Recording violation – studentId: ${studentId}, quizId: ${quizId}, type: ${dto.violationType}`);
+
+    const attempt = await this.attemptRepo.findOne({
+      where: { studentId, quizId, isSubmitted: false },
+      order: { createdAt: 'DESC' },
+    });
+    if (!attempt) throw new NotFoundException('Quiz not started');
+    if (attempt.isSubmitted) throw new ConflictException('Quiz already submitted');
+
+    // Increment violation count
+    attempt.violationCount = (attempt.violationCount || 0) + 1;
+    attempt.violationTypes = [...(attempt.violationTypes || []), dto.violationType];
+    attempt.violationTimestamps = [...(attempt.violationTimestamps || []), new Date().toISOString()];
+
+    let shouldDisqualify = false;
+
+    // Check if this is the first violation (warning)
+    if (attempt.warningCount === 0) {
+      attempt.warningCount = 1;
+    } else {
+      // Second violation - disqualify
+      shouldDisqualify = true;
+      attempt.isCheating = true;
+      attempt.disqualificationReason = `Multiple violations detected. Last violation: ${dto.violationType}`;
+    }
+
+    await this.attemptRepo.save(attempt);
+    return { shouldDisqualify, attempt };
+  }
+
+  async getAttempt(studentId: string, quizId: string): Promise<QuizAttempt> {
+    const attempt = await this.attemptRepo.findOne({
+      where: { studentId, quizId, isSubmitted: false },
+      order: { createdAt: 'DESC' },
+    });
+    if (!attempt) throw new NotFoundException('Quiz not started');
+    return attempt;
+  }
+
+  async getAttemptWithAnswers(studentId: string, quizId: string) {
+    const attempt = await this.attemptRepo.findOne({
+      where: { studentId, quizId, isSubmitted: true },
+      order: { createdAt: 'DESC' },
+      relations: ['answers', 'answers.question'],
+    });
+    if (!attempt) throw new NotFoundException('Quiz attempt not found or not submitted');
+    return attempt;
   }
 
   async submitQuiz(studentId: string, quizId: string, dto: SubmitAnswersDto) {
@@ -118,7 +169,7 @@ export class AttemptsService {
     let score: number | null = 0;
     let percentage: number | null = 0;
 
-    if (!dto.cheatingDetected) {
+    if (!dto.cheatingDetected && !attempt.isCheating) {
       const settings = await this.settingsService.getSettings();
       const quizNegMark = Number(quiz.negativeMarks ?? settings.negativeMarking ?? 0);
 
@@ -153,7 +204,12 @@ export class AttemptsService {
     // Mark attempt as submitted
     attempt.isSubmitted = true;
     attempt.submittedAt = now;
-    attempt.isCheating = dto.cheatingDetected ?? false;
+    if (dto.cheatingDetected || attempt.isCheating) {
+      attempt.isCheating = true;
+      if (!attempt.disqualificationReason) {
+        attempt.disqualificationReason = 'Cheating detected during submission';
+      }
+    }
     await this.attemptRepo.save(attempt);
     this.logger.log(`Attempt saved – score: ${score !== null ? score.toFixed(2) : 'NULL'}, percentage: ${percentage !== null ? percentage.toFixed(2) : 'NULL'}%`);
 
@@ -168,7 +224,7 @@ export class AttemptsService {
       wrongAnswers,
       score: score !== null ? parseFloat(score.toFixed(2)) : null,
       percentage: percentage !== null ? parseFloat(percentage.toFixed(2)) : null,
-      cheatingDetected: dto.cheatingDetected ?? false,
+      cheatingDetected: dto.cheatingDetected || attempt.isCheating || false,
     });
     await this.resultRepo.save(result);
 

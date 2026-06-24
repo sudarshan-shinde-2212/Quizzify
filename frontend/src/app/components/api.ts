@@ -80,6 +80,7 @@ export interface Quiz {
   maxRetakes: number;
   shuffleQuestions: boolean;
   hideResultDetails: boolean;
+  allowReviewAfterSubmission: boolean;
   questions?: Question[];
 }
 
@@ -100,14 +101,7 @@ export interface Question {
   updatedAt: string;
 }
 
-export interface QuizAttempt {
-  id: string;
-  studentId: string;
-  quizId: string;
-  startedAt: string;
-  submittedAt: string | null;
-  isSubmitted: boolean;
-}
+export type ViolationType = 'TAB_SWITCH' | 'WINDOW_BLUR' | 'VISIBILITY_CHANGE' | 'COPY_PASTE' | 'SCREENSHOT' | 'DEV_TOOLS' | 'CONTEXT_MENU' | 'KEYBOARD_SHORTCUT';
 
 export interface QuizAttempt {
   id: string;
@@ -117,6 +111,21 @@ export interface QuizAttempt {
   submittedAt: string | null;
   isSubmitted: boolean;
   isCheating: boolean;
+  warningCount: number;
+  violationCount: number;
+  violationTypes: ViolationType[];
+  violationTimestamps: string[];
+  disqualificationReason: string | null;
+  answers?: QuizAnswer[];
+}
+
+export interface QuizAnswer {
+  id: string;
+  attemptId: string;
+  questionId: string;
+  selectedOption: 'A' | 'B' | 'C' | 'D';
+  question?: Question;
+  createdAt: string;
 }
 
 export interface QuizResult {
@@ -346,6 +355,21 @@ export async function apiStartQuizAttempt(quizId: string): Promise<QuizAttempt> 
   });
 }
 
+export async function apiGetQuizAttempt(quizId: string): Promise<QuizAttempt> {
+  return request<QuizAttempt>(`/student/quizzes/${quizId}/attempt`);
+}
+
+export async function apiRecordViolation(quizId: string, violationType: ViolationType): Promise<{ shouldDisqualify: boolean; attempt: QuizAttempt }> {
+  return request(`/student/quizzes/${quizId}/violation`, {
+    method: 'POST',
+    body: JSON.stringify({ violationType }),
+  });
+}
+
+export async function apiGetQuizAttemptReview(quizId: string): Promise<QuizAttempt> {
+  return request<QuizAttempt>(`/student/quizzes/${quizId}/attempt/review`);
+}
+
 export async function apiSubmitQuizAttempt(
   quizId: string,
   answers: { questionId: string; selectedOption: 'A' | 'B' | 'C' | 'D' }[],
@@ -440,6 +464,7 @@ export interface QuizSettings {
   maxRetakes: number;
   shuffleQuestions: boolean;
   hideResultDetails: boolean;
+  allowReviewAfterSubmission: boolean;
 }
 
 export async function apiAdminGetQuizSettings(quizId: string): Promise<QuizSettings> {

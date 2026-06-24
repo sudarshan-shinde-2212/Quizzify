@@ -78,6 +78,9 @@ createdById: string;
   @Column({ type: 'boolean', default: false })
   hideResultDetails: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  allowReviewAfterSubmission: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

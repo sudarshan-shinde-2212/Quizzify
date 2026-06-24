@@ -1030,6 +1030,28 @@ export function AdminQuizzes() {
                     </div>
                   </div>
 
+                  {/* Allow Review After Submission */}
+                  <div className="bg-gray-50 rounded-xl p-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-semibold text-black">Allow Review After Submission</h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          When enabled, students will be able to review their answers and see the correct answers after submitting the quiz
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setQuizSettings({ ...quizSettings, allowReviewAfterSubmission: !quizSettings.allowReviewAfterSubmission })}
+                        className={`w-12 h-6 rounded-full transition-colors relative ${
+                          quizSettings.allowReviewAfterSubmission ? "bg-black" : "bg-gray-300"
+                        }`}
+                      >
+                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                          quizSettings.allowReviewAfterSubmission ? "translate-x-6" : "translate-x-0"
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Helper Text */}
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                     <p className="text-xs text-blue-800">

@@ -23,4 +23,8 @@ export class UpdateQuizSettingsDto {
   @IsOptional()
   @IsBoolean()
   hideResultDetails?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  allowReviewAfterSubmission?: boolean;
 }
