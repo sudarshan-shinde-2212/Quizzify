@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { AdminLayout } from "./admin-sidebar";
 import { apiAdminGenerateAiQuiz, apiAdminCreateQuiz, apiAdminCreateQuestion, apiAdminGenerateAiImage } from "./api";
 import { Loader2, Plus, Trash2, Save, RefreshCw, Sparkles, ChevronRight, Edit3, Image, Upload, Trash2 as Remove, X } from "lucide-react";
@@ -216,7 +216,7 @@ export function AdminAiQuizGenerator() {
   };
 
   // File and image management
-  const fileInputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
+  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleFileUpload = (index: number, file: File) => {
     if (!generatedQuiz) return;
