@@ -222,7 +222,15 @@ export function QuizPage() {
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [marked, setMarked] = useState<Set<string>>(new Set());
-  const [tabSwitches, setTabSwitches] = useState(0);
+  // SessionStorage key for tab switches
+  const TAB_SWITCHES_KEY = `quiz-tab-switches-${quizId}`;
+  const [tabSwitches, setTabSwitches] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem(TAB_SWITCHES_KEY);
+      return saved ? parseInt(saved, 10) : 0;
+    }
+    return 0;
+  });
   const tabSwitchesRef = useRef(tabSwitches);
   const [modal, setModal] = useState<ModalType>(null);
   const [startTime] = useState(Date.now());
@@ -237,10 +245,11 @@ export function QuizPage() {
     alt: "",
   });
   
-  // Sync ref with state
+  // Sync ref with state and persist to sessionStorage
   useEffect(() => {
     tabSwitchesRef.current = tabSwitches;
-  }, [tabSwitches]);
+    sessionStorage.setItem(TAB_SWITCHES_KEY, tabSwitches.toString());
+  }, [tabSwitches, TAB_SWITCHES_KEY]);
 
   const [settings, setSettings] = useState<any>(null);
 
