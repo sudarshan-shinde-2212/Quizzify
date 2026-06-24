@@ -37,7 +37,7 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading) {
       if (!user || !isAdmin) {
-        router.replace("/admin/login");
+        router.replace("/");
       }
     }
   }, [user, isAdmin, loading, router]);

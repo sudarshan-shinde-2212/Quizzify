@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "./auth-context";
+import { useRouter } from "next/navigation";
 import {
   BookOpen,
   ArrowRight,
@@ -15,6 +16,7 @@ import {
 
 export function LoginPage() {
   const { loginWithGoogle, adminLogin } = useAuth();
+  const router = useRouter();
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -35,7 +37,7 @@ export function LoginPage() {
     setError("");
     try {
       await adminLogin(email, password);
-      // Navigation handled by auth context redirect
+      router.push("/admin");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Invalid credentials. Please try again.";
