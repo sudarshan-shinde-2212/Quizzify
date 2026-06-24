@@ -56,8 +56,23 @@ export class StudentsService {
     let highestScore = 0;
     let lowestScore = Infinity;
     let validResultCount = 0;
+    let totalPassed = 0;
+    let totalFailed = 0;
+    let totalDisqualified = 0;
 
     results.forEach((res) => {
+      const passingScore = 35;
+      const isCheating = res.cheatingDetected || res.attempt.isCheating;
+      const passed = !isCheating && res.percentage !== null && res.percentage >= passingScore;
+
+      if (isCheating) {
+        totalDisqualified++;
+      } else if (passed) {
+        totalPassed++;
+      } else {
+        totalFailed++;
+      }
+
       if (res.score !== null) {
         validResultCount++;
         totalScore += res.score;
@@ -80,6 +95,9 @@ export class StudentsService {
       student,
       stats: {
         totalQuizzesAttempted: totalAttempted,
+        totalPassed,
+        totalFailed,
+        totalDisqualified,
         averageScore: Number(averageScore.toFixed(2)),
         highestScore,
         lowestScore: lowestScore === Infinity ? 0 : lowestScore,
@@ -108,19 +126,55 @@ export class StudentsService {
 
     const results = await queryBuilder.getMany();
 
+    // Group by quiz to calculate attempt number
+    const quizAttemptMap = new Map<string, number>();
+    // First pass: count total attempts per quiz
+    results.forEach(res => {
+      const quizId = res.quizId;
+      quizAttemptMap.set(quizId, (quizAttemptMap.get(quizId) || 0) + 1);
+    });
+
+    // Second pass: assign attempt numbers (reverse order to get 1 as first attempt)
+    const quizAttemptCounter = new Map<string, number>();
+    const sortedByQuizAndDate = [...results].sort((a, b) => {
+      if (a.quizId !== b.quizId) return a.quizId.localeCompare(b.quizId);
+      return (a.attempt.submittedAt || a.attempt.startedAt).getTime() - (b.attempt.submittedAt || b.attempt.startedAt).getTime();
+    });
+
+    sortedByQuizAndDate.forEach(res => {
+      const quizId = res.quizId;
+      const current = quizAttemptCounter.get(quizId) || 0;
+      quizAttemptCounter.set(quizId, current + 1);
+    });
+
     return results.map((res) => {
       const passingScore = 35;
       const isCheating = res.cheatingDetected || res.attempt.isCheating;
       const passed = !isCheating && res.percentage !== null && res.percentage >= passingScore;
+      const attemptNumber = quizAttemptCounter.get(res.quizId)!;
+      quizAttemptCounter.set(res.quizId, attemptNumber - 1);
+
+      // Calculate completion time
+      let completionTimeSeconds: number | null = null;
+      if (res.attempt.startedAt && res.attempt.submittedAt) {
+        completionTimeSeconds = Math.round((res.attempt.submittedAt.getTime() - res.attempt.startedAt.getTime()) / 1000);
+      }
 
       return {
+        id: res.id,
+        quizId: res.quizId,
         quizName: res.quiz.title,
-        dateAttempted: res.attempt.submittedAt || res.attempt.startedAt,
+        attemptNumber,
+        isRetake: attemptNumber > 1,
         score: isCheating ? null : res.score,
         percentage: isCheating ? null : res.percentage,
         correctAnswers: isCheating ? null : res.correctAnswers,
         wrongAnswers: isCheating ? null : res.wrongAnswers,
         status: isCheating ? 'Disqualified' : (passed ? 'Passed' : 'Failed'),
+        startedAt: res.attempt.startedAt,
+        submittedAt: res.attempt.submittedAt,
+        completionTimeSeconds,
+        hideResultDetails: res.quiz.hideResultDetails,
       };
     });
   }

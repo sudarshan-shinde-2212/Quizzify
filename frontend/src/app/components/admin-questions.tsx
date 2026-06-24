@@ -548,6 +548,8 @@ export function AdminQuestions() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteQuestionId(null)}
         isLoading={isDeleting}
+        loadingText="Deleting..."
+        variant="danger"
       />
     </AdminLayout>
   );

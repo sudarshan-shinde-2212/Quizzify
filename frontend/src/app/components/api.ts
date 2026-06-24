@@ -79,6 +79,7 @@ export interface Quiz {
   allowRetakes: boolean;
   maxRetakes: number;
   shuffleQuestions: boolean;
+  hideResultDetails: boolean;
   questions?: Question[];
 }
 
@@ -152,6 +153,9 @@ export interface UserDetailsResponse {
   student: StoredUser;
   stats: {
     totalQuizzesAttempted: number;
+    totalPassed: number;
+    totalFailed: number;
+    totalDisqualified: number;
     averageScore: number;
     highestScore: number;
     lowestScore: number;
@@ -160,13 +164,20 @@ export interface UserDetailsResponse {
 }
 
 export interface UserHistoryItem {
+  id: string;
+  quizId: string;
   quizName: string;
-  dateAttempted: string;
+  attemptNumber: number;
+  isRetake: boolean;
   score: number | null;
   percentage: number | null;
   correctAnswers: number | null;
   wrongAnswers: number | null;
   status: 'Passed' | 'Failed' | 'Disqualified';
+  startedAt: string;
+  submittedAt: string | null;
+  completionTimeSeconds: number | null;
+  hideResultDetails: boolean;
 }
 
 export interface QuizStats {
@@ -346,6 +357,7 @@ export async function apiSubmitQuizAttempt(
   correctAnswers: number;
   wrongAnswers: number;
   totalQuestions: number;
+  hideResultDetails: boolean;
   cheatingDetected?: boolean;
 }> {
   return request(`/student/quizzes/${quizId}/submit`, {
@@ -427,6 +439,7 @@ export interface QuizSettings {
   allowRetakes: boolean;
   maxRetakes: number;
   shuffleQuestions: boolean;
+  hideResultDetails: boolean;
 }
 
 export async function apiAdminGetQuizSettings(quizId: string): Promise<QuizSettings> {

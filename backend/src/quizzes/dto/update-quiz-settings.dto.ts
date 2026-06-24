@@ -19,4 +19,8 @@ export class UpdateQuizSettingsDto {
   @IsOptional()
   @IsBoolean()
   shuffleQuestions?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  hideResultDetails?: boolean;
 }

@@ -10,6 +10,8 @@ interface ConfirmModalProps {
   onConfirm: () => void;
   onCancel: () => void;
   isLoading?: boolean;
+  loadingText?: string;
+  variant?: "danger" | "default";
 }
 
 export function ConfirmModal({
@@ -21,7 +23,13 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
   isLoading = false,
+  loadingText = "Loading...",
+  variant = "danger",
 }: ConfirmModalProps) {
+  const buttonColor = variant === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-black hover:bg-gray-900";
+  const iconColor = variant === "danger" ? "text-red-600" : "text-black";
+  const iconBg = variant === "danger" ? "bg-red-50" : "bg-gray-50";
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -33,8 +41,8 @@ export function ConfirmModal({
             className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6"
           >
             <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
-                <AlertTriangle size={20} className="text-red-600" />
+              <div className={`w-10 h-10 rounded-full ${iconBg} flex items-center justify-center`}>
+                <AlertTriangle size={20} className={iconColor} />
               </div>
               <button onClick={onCancel} disabled={isLoading} className="text-gray-400 hover:text-black transition-colors">
                 <X size={18} />
@@ -55,9 +63,9 @@ export function ConfirmModal({
               <button
                 onClick={onConfirm}
                 disabled={isLoading}
-                className="flex-1 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                className={`flex-1 py-2 ${buttonColor} text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-colors flex items-center justify-center gap-2`}
               >
-                {isLoading ? "Deleting..." : confirmText}
+                {isLoading ? loadingText : confirmText}
               </button>
             </div>
           </motion.div>

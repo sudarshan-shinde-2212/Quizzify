@@ -1008,6 +1008,28 @@ export function AdminQuizzes() {
                     </div>
                   </div>
 
+                  {/* Hide Result Details */}
+                  <div className="bg-gray-50 rounded-xl p-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-semibold text-black">Hide Result Details</h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          When enabled, students will not be able to view their score, percentage, or pass/fail result after completing the quiz
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setQuizSettings({ ...quizSettings, hideResultDetails: !quizSettings.hideResultDetails })}
+                        className={`w-12 h-6 rounded-full transition-colors relative ${
+                          quizSettings.hideResultDetails ? "bg-black" : "bg-gray-300"
+                        }`}
+                      >
+                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                          quizSettings.hideResultDetails ? "translate-x-6" : "translate-x-0"
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Helper Text */}
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                     <p className="text-xs text-blue-800">
@@ -1040,6 +1062,8 @@ export function AdminQuizzes() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteQuizId(null)}
         isLoading={isDeleting}
+        loadingText="Deleting..."
+        variant="danger"
       />
 
       {/* Publish / Unpublish confirmation */}
@@ -1055,6 +1079,8 @@ export function AdminQuizzes() {
         onConfirm={handleTogglePublish}
         onCancel={() => setPublishConfirm(null)}
         isLoading={isPublishing}
+        loadingText={publishConfirm?.isPublished ? "Unpublishing..." : "Publishing..."}
+        variant="default"
       />
     </AdminLayout>
   );

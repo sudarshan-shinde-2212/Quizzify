@@ -178,6 +178,7 @@ export class AttemptsService {
       correctAnswers: result.correctAnswers,
       wrongAnswers: result.wrongAnswers,
       totalQuestions: result.totalQuestions,
+      hideResultDetails: quiz.hideResultDetails,
     };
   }
 }

@@ -196,6 +196,7 @@ export class QuizzesService {
       allowRetakes: quiz.allowRetakes,
       maxRetakes: quiz.maxRetakes,
       shuffleQuestions: quiz.shuffleQuestions,
+      hideResultDetails: quiz.hideResultDetails,
     };
   }
 
@@ -211,11 +212,13 @@ export class QuizzesService {
       quiz.maxRetakes = dto.maxRetakes;
     }
     if (dto.shuffleQuestions !== undefined) quiz.shuffleQuestions = dto.shuffleQuestions;
+    if (dto.hideResultDetails !== undefined) quiz.hideResultDetails = dto.hideResultDetails;
     await this.quizRepo.save(quiz);
     return {
       allowRetakes: quiz.allowRetakes,
       maxRetakes: quiz.maxRetakes,
       shuffleQuestions: quiz.shuffleQuestions,
+      hideResultDetails: quiz.hideResultDetails,
     };
   }
 

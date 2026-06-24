@@ -75,6 +75,9 @@ createdById: string;
   @Column({ type: 'boolean', default: true })
   shuffleQuestions: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  hideResultDetails: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

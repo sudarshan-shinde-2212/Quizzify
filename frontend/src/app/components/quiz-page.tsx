@@ -65,7 +65,7 @@ function useTimer(initialSeconds: number, onExpire: () => void, isLoaded: boolea
   return { minutes, secs, seconds, isLow };
 }
 
-type ModalType = "tab-switch" | "final-warning" | "submitted" | "confirm-submit" | "time-up" | "time-up-no-auto" | "unanswered-questions" | "cheating-detected" | null;
+type ModalType = "tab-switch" | "tab-switch-warning" | "final-warning" | "submitted" | "confirm-submit" | "time-up" | "time-up-no-auto" | "unanswered-questions" | "cheating-detected" | null;
 
 function Modal({ type, tabCount, onClose, onSubmit, settings, unansweredCount }: {
   type: ModalType;
@@ -88,13 +88,23 @@ function Modal({ type, tabCount, onClose, onSubmit, settings, unansweredCount }:
       actionFn: onSubmit,
       showClose: false,
     },
+    "tab-switch-warning": {
+      title: "Warning!",
+      icon: <AlertTriangle size={24} className="text-amber-500" />,
+      bg: "bg-amber-50",
+      border: "border-amber-200",
+      body: `You have switched tabs once. Only 1 tab switch is allowed. Switching tabs again will result in disqualification.`,
+      action: "Continue Quiz",
+      actionFn: onClose,
+      showClose: false,
+    },
     "tab-switch": {
       title: "Cheating Detected!",
       icon: <AlertTriangle size={24} className="text-red-500" />,
       bg: "bg-red-50",
       border: "border-red-200",
-      body: `Tab switching, copying, or taking a screenshot has been detected. Your attempt will be recorded as cheating.`,
-      action: "Submit Now",
+      body: `You have been disqualified for exceeding the allowed tab switching limit.`,
+      action: "View Results",
       actionFn: onSubmit,
       showClose: false,
     },
@@ -309,6 +319,7 @@ export function QuizPage() {
         timeTaken,
         quizTitle: quiz.title,
         percentage: res.percentage,
+        hideResultDetails: res.hideResultDetails,
       }));
 
       router.push("/history");
@@ -360,20 +371,36 @@ export function QuizPage() {
       if (!cheatingDetected && !submitting) {
         setCheatingDetected(true);
         setIsAutoSubmit(true);
-        setModal("cheating-detected");
+        setModal("tab-switch");
         // Auto submit immediately!
         setTimeout(() => handleSubmitRef.current(), 500); // Small delay to show modal first
       }
     };
     
     const handleVisibility = () => {
-      if (document.hidden) {
-        autoSubmitCheating();
+      if (document.hidden && !cheatingDetected && !submitting) {
+        const newTabSwitches = tabSwitches + 1;
+        setTabSwitches(newTabSwitches);
+        
+        if (newTabSwitches === 1) {
+          setModal("tab-switch-warning");
+        } else if (newTabSwitches >= 2) {
+          autoSubmitCheating();
+        }
       }
     };
     
     const handleWindowBlur = () => {
-      autoSubmitCheating();
+      if (!cheatingDetected && !submitting) {
+        const newTabSwitches = tabSwitches + 1;
+        setTabSwitches(newTabSwitches);
+        
+        if (newTabSwitches === 1) {
+          setModal("tab-switch-warning");
+        } else if (newTabSwitches >= 2) {
+          autoSubmitCheating();
+        }
+      }
     };
     
     const handleCopyCutPaste = (e: ClipboardEvent) => {
@@ -415,7 +442,7 @@ export function QuizPage() {
       document.removeEventListener("contextmenu", handleContextMenu);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [loading, error, settings, cheatingDetected, submitting]);
+  }, [loading, error, settings, cheatingDetected, submitting, tabSwitches]);
 
   // Timer expiry auto-submit
   const { minutes, secs, isLow } = useTimer((quiz?.durationInMinutes ?? 30) * 60, () => {

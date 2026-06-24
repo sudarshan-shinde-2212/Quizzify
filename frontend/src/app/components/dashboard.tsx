@@ -198,7 +198,7 @@ export function Dashboard() {
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${bg} ${color}`}>
                         {label}
                       </span>
-                      {quiz.attemptCount > 0 && (
+                      {quiz.attemptCount > 0 && !quiz.hideResultDetails && (
                         <span className="text-xs text-gray-500">
                           Score: <span className="font-medium text-black">{quiz.latestScore !== null ? `${quiz.latestScore}/${quiz.totalMarks}` : "-"}</span>
                         </span>

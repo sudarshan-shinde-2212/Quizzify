@@ -288,22 +288,26 @@ export function AdminUsers() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <div className="bg-white rounded-lg p-4">
                           <p className="text-xs text-gray-500 mb-1">Total Quizzes Attempted</p>
                           <p className="text-2xl font-bold text-black">{userDetails.stats.totalQuizzesAttempted}</p>
                         </div>
                         <div className="bg-white rounded-lg p-4">
-                          <p className="text-xs text-gray-500 mb-1">Average Score</p>
-                          <p className="text-2xl font-bold text-black">{userDetails.stats.averageScore}%</p>
+                          <p className="text-xs text-green-600 mb-1">Passed</p>
+                          <p className="text-2xl font-bold text-green-600">{userDetails.stats.totalPassed}</p>
                         </div>
                         <div className="bg-white rounded-lg p-4">
-                          <p className="text-xs text-gray-500 mb-1">Highest Score</p>
-                          <p className="text-2xl font-bold text-green-600">{userDetails.stats.highestScore}%</p>
+                          <p className="text-xs text-red-600 mb-1">Failed</p>
+                          <p className="text-2xl font-bold text-red-600">{userDetails.stats.totalFailed}</p>
                         </div>
                         <div className="bg-white rounded-lg p-4">
-                          <p className="text-xs text-gray-500 mb-1">Lowest Score</p>
-                          <p className="text-2xl font-bold text-red-600">{userDetails.stats.lowestScore}%</p>
+                          <p className="text-xs text-amber-600 mb-1">Disqualified</p>
+                          <p className="text-2xl font-bold text-amber-600">{userDetails.stats.totalDisqualified}</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-4">
+                          <p className="text-xs text-blue-600 mb-1">Average Score</p>
+                          <p className="text-2xl font-bold text-blue-600">{userDetails.stats.averageScore}%</p>
                         </div>
                       </div>
 
@@ -356,17 +360,35 @@ export function AdminUsers() {
                           </div>
                         ) : (
                           userHistory.map((item, idx) => (
-                            <div key={idx} className="bg-white border border-gray-100 rounded-xl p-5">
+                            <div key={item.id} className="bg-white border border-gray-100 rounded-xl p-5">
                               <div className="flex items-center justify-between mb-3">
-                                <h4 className="font-medium text-black">{item.quizName}</h4>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-medium text-black">{item.quizName}</h4>
+                                  <span className="text-xs px-2 py-1 bg-gray-100 rounded-full">
+                                    Attempt {item.attemptNumber}
+                                  </span>
+                                  {item.isRetake && (
+                                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                                      Retake
+                                    </span>
+                                  )}
+                                </div>
                                 <span className={`text-xs px-2.5 py-1 rounded-full border ${getStatusColor(item.status)}`}>
                                   {item.status}
                                 </span>
                               </div>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                              <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
                                 <div>
-                                  <p className="text-xs text-gray-500">Date</p>
-                                  <p className="text-gray-700">{formatDateTime(item.dateAttempted)}</p>
+                                  <p className="text-xs text-gray-500">Started</p>
+                                  <p className="text-gray-700">{formatDateTime(item.startedAt)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">Submitted</p>
+                                  <p className="text-gray-700">{item.submittedAt ? formatDateTime(item.submittedAt) : "-"}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">Duration</p>
+                                  <p className="text-gray-700">{item.completionTimeSeconds ? `${Math.floor(item.completionTimeSeconds / 60)}m ${item.completionTimeSeconds % 60}s` : "-"}</p>
                                 </div>
                                 <div>
                                   <p className="text-xs text-gray-500">Score</p>
