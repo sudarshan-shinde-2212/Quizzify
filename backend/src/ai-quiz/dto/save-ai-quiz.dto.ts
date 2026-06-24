@@ -10,6 +10,10 @@ export class SaveAiQuizQuestionDto {
   @IsNotEmpty()
   text: string;
 
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
   @IsString()
   @IsNotEmpty()
   optionA: string;

@@ -74,7 +74,7 @@ function QuestionModal({ quizId, question, selectedQuiz, onClose, onRefresh }: Q
       setGeneratedImageUrl(result.imageUrl);
     } catch (err) {
       console.error("Failed to generate image", err);
-      setGenerateError("Failed to generate image using Gemini AI. Please try again.");
+      setGenerateError("Failed to generate image. Please try again.");
     } finally {
       setGeneratingImage(false);
     }

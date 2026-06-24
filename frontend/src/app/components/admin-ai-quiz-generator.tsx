@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { AdminLayout } from "./admin-sidebar";
 import { apiAdminGenerateAiQuiz, apiAdminCreateQuiz, apiAdminCreateQuestion, apiAdminGenerateAiImage } from "./api";
-import { Loader2, Plus, Trash2, Save, RefreshCw, Sparkles, ChevronRight, Edit3, Image } from "lucide-react";
+import { Loader2, Plus, Trash2, Save, RefreshCw, Sparkles, ChevronRight, Edit3, Image, Upload, Trash2 as Remove, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "motion/react";
 
 type WorkflowStep = "configure" | "preview" | "save";
 
@@ -42,6 +43,13 @@ export function AdminAiQuizGenerator() {
   const [error, setError] = useState("");
   const [generatedQuiz, setGeneratedQuiz] = useState<GeneratedQuiz | null>(null);
   const [saving, setSaving] = useState(false);
+  // Image generation state (per question modal)
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState<number | null>(null);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [generatePrompt, setGeneratePrompt] = useState("");
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [generateError, setGenerateError] = useState("");
+  const [generatingImage, setGeneratingImage] = useState(false);
 
   // ── Total Marks Calculation ───────────────────────────────────────────────────
   const calculatePerQuestionMarks = () => {
@@ -205,6 +213,87 @@ export function AdminAiQuizGenerator() {
     } finally {
       setGeneratingImageIndex(null);
     }
+  };
+
+  // File and image management
+  const fileInputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleFileUpload = (index: number, file: File) => {
+    if (!generatedQuiz) return;
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert("Only PNG, JPG, JPEG, and WEBP files are allowed.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      const newQs = [...generatedQuiz.questions];
+      newQs[index] = { ...newQs[index], imageUrl: dataUrl };
+      setGeneratedQuiz({ ...generatedQuiz, questions: newQs });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0 && generatedQuiz) {
+      handleFileUpload(index, e.dataTransfer.files[0]);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent, index: number) => {
+    if (e.clipboardData && e.clipboardData.files.length > 0 && generatedQuiz) {
+      e.preventDefault();
+      handleFileUpload(index, e.clipboardData.files[0]);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    if (e.target.files && e.target.files.length > 0 && generatedQuiz) {
+      handleFileUpload(index, e.target.files[0]);
+    }
+  };
+
+  // Modal image generation functions
+  const openGenerateModal = (index: number) => {
+    if (!generatedQuiz) return;
+    setActiveQuestionIndex(index);
+    setGeneratePrompt(generatedQuiz.questions[index].question ? `A clear, educational diagram or illustration for this quiz question: "${generatedQuiz.questions[index].question}". Simple, professional style, suitable for an online quiz.` : "");
+    setGeneratedImageUrl(null);
+    setGenerateError("");
+    setShowGenerateModal(true);
+  };
+
+  const handleGenerateImageModal = async (prompt = generatePrompt) => {
+    if (!prompt.trim()) {
+      setGenerateError("Please enter a prompt");
+      return;
+    }
+
+    setGeneratingImage(true);
+    setGenerateError("");
+    try {
+      const result = await apiAdminGenerateAiImage(prompt);
+      setGeneratedImageUrl(result.imageUrl);
+    } catch (err) {
+      console.error("Failed to generate image", err);
+      setGenerateError("Failed to generate image. Please try again.");
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
+  const useGeneratedImage = () => {
+    if (activeQuestionIndex !== null && generatedQuiz && generatedImageUrl) {
+      const newQs = [...generatedQuiz.questions];
+      newQs[activeQuestionIndex] = { ...newQs[activeQuestionIndex], imageUrl: generatedImageUrl };
+      setGeneratedQuiz({ ...generatedQuiz, questions: newQs });
+    }
+    setShowGenerateModal(false);
+    setActiveQuestionIndex(null);
+    setGeneratedImageUrl(null);
+    setGenerateError("");
   };
 
   const removeQuestion = (i: number) => {
@@ -512,57 +601,100 @@ export function AdminAiQuizGenerator() {
             </div>
 
             {generatedQuiz.questions.map((q, i) => (
-              <div key={i} className="border border-gray-100 p-4 rounded-xl relative bg-gray-50/40">
-                <div className="flex items-start justify-between mb-3">
-                  <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Q{i + 1}</span>
-                  <button
-                    onClick={() => removeQuestion(i)}
-                    className="text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
+          <div key={i} className="border border-gray-100 p-4 rounded-xl relative bg-gray-50/40" onPaste={(e) => handlePaste(e, i)}>
+            <div className="flex items-start justify-between mb-3">
+              <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Q{i + 1}</span>
+              <button
+                onClick={() => removeQuestion(i)}
+                className="text-gray-400 hover:text-red-500 transition-colors"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
 
-                {/* Question text */}
-                <label className="block text-xs font-medium mb-1 text-gray-600">Question Text <span className="text-red-500">*</span></label>
-                <input
-                  required
-                  value={q.question}
-                  onChange={(e) => updateQuestion(i, { question: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg mb-3 text-sm outline-none focus:border-black"
-                />
+            {/* Question text */}
+            <label className="block text-xs font-medium mb-1 text-gray-600">Question Text <span className="text-red-500">*</span></label>
+            <input
+              required
+              value={q.question}
+              onChange={(e) => updateQuestion(i, { question: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg mb-3 text-sm outline-none focus:border-black"
+            />
 
-                {/* Image URL */}
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-medium text-gray-600">Image URL (Optional)</label>
-                  <button
-                    type="button"
-                    onClick={() => handleGenerateImage(i, q.question)}
-                    disabled={generatingImageIndex === i || !q.question.trim()}
-                    className="flex items-center gap-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 px-2 py-1 rounded-lg"
-                  >
-                    {generatingImageIndex === i ? <Loader2 size={12} className="animate-spin" /> : <Image size={12} />}
-                    Generate Image
-                  </button>
+            {/* Image Section */}
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-medium text-gray-700">Question Image (Optional)</label>
+                <button
+                  type="button"
+                  onClick={() => openGenerateModal(i)}
+                  className="flex items-center gap-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 px-2 py-1 rounded-lg"
+                >
+                  <Image size={12} />
+                  Generate Image
+                </button>
+              </div>
+
+              {!q.imageUrl ? (
+                <div
+                  onDragOver={(e) => { e.preventDefault(); }}
+                  onDrop={(e) => handleDrop(e, i)}
+                  onClick={() => fileInputRefs.current[i]?.click()}
+                  className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all hover:border-purple-400 bg-gray-50"
+                >
+                  <input
+                    ref={(el) => fileInputRefs.current[i] = el}
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                    onChange={(e) => handleFileInputChange(e, i)}
+                    className="hidden"
+                  />
+                  <Upload size={28} className="mx-auto text-gray-400 mb-2" />
+                  <p className="text-sm font-medium text-gray-700 mb-1">
+                    Drag and drop or click to upload
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Supports PNG, JPG, JPEG, WEBP • Paste image from clipboard
+                  </p>
                 </div>
+              ) : (
+                <div className="border border-gray-200 rounded-xl p-3">
+                  <img
+                    src={q.imageUrl}
+                    alt="Question preview"
+                    className="max-h-48 max-w-full object-contain mx-auto rounded-lg mb-3"
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRefs.current[i]?.click()}
+                      className="flex-1 text-sm font-medium text-purple-600 hover:text-purple-700 border border-purple-200 rounded-lg px-3 py-2"
+                    >
+                      Replace Image
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateQuestion(i, { imageUrl: "" })}
+                      className="flex-1 text-sm font-medium text-red-600 hover:text-red-700 border border-red-200 rounded-lg px-3 py-2 flex items-center justify-center gap-1"
+                    >
+                      <Remove size={14} /> Remove
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Image URL Input as alternative */}
+              <div className="mt-3">
+                <p className="text-xs text-gray-500 mb-1">Or paste image URL:</p>
                 <input
                   type="url"
                   value={q.imageUrl || ""}
                   onChange={(e) => updateQuestion(i, { imageUrl: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg mb-3 text-sm outline-none focus:border-black"
-                  placeholder="Enter image URL or generate one"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-black"
+                  placeholder="https://example.com/image.png"
                 />
-                {/* Image Preview */}
-                {q.imageUrl && (
-                  <div className="mb-3">
-                    <p className="text-[10px] text-gray-400 mb-1">Preview:</p>
-                    <img
-                      src={q.imageUrl}
-                      alt="Question image"
-                      className="max-h-32 max-w-full object-contain border border-gray-200 rounded-lg"
-                    />
-                  </div>
-                )}
+              </div>
+            </div>
 
                 {/* Options */}
                 <div className="grid grid-cols-2 gap-2 mb-3">
@@ -640,6 +772,96 @@ export function AdminAiQuizGenerator() {
           </div>
         </div>
       )}
+
+      {/* Generate Image Modal */}
+      <AnimatePresence>
+        {showGenerateModal && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4 overflow-y-auto py-8">
+            <motion.div
+              initial={{ scale: 0.97, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.97, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-base font-bold text-black">Generate Image</h2>
+                <button onClick={() => { setShowGenerateModal(false); setActiveQuestionIndex(null); setGeneratedImageUrl(null); }} className="p-1 text-gray-400 hover:text-black">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Image Prompt</label>
+                  <textarea
+                    value={generatePrompt}
+                    onChange={(e) => setGeneratePrompt(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-black resize-none"
+                    rows={4}
+                    placeholder="Example: Human digestive system labeled educational diagram"
+                  />
+                </div>
+
+                {generateError && (
+                  <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+                    {generateError}
+                  </div>
+                )}
+
+                {generatedImageUrl && (
+                  <div className="border border-gray-200 rounded-xl p-3">
+                    <img
+                      src={generatedImageUrl}
+                      alt="Generated preview"
+                      className="max-h-64 max-w-full object-contain mx-auto rounded-lg"
+                    />
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  {!generatedImageUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateImageModal()}
+                      disabled={generatingImage}
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      {generatingImage && <Loader2 size={14} className="animate-spin" />}
+                      {generatingImage ? "Generating image…" : "Generate"}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateImageModal()}
+                        disabled={generatingImage}
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+                      >
+                        {generatingImage && <Loader2 size={14} className="animate-spin" />}
+                        {generatingImage ? "Regenerating…" : "Regenerate"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={useGeneratedImage}
+                        className="flex-1 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-900"
+                      >
+                        Use Image
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => { setShowGenerateModal(false); setActiveQuestionIndex(null); setGeneratedImageUrl(null); }}
+                    className="py-2.5 px-4 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </AdminLayout>
   );
 }
