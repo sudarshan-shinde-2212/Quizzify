@@ -10,8 +10,7 @@ export class AiImageService {
   constructor(private configService: ConfigService) {
     const geminiKey = this.configService.get<string>('GEMINI_API_KEY');
     if (!geminiKey) {
-      console.error('GEMINI_API_KEY is not configured');
-      throw new Error('GEMINI_API_KEY is not configured');
+      throw new Error('GEMINI_API_KEY is required for image generation');
     }
     this.genAI = new GoogleGenerativeAI(geminiKey);
   }
@@ -25,7 +24,7 @@ export class AiImageService {
       console.log('Starting image generation with prompt:', prompt);
 
       const model = this.genAI.getGenerativeModel({
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-1.5-flash',
       });
 
       const result = await model.generateContent({
