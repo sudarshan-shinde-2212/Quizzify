@@ -984,23 +984,7 @@ export function AdminQuizzes() {
                     </div>
                   )}
 
-                  {/* Passing Score */}
-                  <div className="bg-gray-50 rounded-xl p-5">
-                    <div>
-                      <h3 className="text-sm font-semibold text-black">Passing Score (%)</h3>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Minimum percentage required to pass the quiz
-                      </p>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={quizSettings.passingScore || 60}
-                        onChange={(e) => setQuizSettings({ ...quizSettings, passingScore: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)) })}
-                        className="mt-3 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20"
-                      />
-                    </div>
-                  </div>
+
 
                   {/* Shuffle Questions */}
                   <div className="bg-gray-50 rounded-xl p-5">

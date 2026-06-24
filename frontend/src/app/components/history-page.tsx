@@ -89,7 +89,7 @@ export function HistoryPage() {
             <tbody>
               {filteredHistory.map((item, i) => {
                 const isCheating = item.cheatingDetected || item.attempt?.isCheating;
-                const passingScore = item.quiz?.passingScore ?? 60;
+                const passingScore = 35;
                 const passed = !isCheating && item.percentage !== null && item.percentage >= passingScore;
                 const isFirstAttempt = item.attemptNumber === 1;
                 return (

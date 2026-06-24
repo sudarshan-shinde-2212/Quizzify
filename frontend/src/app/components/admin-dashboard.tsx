@@ -205,7 +205,7 @@ export function AdminDashboard() {
             <tbody>
               {filteredResults.slice(0, 5).map((r) => {
                 const isCheating = r.cheatingDetected || r.attempt?.isCheating;
-                const passingScore = r.quiz?.passingScore ?? 60;
+                const passingScore = 35;
                 const passed = !isCheating && r.percentage !== null && r.percentage >= passingScore;
                 return (
                   <tr key={r.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">

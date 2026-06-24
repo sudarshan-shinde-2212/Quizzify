@@ -109,7 +109,7 @@ export class StudentsService {
     const results = await queryBuilder.getMany();
 
     return results.map((res) => {
-      const passingScore = res.quiz.passingScore ?? 60;
+      const passingScore = 35;
       const isCheating = res.cheatingDetected || res.attempt.isCheating;
       const passed = !isCheating && res.percentage !== null && res.percentage >= passingScore;
 

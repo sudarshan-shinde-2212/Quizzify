@@ -195,7 +195,6 @@ export class QuizzesService {
     return {
       allowRetakes: quiz.allowRetakes,
       maxRetakes: quiz.maxRetakes,
-      passingScore: quiz.passingScore,
       shuffleQuestions: quiz.shuffleQuestions,
     };
   }
@@ -211,15 +210,11 @@ export class QuizzesService {
     if (dto.maxRetakes !== undefined) {
       quiz.maxRetakes = dto.maxRetakes;
     }
-    if (dto.passingScore !== undefined) {
-      quiz.passingScore = dto.passingScore;
-    }
     if (dto.shuffleQuestions !== undefined) quiz.shuffleQuestions = dto.shuffleQuestions;
     await this.quizRepo.save(quiz);
     return {
       allowRetakes: quiz.allowRetakes,
       maxRetakes: quiz.maxRetakes,
-      passingScore: quiz.passingScore,
       shuffleQuestions: quiz.shuffleQuestions,
     };
   }
@@ -270,7 +265,7 @@ export class QuizzesService {
         totalScore += res.score;
         if (res.score > highestScore) highestScore = res.score;
         if (res.score < lowestScore) lowestScore = res.score;
-        if (res.percentage >= 50) passCount++;
+        if (res.percentage >= 35) passCount++;
         else failCount++;
       }
     });

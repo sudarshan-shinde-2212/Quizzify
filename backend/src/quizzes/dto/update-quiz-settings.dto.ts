@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsInt, Min, ValidateIf, IsNumber, IsPositive } from 'class-validator';
+import { IsBoolean, IsOptional, IsInt, Min, ValidateIf } from 'class-validator';
 
 export class UpdateQuizSettingsDto {
   @IsOptional()
@@ -15,11 +15,6 @@ export class UpdateQuizSettingsDto {
     message: 'maxRetakes must be at least 1 when allowRetakes is true'
   })
   maxRetakes?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  passingScore?: number;
 
   @IsOptional()
   @IsBoolean()
