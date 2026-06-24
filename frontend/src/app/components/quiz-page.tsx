@@ -223,6 +223,7 @@ export function QuizPage() {
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [marked, setMarked] = useState<Set<string>>(new Set());
   const [tabSwitches, setTabSwitches] = useState(0);
+  const tabSwitchesRef = useRef(tabSwitches);
   const [modal, setModal] = useState<ModalType>(null);
   const [startTime] = useState(Date.now());
   const [submitting, setSubmitting] = useState(false);
@@ -235,6 +236,11 @@ export function QuizPage() {
     imageUrl: "",
     alt: "",
   });
+  
+  // Sync ref with state
+  useEffect(() => {
+    tabSwitchesRef.current = tabSwitches;
+  }, [tabSwitches]);
 
   const [settings, setSettings] = useState<any>(null);
 
@@ -379,7 +385,7 @@ export function QuizPage() {
     
     const handleVisibility = () => {
       if (document.hidden && !cheatingDetected && !submitting) {
-        const newTabSwitches = tabSwitches + 1;
+        const newTabSwitches = tabSwitchesRef.current + 1;
         setTabSwitches(newTabSwitches);
         
         if (newTabSwitches === 1) {
@@ -392,7 +398,7 @@ export function QuizPage() {
     
     const handleWindowBlur = () => {
       if (!cheatingDetected && !submitting) {
-        const newTabSwitches = tabSwitches + 1;
+        const newTabSwitches = tabSwitchesRef.current + 1;
         setTabSwitches(newTabSwitches);
         
         if (newTabSwitches === 1) {
@@ -442,7 +448,7 @@ export function QuizPage() {
       document.removeEventListener("contextmenu", handleContextMenu);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [loading, error, settings, cheatingDetected, submitting, tabSwitches]);
+  }, [loading, error, settings, cheatingDetected, submitting]);
 
   // Timer expiry auto-submit
   const { minutes, secs, isLow } = useTimer((quiz?.durationInMinutes ?? 30) * 60, () => {
