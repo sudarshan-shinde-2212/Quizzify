@@ -187,6 +187,7 @@ export interface UserHistoryItem {
   submittedAt: string | null;
   completionTimeSeconds: number | null;
   hideResultDetails: boolean;
+  allowReviewAfterSubmission: boolean;
 }
 
 export interface QuizStats {

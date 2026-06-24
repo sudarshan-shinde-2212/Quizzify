@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { UserLayout } from "./user-layout";
 import { apiGetStudentResults, QuizResult } from "./api";
 import { motion } from "motion/react";
-import { CheckCircle2, XCircle, Trophy, Calendar, Loader2, Search } from "lucide-react";
+import { CheckCircle2, XCircle, Trophy, Calendar, Loader2, Search, Eye } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface QuizResultWithAttemptNumber extends QuizResult {
   attemptNumber: number;
@@ -14,6 +15,7 @@ export function HistoryPage() {
   const [history, setHistory] = useState<QuizResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const router = useRouter();
 
   // Process history to add attempt numbers
   const processedHistory = history.slice().sort((a, b) => 
@@ -79,7 +81,7 @@ export function HistoryPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-50">
-                {["Quiz Name", "Attempt", "Score", "Percentage", "Correct", "Wrong", "Date", "Result"].map((h) => (
+                {["Quiz Name", "Attempt", "Score", "Percentage", "Correct", "Wrong", "Date", "Result", "Actions"].map((h) => (
                   <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-5 py-3.5">
                     {h}
                   </th>
@@ -93,6 +95,7 @@ export function HistoryPage() {
                 const passed = !isCheating && item.percentage !== null && item.percentage >= passingScore;
                 const isFirstAttempt = item.attemptNumber === 1;
                 const hideResultDetails = item.quiz?.hideResultDetails ?? false;
+                const allowReview = item.quiz?.allowReviewAfterSubmission ?? false;
                 return (
                   <motion.tr
                     key={item.id}
@@ -169,6 +172,17 @@ export function HistoryPage() {
                         </span>
                       )}
                     </td>
+                    <td className="px-5 py-4">
+                      {allowReview && !isCheating && (
+                        <button
+                          onClick={() => router.push(`/quiz/${item.quizId}/review`)}
+                          className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                        >
+                          <Eye size={14} />
+                          View Review
+                        </button>
+                      )}
+                    </td>
                   </motion.tr>
                 );
               })}
@@ -190,6 +204,7 @@ export function HistoryPage() {
           const passed = !isCheating && item.percentage !== null && item.percentage >= passingScore;
           const isFirstAttempt = item.attemptNumber === 1;
           const hideResultDetails = item.quiz?.hideResultDetails ?? false;
+          const allowReview = item.quiz?.allowReviewAfterSubmission ?? false;
           return (
             <motion.div
               key={item.id}
@@ -249,6 +264,17 @@ export function HistoryPage() {
               {hideResultDetails && (
                 <div className="text-xs text-gray-500">
                   {new Date(item.createdAt).toLocaleDateString()}
+                </div>
+              )}
+              {allowReview && !isCheating && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <button
+                    onClick={() => router.push(`/quiz/${item.quizId}/review`)}
+                    className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    <Eye size={14} />
+                    View Review
+                  </button>
                 </div>
               )}
             </motion.div>

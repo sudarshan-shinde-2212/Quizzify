@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 
 import { useState, useEffect, useMemo } from "react";
 import { AdminLayout } from "./admin-sidebar";
@@ -16,7 +17,7 @@ import {
 } from "./api";
 import { ConfirmModal } from "./ui/confirm-modal";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, Edit2, Trash2, X, Loader2, Search, Image } from "lucide-react";
+import { Plus, Edit2, Trash2, X, Loader2, Search, Image, Upload, Trash2 as Remove } from "lucide-react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useDebounce } from "./use-debounce";
 
@@ -53,20 +54,65 @@ function QuestionModal({ quizId, question, selectedQuiz, onClose, onRefresh }: Q
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [generatingImage, setGeneratingImage] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [generatePrompt, setGeneratePrompt] = useState("");
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [generateError, setGenerateError] = useState("");
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleGenerateImage = async () => {
-    if (!form.text.trim()) return;
+  const handleGenerateImage = async (prompt = generatePrompt) => {
+    if (!prompt.trim()) {
+      setGenerateError("Please enter a prompt");
+      return;
+    }
 
     setGeneratingImage(true);
+    setGenerateError("");
     try {
-      const result = await apiAdminGenerateAiImage(
-        `A clear, educational diagram or illustration for this quiz question: "${form.text}". Simple, professional style, suitable for an online quiz.`
-      );
-      setForm({ ...form, imageUrl: result.imageUrl });
+      const result = await apiAdminGenerateAiImage(prompt);
+      setGeneratedImageUrl(result.imageUrl);
     } catch (err) {
       console.error("Failed to generate image", err);
+      setGenerateError("Failed to generate image using Gemini AI. Please try again.");
     } finally {
       setGeneratingImage(false);
+    }
+  };
+
+  const handleFileUpload = (file: File) => {
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setError("Only PNG, JPG, JPEG, and WEBP files are allowed.");
+      return;
+    }
+    // For now, we'll create a data URL preview. In a real app, you'd upload to storage and get a URL.
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setForm({ ...form, imageUrl: dataUrl });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    if (e.clipboardData && e.clipboardData.files.length > 0) {
+      e.preventDefault();
+      handleFileUpload(e.clipboardData.files[0]);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFileUpload(e.target.files[0]);
     }
   };
 
@@ -135,38 +181,87 @@ function QuestionModal({ quizId, question, selectedQuiz, onClose, onRefresh }: Q
             />
           </div>
 
-          {/* Image URL Input */}
-          <div>
+          {/* Image Section */}
+          <div onPaste={handlePaste}>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-medium text-gray-700">Image URL (Optional)</label>
+              <label className="block text-xs font-medium text-gray-700">Question Image (Optional)</label>
               <button
                 type="button"
-                onClick={handleGenerateImage}
-                disabled={generatingImage || !form.text.trim()}
-                className="flex items-center gap-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 px-2 py-1 rounded-lg"
+                onClick={() => {
+                  setGeneratePrompt(form.text ? `A clear, educational diagram or illustration for this quiz question: "${form.text}". Simple, professional style, suitable for an online quiz.` : "");
+                  setGeneratedImageUrl(null);
+                  setGenerateError("");
+                  setShowGenerateModal(true);
+                }}
+                className="flex items-center gap-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 px-2 py-1 rounded-lg"
               >
-                {generatingImage ? <Loader2 size={12} className="animate-spin" /> : <Image size={12} />}
+                <Image size={12} />
                 Generate Image
               </button>
             </div>
-            <input
-              type="url"
-              value={form.imageUrl}
-              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-black"
-              placeholder="Enter image URL or generate one"
-            />
-            {/* Preview */}
-            {form.imageUrl && (
-              <div className="mt-2">
-                <p className="text-xs text-gray-500 mb-1">Preview:</p>
+
+            {!form.imageUrl ? (
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+                  dragOver ? 'border-purple-500 bg-purple-50' : 'border-gray-300 bg-gray-50 hover:border-purple-400'
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+                <Upload size={28} className="mx-auto text-gray-400 mb-2" />
+                <p className="text-sm font-medium text-gray-700 mb-1">
+                  Drag and drop or click to upload
+                </p>
+                <p className="text-xs text-gray-500">
+                  Supports PNG, JPG, JPEG, WEBP • Paste image from clipboard
+                </p>
+              </div>
+            ) : (
+              <div className="border border-gray-200 rounded-xl p-4">
                 <img
                   src={form.imageUrl}
                   alt="Question preview"
-                  className="max-h-40 max-w-full object-contain border border-gray-200 rounded-lg"
+                  className="max-h-48 max-w-full object-contain mx-auto rounded-lg mb-3"
                 />
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { fileInputRef.current?.click(); }}
+                    className="flex-1 text-sm font-medium text-purple-600 hover:text-purple-700 border border-purple-200 rounded-lg px-3 py-2"
+                  >
+                    Replace Image
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, imageUrl: "" })}
+                    className="flex-1 text-sm font-medium text-red-600 hover:text-red-700 border border-red-200 rounded-lg px-3 py-2 flex items-center justify-center gap-1"
+                  >
+                    <Remove size={14} /> Remove
+                  </button>
+                </div>
               </div>
             )}
+
+            {/* Image URL Input as alternative */}
+            <div className="mt-3">
+              <p className="text-xs text-gray-500 mb-1">Or paste image URL:</p>
+              <input
+                type="url"
+                value={form.imageUrl}
+                onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-black"
+                placeholder="https://example.com/image.png"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -234,6 +329,96 @@ function QuestionModal({ quizId, question, selectedQuiz, onClose, onRefresh }: Q
             </button>
           </div>
         </form>
+
+        {/* Generate Image Modal */}
+        <AnimatePresence>
+          {showGenerateModal && (
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] flex items-center justify-center px-4 overflow-y-auto py-8">
+              <motion.div
+                initial={{ scale: 0.97, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.97, opacity: 0 }}
+                className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6"
+              >
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-base font-bold text-black">Generate Image</h2>
+                  <button onClick={() => setShowGenerateModal(false)} className="p-1 text-gray-400 hover:text-black">
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Image Prompt</label>
+                    <textarea
+                      value={generatePrompt}
+                      onChange={(e) => setGeneratePrompt(e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-black resize-none"
+                      rows={4}
+                      placeholder="Example: Human digestive system labeled educational diagram"
+                    />
+                  </div>
+
+                  {generateError && (
+                    <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                      {generateError}
+                    </div>
+                  )}
+
+                  {generatedImageUrl && (
+                    <div className="border border-gray-200 rounded-xl p-3">
+                      <img
+                        src={generatedImageUrl} alt="Generated preview" className="max-h-64 max-w-full object-contain mx-auto rounded-lg" />
+                    </div>
+                  )}
+
+                  <div className="flex gap-3">
+                    {!generatedImageUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateImage()}
+                        disabled={generatingImage}
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+                      >
+                        {generatingImage && <Loader2 size={14} className="animate-spin" />}
+                        {generatingImage ? "Generating image with Gemini AI…" : "Generate"}
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleGenerateImage()}
+                          disabled={generatingImage}
+                          className="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+                        >
+                          {generatingImage && <Loader2 size={14} className="animate-spin" />}
+                          {generatingImage ? "Regenerating with Gemini AI…" : "Regenerate"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForm({ ...form, imageUrl: generatedImageUrl || "" });
+                            setShowGenerateModal(false);
+                          }}
+                          className="flex-1 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-900"
+                        >
+                          Use Image
+                        </button>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowGenerateModal(false)}
+                      className="py-2.5 px-4 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );

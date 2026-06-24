@@ -175,6 +175,7 @@ export class StudentsService {
         submittedAt: res.attempt.submittedAt,
         completionTimeSeconds,
         hideResultDetails: res.quiz.hideResultDetails,
+        allowReviewAfterSubmission: res.quiz.allowReviewAfterSubmission,
       };
     });
   }

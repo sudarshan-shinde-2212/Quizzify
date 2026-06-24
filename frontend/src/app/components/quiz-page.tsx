@@ -6,6 +6,7 @@ import {
   apiGetStudentQuiz,
   apiStartQuizAttempt,
   apiSubmitQuizAttempt,
+  apiRecordViolation,
   getErrorMessage,
   Quiz,
   Question,
@@ -65,7 +66,7 @@ function useTimer(initialSeconds: number, onExpire: () => void, isLoaded: boolea
   return { minutes, secs, seconds, isLow };
 }
 
-type ModalType = "tab-switch" | "tab-switch-warning" | "final-warning" | "submitted" | "confirm-submit" | "time-up" | "time-up-no-auto" | "unanswered-questions" | "cheating-detected" | null;
+type ModalType = "tab-switch" | "tab-switch-warning" | "warning" | "disqualified" | "submitted" | "confirm-submit" | "time-up" | "time-up-no-auto" | "unanswered-questions" | "cheating-detected" | null;
 
 function Modal({ type, tabCount, onClose, onSubmit, settings, unansweredCount }: {
   type: ModalType;
@@ -78,6 +79,26 @@ function Modal({ type, tabCount, onClose, onSubmit, settings, unansweredCount }:
   if (!type) return null;
 
   const configs = {
+    "warning": {
+      title: "Warning",
+      icon: <AlertTriangle size={24} className="text-amber-500" />,
+      bg: "bg-amber-50",
+      border: "border-amber-200",
+      body: "You have performed an action that violates the exam rules. This is your only warning. Any further violation will immediately disqualify your attempt.",
+      action: "Continue Quiz",
+      actionFn: onClose,
+      showClose: false,
+    },
+    "disqualified": {
+      title: "Exam Disqualified",
+      icon: <AlertTriangle size={24} className="text-red-500" />,
+      bg: "bg-red-50",
+      border: "border-red-200",
+      body: "You were disqualified for violating exam security rules multiple times.",
+      action: "View Results",
+      actionFn: onSubmit,
+      showClose: false,
+    },
     "cheating-detected": {
       title: "Cheating Detected!",
       icon: <AlertTriangle size={24} className="text-red-500" />,
@@ -231,6 +252,13 @@ export function QuizPage() {
     }
     return 0;
   });
+  const [warningGiven, setWarningGiven] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem(`quiz-warning-${quizId}`);
+      return saved === "true";
+    }
+    return false;
+  });
   const tabSwitchesRef = useRef(tabSwitches);
   const [modal, setModal] = useState<ModalType>(null);
   const [startTime] = useState(Date.now());
@@ -249,7 +277,8 @@ export function QuizPage() {
   useEffect(() => {
     tabSwitchesRef.current = tabSwitches;
     sessionStorage.setItem(TAB_SWITCHES_KEY, tabSwitches.toString());
-  }, [tabSwitches, TAB_SWITCHES_KEY]);
+    sessionStorage.setItem(`quiz-warning-${quizId}`, warningGiven ? "true" : "false");
+  }, [tabSwitches, warningGiven, TAB_SWITCHES_KEY, quizId]);
 
   const [settings, setSettings] = useState<any>(null);
 
@@ -378,67 +407,103 @@ export function QuizPage() {
     setModal(null);
   }, [getUnansweredInfo]);
 
-  // Tab visibility + window blur monitoring for cheating detection
+  // Advanced anti-cheating monitoring
   useEffect(() => {
-    if (loading || error || !settings) return;
+    if (loading || error || !settings || !quizId) return;
     
-    const autoSubmitCheating = () => {
-      if (!cheatingDetected && !submitting) {
-        setCheatingDetected(true);
-        setIsAutoSubmit(true);
-        setModal("tab-switch");
-        // Auto submit immediately!
-        setTimeout(() => handleSubmitRef.current(), 500); // Small delay to show modal first
+    // Helper to handle violations
+    const handleViolation = async (violationType: any) => {
+      if (cheatingDetected || submitting) return;
+      
+      try {
+        // Call backend to record violation
+        const res = await apiRecordViolation(quizId, violationType);
+        if (res.shouldDisqualify) {
+          setCheatingDetected(true);
+          setIsAutoSubmit(true);
+          setModal("disqualified");
+          setTimeout(() => handleSubmitRef.current(), 500);
+        } else {
+          setWarningGiven(true);
+          setModal("warning");
+        }
+      } catch (e) {
+        // If API fails, use local logic
+        if (!warningGiven) {
+          setWarningGiven(true);
+          setModal("warning");
+        } else {
+          setCheatingDetected(true);
+          setIsAutoSubmit(true);
+          setModal("disqualified");
+          setTimeout(() => handleSubmitRef.current(), 500);
+        }
       }
     };
     
-    const handleVisibility = () => {
+    const handleVisibility = async () => {
       if (document.hidden && !cheatingDetected && !submitting) {
         const newTabSwitches = tabSwitchesRef.current + 1;
         setTabSwitches(newTabSwitches);
-        
-        if (newTabSwitches === 1) {
-          setModal("tab-switch-warning");
-        } else if (newTabSwitches >= 2) {
-          autoSubmitCheating();
-        }
+        await handleViolation("VISIBILITY_CHANGE");
       }
     };
     
-    const handleWindowBlur = () => {
+    const handleWindowBlur = async () => {
       if (!cheatingDetected && !submitting) {
         const newTabSwitches = tabSwitchesRef.current + 1;
         setTabSwitches(newTabSwitches);
-        
-        if (newTabSwitches === 1) {
-          setModal("tab-switch-warning");
-        } else if (newTabSwitches >= 2) {
-          autoSubmitCheating();
-        }
+        await handleViolation("WINDOW_BLUR");
       }
     };
     
-    const handleCopyCutPaste = (e: ClipboardEvent) => {
+    const handleCopyCutPaste = async (e: ClipboardEvent) => {
       e.preventDefault();
-      autoSubmitCheating();
+      await handleViolation("COPY_PASTE");
     };
     
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
     };
     
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent Ctrl/Cmd+C, Ctrl/Cmd+X, Ctrl/Cmd+V, Ctrl/Cmd+P, PrintScreen
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      // Prevent Ctrl/Cmd+C, Ctrl/Cmd+X, Ctrl/Cmd+V, Ctrl/Cmd+P, PrintScreen, DevTools keys
+      const devToolsKeys = [
+        "F12",
+        (e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "I" || e.key === "i"),
+        (e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "J" || e.key === "j"),
+        (e.ctrlKey || e.metaKey) && (e.key === "U" || e.key === "u"),
+      ];
+      
+      if (devToolsKeys.some(Boolean)) {
+        e.preventDefault();
+        await handleViolation("DEV_TOOLS");
+        return;
+      }
+      
       if ((e.ctrlKey || e.metaKey) && (e.key === "c" || e.key === "C" || e.key === "x" || e.key === "X" || e.key === "v" || e.key === "V" || e.key === "p" || e.key === "P")) {
         e.preventDefault();
-        autoSubmitCheating();
+        await handleViolation("COPY_PASTE");
       }
-      // Prevent PrintScreen key
+      
       if (e.key === "PrintScreen" || e.key === "prtsc" || e.key === "PrtScr") {
         e.preventDefault();
-        autoSubmitCheating();
+        await handleViolation("SCREENSHOT");
       }
     };
+    
+    // DevTools detection using console.log
+    let devToolsOpen = false;
+    const checkDevTools = () => {
+      const startTime = new Date().getTime();
+      console.log("%c", "font-size: 1px;");
+      const endTime = new Date().getTime();
+      if (endTime - startTime > 100 && !devToolsOpen) {
+        devToolsOpen = true;
+        handleViolation("DEV_TOOLS");
+      }
+    };
+    const devToolsInterval = setInterval(checkDevTools, 1000);
     
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("blur", handleWindowBlur);
@@ -449,6 +514,7 @@ export function QuizPage() {
     document.addEventListener("keydown", handleKeyDown);
     
     return () => {
+      clearInterval(devToolsInterval);
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("blur", handleWindowBlur);
       document.removeEventListener("copy", handleCopyCutPaste);
@@ -457,7 +523,7 @@ export function QuizPage() {
       document.removeEventListener("contextmenu", handleContextMenu);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [loading, error, settings, cheatingDetected, submitting]);
+  }, [loading, error, settings, quizId, cheatingDetected, submitting, warningGiven]);
 
   // Timer expiry auto-submit
   const { minutes, secs, isLow } = useTimer((quiz?.durationInMinutes ?? 30) * 60, () => {
@@ -511,10 +577,25 @@ export function QuizPage() {
       {/* Top bar */}
       <header className="sticky top-0 z-30 bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-black leading-tight">{quiz?.title}</p>
-            <p className="text-xs text-gray-400">Question {currentQ + 1} of {questions.length}</p>
+          <div className="flex items-center gap-4">
+            <div>
+              <p className="text-sm font-semibold text-black leading-tight">{quiz?.title}</p>
+              <p className="text-xs text-gray-400">Question {currentQ + 1} of {questions.length}</p>
+            </div>
+            <div className="hidden sm:block">
+              <p className={`text-xs font-semibold ${answeredCount === questions.length ? "text-green-600" : "text-gray-500"}`}>
+                Attempted {answeredCount}/{questions.length}
+              </p>
+            </div>
           </div>
+          <button
+            onClick={validateAndTrySubmit}
+            disabled={submitting || answeredCount !== questions.length}
+            className="flex items-center gap-1.5 text-sm px-5 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          >
+            {submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+            Submit
+          </button>
         </div>
       </header>
 
@@ -705,20 +786,9 @@ export function QuizPage() {
                     </button>
                   </div>
                   <div className="flex gap-2 sm:gap-3 items-center">
-                    <button
-                      onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: null }))}
-                      className="flex items-center justify-center gap-1.5 text-xs sm:text-sm text-gray-400 hover:text-gray-600 px-3 py-2"
-                    >
-                      <RotateCcw size={14} /> Clear
-                    </button>
-                    <button
-              onClick={validateAndTrySubmit}
-              disabled={submitting}
-              className="flex items-center justify-center gap-1.5 text-sm px-5 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-            >
-                      {submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                      Submit
-                    </button>
+                    <span className={`text-xs sm:text-sm font-semibold ${answeredCount === questions.length ? "text-green-600" : "text-gray-400"}`}>
+                      Attempted {answeredCount}/{questions.length}
+                    </span>
                   </div>
                 </div>
 

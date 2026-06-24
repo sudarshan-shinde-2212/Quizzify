@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 
 import { useState, useEffect } from "react";
 import { AdminLayout } from "./admin-sidebar";
@@ -24,7 +25,7 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   Calendar, Plus, Edit2, Trash2, Eye, Clock, Trophy, X, Loader2,
   Play, PowerOff, Sparkles, FileQuestion, BarChart2, ChevronLeft, Search,
-  Download, Users, CheckCircle2, TrendingUp, TrendingDown, Settings,
+  Download, Users, CheckCircle2, TrendingUp, TrendingDown, Settings, ChevronDown,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "./ui/sheet";
@@ -383,7 +384,19 @@ export function AdminQuizzes() {
   const [showModal, setShowModal] = useState(false);
   const [editQuiz, setEditQuiz] = useState<Quiz | undefined>();
   const [quizSearch, setQuizSearch] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
   const debouncedQuizSearch = useDebounce(quizSearch, 300);
+
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Analytics sheet state
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
@@ -614,20 +627,57 @@ export function AdminQuizzes() {
               className="w-full pl-10 pr-4 py-2.5 text-black placeholder-gray-500 bg-white border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all"
             />
           </div>
-          <button
-            onClick={() => router.push("/admin/ai-quiz")}
-            className="flex items-center gap-1.5 border border-gray-200 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
-          >
-            <Sparkles size={15} className="text-purple-500" />
-            AI Quiz Generator
-          </button>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-1.5 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900"
-          >
-            <Plus size={15} />
-            Create Quiz
-          </button>
+
+          {/* Create Quiz Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="flex items-center gap-1.5 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900"
+            >
+              <Plus size={15} />
+              Create Quiz
+              <ChevronDown size={15} />
+            </button>
+            <AnimatePresence>
+              {showDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute right-0 top-full mt-2 w-[260px] bg-white border border-gray-100 rounded-xl shadow-xl z-50"
+                >
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        router.push("/admin/ai-quiz");
+                        setShowDropdown(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 text-left"
+                    >
+                      <Sparkles size={18} className="text-purple-500" />
+                      <div>
+                        <p className="text-sm font-medium text-black">AI Quiz Generator</p>
+                        <p className="text-xs text-gray-500">Generate quiz using AI</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        openCreate();
+                        setShowDropdown(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 text-left"
+                    >
+                      <FileQuestion size={18} className="text-gray-600" />
+                      <div>
+                        <p className="text-sm font-medium text-black">Manual Quiz Generator</p>
+                        <p className="text-xs text-gray-500">Create quiz manually</p>
+                      </div>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 

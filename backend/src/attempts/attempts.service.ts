@@ -107,7 +107,7 @@ export class AttemptsService {
     const attempt = await this.attemptRepo.findOne({
       where: { studentId, quizId, isSubmitted: true },
       order: { createdAt: 'DESC' },
-      relations: ['answers', 'answers.question'],
+      relations: ['answers', 'answers.question', 'quiz'],
     });
     if (!attempt) throw new NotFoundException('Quiz attempt not found or not submitted');
     return attempt;
