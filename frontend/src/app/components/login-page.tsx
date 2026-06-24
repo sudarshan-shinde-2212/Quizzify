@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "./auth-context";
 import { useRouter } from "next/navigation";
 import {
-  BookOpen,
   ArrowRight,
   Shield,
   Eye,
@@ -13,6 +12,7 @@ import {
   ArrowLeft,
   Loader2,
 } from "lucide-react";
+import { QuizzifyLogo } from "./QuizzifyLogo";
 
 export function LoginPage() {
   const { loginWithGoogle, adminLogin } = useAuth();
@@ -52,7 +52,7 @@ export function LoginPage() {
       {/* ── Left panel ── */}
       <div className="hidden lg:flex lg:w-1/2 bg-black flex-col justify-center p-12">
         <div className="flex items-center gap-2">
-          <BookOpen size={24} className="text-white" />
+          <QuizzifyLogo size={28} color="white" />
           <span className="text-white font-semibold text-xl tracking-tight">Quizzify</span>
         </div>
 
@@ -91,7 +91,7 @@ export function LoginPage() {
             >
               {/* Mobile logo */}
               <div className="flex items-center gap-2 mb-10 lg:hidden">
-                <BookOpen size={20} className="text-black" />
+                <QuizzifyLogo size={24} color="black" />
                 <span className="font-semibold text-lg tracking-tight">Quizzify</span>
               </div>
 
@@ -151,7 +151,7 @@ export function LoginPage() {
             >
               {/* Mobile logo */}
               <div className="flex items-center gap-2 mb-10 lg:hidden">
-                <BookOpen size={20} className="text-black" />
+                <QuizzifyLogo size={24} color="black" />
                 <span className="font-semibold text-lg tracking-tight">Quizzify</span>
               </div>
 

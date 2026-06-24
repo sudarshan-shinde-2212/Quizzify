@@ -7,6 +7,7 @@ import {
   BookOpen, LayoutDashboard, FileQuestion, Users,
   LogOut, Trophy, Menu, X, ChevronDown
 } from 'lucide-react';
+import { QuizzifyLogo } from "./QuizzifyLogo";
 import { LogoutConfirmationModal } from "./logout-confirmation-modal";
 
 const sidebarLinks = [
@@ -74,7 +75,7 @@ export function AdminSidebar({
         {/* Logo */}
         <div className="flex items-center justify-between px-5 h-14 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <BookOpen size={18} className="text-black" />
+            <QuizzifyLogo size={22} color="black" />
             <span className="font-semibold text-base tracking-tight">Quizzify</span>
             <span className="text-xs bg-black text-white px-1.5 py-0.5 rounded-full ml-1">Admin</span>
           </div>
@@ -167,7 +168,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       {/* Mobile Top Header */}
       <header className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-gray-100 flex items-center justify-between px-4 z-40 md:hidden">
         <div className="flex items-center gap-2">
-          <BookOpen size={18} className="text-black" />
+          <QuizzifyLogo size={22} color="black" />
           <span className="font-semibold text-base tracking-tight">Quizzify</span>
           <span className="text-xs bg-black text-white px-1.5 py-0.5 rounded-full ml-1">Admin</span>
         </div>

@@ -1,4 +1,3 @@
-
 import { Injectable, InternalServerErrorException, BadRequestException, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -40,7 +39,7 @@ export class AiImageService implements OnModuleInit {
             role: 'user',
             parts: [
               {
-                text: `You are an expert prompt engineer for AI image generation. Improve the following educational diagram/illustration prompt for an online quiz question. Make it detailed, specific, professional, and suitable for a clear educational image. Respond ONLY with the refined prompt, no extra text. Original prompt: "${prompt}"
+                text: `You are an expert prompt engineer for AI image generation. Improve the following educational diagram/illustration prompt for an online quiz question. Make it detailed, specific, professional, and suitable for a clear educational image. Respond ONLY with the refined prompt, no extra text. Original prompt: "${prompt}"`,
               },
             ],
           },
@@ -67,10 +66,10 @@ export class AiImageService implements OnModuleInit {
 
       const refinedPrompt = await this.refinePrompt(prompt);
       this.logger.log('Using refined prompt:', refinedPrompt);
-      
+
       const encodedPrompt = encodeURIComponent(refinedPrompt);
       const pollinationsKey = this.configService.get<string>('POLLINATIONS_API_KEY');
-      
+
       let imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
       if (pollinationsKey) {
         imageUrl += `&key=${pollinationsKey}`;

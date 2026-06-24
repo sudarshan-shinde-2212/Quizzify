@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "./auth-context";
 import { apiGetSettings } from "./api";
-import { BookOpen, Menu, X, LogOut, ChevronDown, User } from "lucide-react";
+import { Menu, X, LogOut, ChevronDown, User } from "lucide-react";
+import { QuizzifyLogo } from "./QuizzifyLogo";
 import { motion, AnimatePresence } from "motion/react";
 import { LogoutConfirmationModal } from "./logout-confirmation-modal";
 
@@ -47,7 +48,7 @@ export function Navbar() {
           <div className="flex items-center justify-between h-14">
             {/* Logo */}
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/dashboard")}>
-              <BookOpen size={18} className="text-black" />
+              <QuizzifyLogo size={22} color="black" />
               <span className="font-semibold text-base tracking-tight">{platformName}</span>
             </div>
 
