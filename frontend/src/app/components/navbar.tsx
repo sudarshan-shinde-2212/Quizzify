@@ -26,6 +26,33 @@ export function Navbar() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
+  // Handle route change: close mobile menu
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Handle escape key and body scroll lock
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMobileOpen(false);
+        setProfileOpen(false);
+      }
+    };
+
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+
   useEffect(() => {
     apiGetSettings()
       .then((s) => { if (s?.platformName) setPlatformName(s.platformName); })
@@ -137,17 +164,43 @@ export function Navbar() {
             </button>
           </div>
         </div>
+      </header>
 
-        {/* Mobile menu */}
-        <AnimatePresence>
-          {mobileOpen && (
+      {/* Mobile menu overlay + sidebar */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            {/* Backdrop blur */}
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="md:hidden border-t border-gray-100 bg-white overflow-hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/20 backdrop-blur-md md:hidden"
+              onClick={() => setMobileOpen(false)}
+            />
+            {/* Mobile sidebar */}
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed left-0 top-0 h-full w-72 bg-white border-r border-gray-100 z-50 md:hidden shadow-2xl"
             >
-              <div className="px-4 py-3 space-y-1">
+              <div className="p-4 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => {
+                    router.push("/dashboard");
+                    setMobileOpen(false);
+                  }}>
+                    <QuizzifyLogo size={22} color="black" />
+                    <span className="font-semibold text-base tracking-tight">{platformName}</span>
+                  </div>
+                  <button onClick={() => setMobileOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-lg">
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+              <div className="p-4 space-y-1">
                 {navLinks.map((link) => (
                   <button
                     key={link.href}
@@ -159,7 +212,7 @@ export function Navbar() {
                     {link.label}
                   </button>
                 ))}
-                  <div className="pt-2 border-t border-gray-100">
+                <div className="pt-4 mt-4 border-t border-gray-100">
                   <div className="flex items-center gap-2 px-3 py-2">
                     {user?.avatar ? (
                       <img src={user.avatar} alt={user?.fullName || user?.name || "User"} className="w-7 h-7 rounded-full" />
@@ -196,9 +249,9 @@ export function Navbar() {
                 </div>
               </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </header>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Logout Confirmation Modal */}
       <LogoutConfirmationModal

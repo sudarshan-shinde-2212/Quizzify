@@ -63,7 +63,7 @@ export class StudentsService {
     results.forEach((res) => {
       const passingScore = 35;
       const isCheating = res.cheatingDetected || res.attempt.isCheating;
-      const passed = !isCheating && res.percentage !== null && res.percentage >= passingScore;
+      const passed = !isCheating && res.percentage !== null && Number(res.percentage) >= passingScore;
 
       if (isCheating) {
         totalDisqualified++;
@@ -73,11 +73,12 @@ export class StudentsService {
         totalFailed++;
       }
 
-      if (res.score !== null) {
+      if (res.percentage !== null) {
+        const numericPercentage = Number(res.percentage);
         validResultCount++;
-        totalScore += res.score;
-        if (res.score > highestScore) highestScore = res.score;
-        if (res.score < lowestScore) lowestScore = res.score;
+        totalScore += numericPercentage;
+        if (numericPercentage > highestScore) highestScore = numericPercentage;
+        if (numericPercentage < lowestScore) lowestScore = numericPercentage;
       }
     });
 

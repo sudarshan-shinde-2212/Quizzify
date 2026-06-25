@@ -131,7 +131,7 @@ export function AdminDashboard() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { label: "Total Students", value: totalUsers.toLocaleString(), icon: Users, delta: "Active registrants" },
           { label: "Total Quizzes", value: totalQuizzes, icon: BookOpen, delta: `${quizzes.filter(q => q.isPublished).length} published` },
@@ -143,16 +143,16 @@ export function AdminDashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.06 }}
-            className="bg-white border border-gray-100 rounded-xl p-5"
+            className="bg-white border border-gray-100 rounded-xl p-5 flex flex-col h-full"
           >
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs text-gray-500">{label}</p>
-              <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center shrink-0">
                 <Icon size={14} className="text-gray-600" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-black">{value}</p>
-            <p className="text-xs text-gray-400 mt-1">{delta}</p>
+            <p className="text-2xl font-bold text-black mb-1">{value}</p>
+            <p className="text-xs text-gray-400 mt-auto">{delta}</p>
           </motion.div>
         ))}
       </div>

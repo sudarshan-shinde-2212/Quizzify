@@ -187,7 +187,7 @@ export function StudentHistoryDrawer({
                       <span className="text-xs">Average Score</span>
                     </div>
                     <p className="text-2xl font-bold text-blue-600">
-                      {details.stats.averageScore}
+                      {details.stats.averageScore}%
                     </p>
                   </div>
                 </div>

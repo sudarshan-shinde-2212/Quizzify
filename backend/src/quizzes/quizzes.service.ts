@@ -267,11 +267,12 @@ export class QuizzesService {
 
     results.forEach((res) => {
       if (res.score !== null && res.percentage !== null) {
+        const numericPercentage = Number(res.percentage);
         validResultCount++;
-        totalScore += res.score;
-        if (res.score > highestScore) highestScore = res.score;
-        if (res.score < lowestScore) lowestScore = res.score;
-        if (res.percentage >= 35) passCount++;
+        totalScore += numericPercentage;
+        if (numericPercentage > highestScore) highestScore = numericPercentage;
+        if (numericPercentage < lowestScore) lowestScore = numericPercentage;
+        if (numericPercentage >= 35) passCount++;
         else failCount++;
       }
     });

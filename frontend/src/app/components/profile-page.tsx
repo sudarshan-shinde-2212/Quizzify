@@ -96,11 +96,11 @@ export function ProfilePage() {
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3, delay: 0.1 }}
-              className="bg-white border border-gray-100 rounded-xl p-4"
+              className="bg-white border border-gray-100 rounded-xl p-4 flex flex-col h-full"
             >
               <Icon size={15} className={`mb-2 ${color}`} />
-              <p className="text-xl font-bold text-black">{value}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+              <p className="text-xl font-bold text-black mb-1">{value}</p>
+              <p className="text-xs text-gray-500 mt-auto">{label}</p>
             </motion.div>
           ))}
         </div>
