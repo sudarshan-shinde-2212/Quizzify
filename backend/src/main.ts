@@ -1,11 +1,18 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { json, urlencoded } from 'body-parser';
 import { AppModule } from './app.module';
 import { AuthService } from './auth/auth.service';
 import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false, // Disable default body parser
+  });
+
+  // Add custom body parser with larger limits
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ limit: '50mb', extended: true }));
 
   // CORS – dev origins are always included; production frontend is set via FRONTEND_URL env var
   const frontendUrl = process.env.FRONTEND_URL;

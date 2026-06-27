@@ -195,16 +195,21 @@ export function AdminAiQuizGenerator() {
 
   const [generatingImageIndex, setGeneratingImageIndex] = useState<number | null>(null);
 
-  const handleGenerateImage = async (index: number, questionText: string) => {
-    if (!questionText.trim()) return;
+  const handleGenerateImage = async (index: number) => {
+    if (!generatedQuiz) return;
+    const question = generatedQuiz.questions[index];
+    if (!question.question.trim()) return;
 
     setGeneratingImageIndex(index);
     try {
-      const result = await apiAdminGenerateAiImage(
-        `A clear, educational diagram or illustration for this quiz question: "${questionText}". Simple, professional style, suitable for an online quiz.`
-      );
-      if (!generatedQuiz) return;
-
+      let prompt = "";
+      if (question.question) {
+        prompt += `A clear, educational diagram or illustration for this quiz question: "${question.question}".`;
+        const optionsText = `Options: A) ${question.options[0]}, B) ${question.options[1]}, C) ${question.options[2]}, D) ${question.options[3]}. The correct answer is "${question.correctAnswer}".`;
+        prompt += ` ${optionsText}`;
+        prompt += ` Simple, professional style, suitable for an online quiz.`;
+      }
+      const result = await apiAdminGenerateAiImage(prompt);
       const newQuestions = [...generatedQuiz.questions];
       newQuestions[index] = { ...newQuestions[index], imageUrl: result.imageUrl };
       setGeneratedQuiz({ ...generatedQuiz, questions: newQuestions });
@@ -258,8 +263,16 @@ export function AdminAiQuizGenerator() {
   // Modal image generation functions
   const openGenerateModal = (index: number) => {
     if (!generatedQuiz) return;
+    const question = generatedQuiz.questions[index];
+    let prompt = "";
+    if (question.question) {
+      prompt += `A clear, educational diagram or illustration for this quiz question: "${question.question}".`;
+      const optionsText = `Options: A) ${question.options[0]}, B) ${question.options[1]}, C) ${question.options[2]}, D) ${question.options[3]}. The correct answer is "${question.correctAnswer}".`;
+      prompt += ` ${optionsText}`;
+      prompt += ` Simple, professional style, suitable for an online quiz.`;
+    }
     setActiveQuestionIndex(index);
-    setGeneratePrompt(generatedQuiz.questions[index].question ? `A clear, educational diagram or illustration for this quiz question: "${generatedQuiz.questions[index].question}". Simple, professional style, suitable for an online quiz.` : "");
+    setGeneratePrompt(prompt);
     setGeneratedImageUrl(null);
     setGenerateError("");
     setShowGenerateModal(true);

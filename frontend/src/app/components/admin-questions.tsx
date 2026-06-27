@@ -188,7 +188,24 @@ function QuestionModal({ quizId, question, selectedQuiz, onClose, onRefresh }: Q
               <button
                 type="button"
                 onClick={() => {
-                  setGeneratePrompt(form.text ? `A clear, educational diagram or illustration for this quiz question: "${form.text}". Simple, professional style, suitable for an online quiz.` : "");
+                  let prompt = "";
+                  if (form.text) {
+                    prompt += `A clear, educational diagram or illustration for this quiz question: "${form.text}".`;
+                    // Get the correct answer text
+                    const correctAnswerMap = {
+                      A: form.optionA,
+                      B: form.optionB,
+                      C: form.optionC,
+                      D: form.optionD,
+                    };
+                    const correctAnswerText = correctAnswerMap[form.correctOption as keyof typeof correctAnswerMap];
+                    const optionsText = `Options: A) ${form.optionA}, B) ${form.optionB}, C) ${form.optionC}, D) ${form.optionD}. The correct answer is "${correctAnswerText}".`;
+                    prompt += ` ${optionsText}`;
+                    prompt += ` Simple, professional style, suitable for an online quiz.`;
+                    console.log("Generated prompt:", prompt);
+                    console.log("Form state:", form);
+                  }
+                  setGeneratePrompt(prompt);
                   setGeneratedImageUrl(null);
                   setGenerateError("");
                   setShowGenerateModal(true);
@@ -381,7 +398,7 @@ function QuestionModal({ quizId, question, selectedQuiz, onClose, onRefresh }: Q
                         className="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
                       >
                         {generatingImage && <Loader2 size={14} className="animate-spin" />}
-                        {generatingImage ? "Generating image with Gemini AI…" : "Generate"}
+                        {generatingImage ? "Generating image…" : "Generate"}
                       </button>
                     ) : (
                       <>
@@ -392,7 +409,7 @@ function QuestionModal({ quizId, question, selectedQuiz, onClose, onRefresh }: Q
                           className="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
                         >
                           {generatingImage && <Loader2 size={14} className="animate-spin" />}
-                          {generatingImage ? "Regenerating with Gemini AI…" : "Regenerate"}
+                          {generatingImage ? "Regenerating…" : "Regenerate"}
                         </button>
                         <button
                           type="button"
