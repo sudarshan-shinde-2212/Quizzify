@@ -417,6 +417,8 @@ export async function apiAdminCreateQuiz(data: {
   negativeMarks?: number;
   isPublished?: boolean;
   visibility?: 'public' | 'private';
+  category?: string;
+  difficulty?: string;
 }): Promise<Quiz> {
   return request<Quiz>('/admin/quizzes', {
     method: 'POST',

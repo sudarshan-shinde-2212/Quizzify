@@ -17,6 +17,14 @@ export class CreateQuizDto {
   @IsString()
   instructions?: string;
 
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsString()
+  difficulty?: string;
+
   @IsDateString()
   startDate: string;
 

@@ -22,6 +22,12 @@ export class Quiz {
   @Column({ nullable: true, type: 'text' })
   instructions: string;
 
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  category: string;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  difficulty: string;
+
   @Column({ type: 'timestamptz' })
   startDate: Date;
 

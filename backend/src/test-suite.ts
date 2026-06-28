@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-import { GenerateQuizFromFileDto, FileType, QuestionType } from './ai-quiz/dto/generate-quiz-from-file.dto';
+import { GenerateQuizFromFileDto, FileType } from './ai-quiz/dto/generate-quiz-from-file.dto';
 import { ParserService } from './ai-quiz/parser.service';
 import { WhisperService } from './ai-quiz/whisper.service';
 import { AiContentGeneratorService } from './ai-quiz/ai-content-generator.service';
@@ -49,7 +49,6 @@ async function runTests() {
       fileType: 'document',
       difficulty: 'Medium',
       questionCount: 10,
-      questionType: 'MCQ',
     };
     const dtoInstance = plainToInstance(GenerateQuizFromFileDto, validData);
     const errors = await validate(dtoInstance);
@@ -60,7 +59,6 @@ async function runTests() {
       fileType: 'document',
       difficulty: 'Medium',
       questionCount: 105, // Max is 100
-      questionType: 'MCQ',
     };
     const dtoInstanceCount = plainToInstance(GenerateQuizFromFileDto, invalidDataCount);
     const errorsCount = await validate(dtoInstanceCount);
@@ -71,7 +69,6 @@ async function runTests() {
       fileType: 'invalid_type',
       difficulty: 'Medium',
       questionCount: 5,
-      questionType: 'MCQ',
     };
     const dtoInstanceType = plainToInstance(GenerateQuizFromFileDto, invalidDataType);
     const errorsType = await validate(dtoInstanceType);

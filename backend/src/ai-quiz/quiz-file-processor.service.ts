@@ -17,7 +17,6 @@ export interface GenerateQuizFromFileParams {
   fileType: FileType;
   difficulty: string;
   questionCount: number;
-  questionType: string;
   language?: string;
 }
 
@@ -31,7 +30,7 @@ export class QuizFileProcessorService {
   ) {}
 
   async generateQuizFromFile(params: GenerateQuizFromFileParams) {
-    const { filePath, fileType, difficulty, questionCount, questionType, language } = params;
+    const { filePath, fileType, difficulty, questionCount, language } = params;
     const tempDir = path.dirname(filePath);
     let extractedText = '';
     let tempFilesToCleanup: string[] = [];
@@ -65,7 +64,6 @@ export class QuizFileProcessorService {
         text: extractedText,
         difficulty,
         questionCount,
-        questionType,
         language: language || "English",
       });
 

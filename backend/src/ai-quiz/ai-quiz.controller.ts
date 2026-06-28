@@ -207,7 +207,6 @@ export class AiQuizController implements OnModuleInit {
       fileType: dto.fileType,
       difficulty: dto.difficulty,
       questionCount: dto.questionCount,
-      questionType: dto.questionType,
       language: dto.language,
     });
   }

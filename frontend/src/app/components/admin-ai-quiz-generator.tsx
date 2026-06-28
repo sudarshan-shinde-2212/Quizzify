@@ -35,7 +35,6 @@ export function AdminAiQuizGenerator() {
   const [topic, setTopic] = useState("");
   const [category, setCategory] = useState("Programming");
   const [difficulty, setDifficulty] = useState("Medium");
-  const [questionType, setQuestionType] = useState("MCQ");
   const [questionCount, setQuestionCount] = useState<number>(5);
   const [totalMarks, setTotalMarks] = useState<number>(10);
   const [negativeMarks, setNegativeMarks] = useState<number>(0);
@@ -153,6 +152,8 @@ export function AdminAiQuizGenerator() {
         questionCount: generatedQuiz.questions.length,
         negativeMarks,
         visibility,
+        category,
+        difficulty,
       });
 
       for (let i = 0; i < generatedQuiz.questions.length; i++) {
@@ -561,8 +562,6 @@ export function AdminAiQuizGenerator() {
                   setNumQuestions={setQuestionCount}
                   difficulty={difficulty}
                   setDifficulty={setDifficulty}
-                  questionType={questionType}
-                  setQuestionType={setQuestionType}
                   onFileStateChange={(hasFile, isGen) => {
                     setFileHasFile(hasFile);
                     setFileIsGenerating(isGen);
@@ -633,20 +632,6 @@ export function AdminAiQuizGenerator() {
                   <option>Medium</option>
                   <option>Hard</option>
                   <option>Mixed</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Question Type <span className="text-red-500">*</span></label>
-                <select
-                  value={questionType}
-                  onChange={(e) => setQuestionType(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
-                >
-                  <option value="MCQ">MCQ</option>
-                  <option value="True/False">True/False</option>
-                  <option value="Fill in the Blanks">Fill in the Blanks</option>
-                  <option value="Mixed">Mixed</option>
                 </select>
               </div>
 

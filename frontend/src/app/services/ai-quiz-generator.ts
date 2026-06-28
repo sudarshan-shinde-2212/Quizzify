@@ -24,14 +24,12 @@ export type GeneratedQuiz = z.infer<typeof GeneratedQuizSchema>;
 
 export type FileType = "video" | "audio" | "document";
 export type Difficulty = "Easy" | "Medium" | "Hard" | "Mixed";
-export type QuestionType = "MCQ" | "True/False" | "Fill in the Blanks" | "Mixed";
 
 export interface AIQuizGeneratorParams {
   file: File;
   fileType: FileType;
   numQuestions: number;
   difficulty: Difficulty;
-  questionType: QuestionType;
   controller?: AbortController;
   onProgress?: (stage: string, progress: number) => void;
 }
@@ -43,7 +41,6 @@ export class AIQuizGeneratorService {
       fileType,
       numQuestions,
       difficulty,
-      questionType,
       controller,
       onProgress,
     } = params;
@@ -55,7 +52,6 @@ export class AIQuizGeneratorService {
     formData.append("fileType", fileType);
     formData.append("questionCount", numQuestions.toString());
     formData.append("difficulty", difficulty);
-    formData.append("questionType", questionType);
 
     try {
       const token = getToken();

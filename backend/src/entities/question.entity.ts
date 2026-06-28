@@ -44,6 +44,9 @@ export class Question {
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 0, nullable: true })
   negativeMarks: number;
 
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  difficulty: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

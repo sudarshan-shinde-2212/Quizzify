@@ -39,16 +39,23 @@ export class ParserService {
   private async parsePdf(filePath: string): Promise<string> {
     const dataBuffer = fs.readFileSync(filePath);
     
-    const pdfModule = require('pdf-parse');
-    const pdf = pdfModule.default || pdfModule;
+    const { PDFParse } = require('pdf-parse');
+    const parser = new PDFParse({ data: dataBuffer });
     
-    const data = await pdf(dataBuffer);
-    
-    if (data.numpages > 15) {
-      throw new BadRequestException('PDF files are limited to a maximum of 15 pages.');
+    try {
+      const info = await parser.getInfo();
+      
+      if (info.total > 15) {
+        throw new BadRequestException('PDF files are limited to a maximum of 15 pages.');
+      }
+      
+      const data = await parser.getText();
+      return data.text;
+    } finally {
+      if (parser && typeof parser.destroy === 'function') {
+        await parser.destroy();
+      }
     }
-    
-    return data.text;
   }
 
   private async parseDocx(filePath: string): Promise<string> {

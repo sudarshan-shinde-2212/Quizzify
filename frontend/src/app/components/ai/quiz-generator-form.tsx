@@ -40,7 +40,6 @@ export const FILE_UPLOAD_CONFIGS: Record<FileType, FileUploadConfig> = {
 };
 
 const DIFFICULTY_OPTIONS = ["Easy", "Medium", "Hard", "Mixed"] as const;
-const QUESTION_TYPE_OPTIONS = ["MCQ", "True/False", "Fill in the Blanks", "Mixed"] as const;
 const QUESTION_COUNT_OPTIONS = [5, 10, 15, 20, 25, 50, 100] as const;
 
 interface QuizGeneratorFormProps {
@@ -52,8 +51,6 @@ interface QuizGeneratorFormProps {
   setNumQuestions: (n: number) => void;
   difficulty: string;
   setDifficulty: (d: string) => void;
-  questionType: string;
-  setQuestionType: (t: string) => void;
   onFileStateChange?: (hasFile: boolean, isGenerating: boolean) => void;
 }
 
@@ -72,8 +69,6 @@ export function QuizGeneratorForm({
   setNumQuestions,
   difficulty,
   setDifficulty,
-  questionType,
-  setQuestionType,
   onFileStateChange,
 }: QuizGeneratorFormProps) {
   const uploadConfig = FILE_UPLOAD_CONFIGS[fileType];
@@ -143,7 +138,6 @@ export function QuizGeneratorForm({
         fileType: fileType as ServiceFileType,
         numQuestions,
         difficulty: difficulty as any,
-        questionType: questionType as any,
         controller,
         onProgress: (stage, progress) => {
           setGenerationState(prev => ({

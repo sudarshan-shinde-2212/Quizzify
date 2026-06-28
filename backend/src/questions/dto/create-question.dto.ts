@@ -48,4 +48,8 @@ export class CreateQuestionDto {
   @Min(0)
   @Max(99.99)
   negativeMarks?: number;
+
+  @IsOptional()
+  @IsString()
+  difficulty?: string;
 }

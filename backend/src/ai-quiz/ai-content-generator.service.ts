@@ -26,7 +26,6 @@ export interface QuizGenerationParams {
   text: string;
   difficulty: string;
   questionCount: number;
-  questionType: string;
   language: string;
 }
 
@@ -98,7 +97,7 @@ ${chunk}`;
   }
 
   async generateQuiz(params: QuizGenerationParams): Promise<GeneratedQuiz> {
-    const { text, difficulty, questionCount, questionType, language } = params;
+    const { text, difficulty, questionCount, language } = params;
     const startTime = Date.now();
 
     // 1. Process large text using chunking and summarization
@@ -108,7 +107,7 @@ ${chunk}`;
 
 Language: ${language}
 Difficulty: ${difficulty}
-Question Type: ${questionType} (Make sure all questions are of this type. If "True/False", each question must have exactly 2 options: "True" and "False".)
+Question Type: MCQ (Multiple Choice with exactly 4 options per question)
 Number of Questions: ${questionCount}
 
 Content:
@@ -166,7 +165,7 @@ Return ONLY valid JSON matching this schema exactly, with NO markdown formatting
 
         // Log successful generation
         this.logAiGeneration({
-          type: `file-${questionType}`,
+          type: 'file-MCQ',
           topicOrLength: `Text length: ${text.length}`,
           latencyMs: Date.now() - startTime,
           retries: attempt - 1,
@@ -182,7 +181,7 @@ Return ONLY valid JSON matching this schema exactly, with NO markdown formatting
 
     // Log failed generation
     this.logAiGeneration({
-      type: `file-${questionType}`,
+      type: 'file-MCQ',
       topicOrLength: `Text length: ${text.length}`,
       latencyMs: Date.now() - startTime,
       retries: 2,
