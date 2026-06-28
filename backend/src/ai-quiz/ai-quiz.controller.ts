@@ -185,6 +185,22 @@ export class AiQuizController implements OnModuleInit {
       } catch {}
       throw new BadRequestException('File extension does not match declared file type');
     }
+
+    let actualMaxFileSizeMB = 50; // default for unknown doc
+    if (ext === '.docx') actualMaxFileSizeMB = 15;
+    else if (ext === '.txt') actualMaxFileSizeMB = 5;
+    else if (ext === '.pdf') actualMaxFileSizeMB = 15;
+    else if (['.mp4', '.mov', '.avi', '.mkv', '.webm'].includes(ext)) actualMaxFileSizeMB = 250;
+    else if (['.mp3', '.wav', '.m4a', '.aac', '.ogg'].includes(ext)) actualMaxFileSizeMB = 100;
+    
+    const maxFileSizeBytes = actualMaxFileSizeMB * 1024 * 1024;
+    
+    if (file.size > maxFileSizeBytes) {
+      try {
+        await fs.promises.unlink(file.path);
+      } catch {}
+      throw new BadRequestException(`File too large. Maximum size for ${ext.toUpperCase().replace('.', '')} is ${actualMaxFileSizeMB}MB.`);
+    }
     
     return this.quizFileProcessorService.generateQuizFromFile({
       filePath: file.path,

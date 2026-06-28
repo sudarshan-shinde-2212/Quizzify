@@ -1,5 +1,5 @@
 
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
@@ -39,6 +39,11 @@ export class QuizFileProcessorService {
     try {
       if (fileType === 'video' || fileType === 'audio') {
         console.log(`Processing ${fileType} file...`);
+        const duration = await this.ffmpegService.getMediaDuration(filePath);
+        if (duration > 300) {
+          throw new BadRequestException(`${fileType === 'video' ? 'Video' : 'Audio'} files must not exceed 5 minutes.`);
+        }
+        
         const wavPath = await this.ffmpegService.extractAudioFromVideo(filePath, tempDir);
         tempFilesToCleanup.push(wavPath);
         extractedText = await this.whisperService.transcribeAudio(wavPath, tempDir);
@@ -48,7 +53,11 @@ export class QuizFileProcessorService {
       }
 
       if (!extractedText || extractedText.trim().length === 0) {
-        throw new InternalServerErrorException('No content extracted from the file');
+        if (fileType === 'document' && filePath.toLowerCase().endsWith('.pdf')) {
+          throw new BadRequestException('This PDF appears to contain scanned images instead of selectable text. Please upload a text-based PDF or use OCR before generating a quiz.');
+        } else {
+          throw new BadRequestException('This file contains no readable text and cannot be used to generate a quiz.');
+        }
       }
 
       console.log('Content extracted, generating quiz...');

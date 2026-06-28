@@ -1,4 +1,5 @@
 import React, { useRef, useState, useCallback } from "react";
+import { PDFDocument } from 'pdf-lib';
 import {
   Upload,
   X,
@@ -77,13 +78,15 @@ export function FileUpload({
   fileType,
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const validateFile = useCallback((file: File): string | null => {
+  const validateFile = useCallback(async (file: File): Promise<string | null> => {
     let isValidMimeType = acceptedMimeTypes.includes(file.type);
+    const ext = file.name.split(".").pop()?.toLowerCase();
+
     if (!isValidMimeType && !file.type) {
-      const ext = file.name.split(".").pop()?.toLowerCase();
       isValidMimeType = ext ? acceptedFormats.includes(ext) : false;
     }
 
@@ -91,27 +94,70 @@ export function FileUpload({
       return `Invalid file type. Please upload one of: ${acceptedFormats.join(", ")}`;
     }
 
-    const fileExtension = file.name.split(".").pop()?.toLowerCase();
-    if (!fileExtension || !acceptedFormats.includes(fileExtension)) {
+    if (!ext || !acceptedFormats.includes(ext)) {
       return `Invalid file extension. Please upload one of: ${acceptedFormats.join(", ")}`;
     }
 
-    const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024;
+    // Dynamic file size limits based on type/ext
+    let actualMaxFileSizeMB = maxFileSizeMB;
+    if (ext === 'docx') actualMaxFileSizeMB = 15;
+    else if (ext === 'txt') actualMaxFileSizeMB = 5;
+    else if (ext === 'pdf') actualMaxFileSizeMB = 15;
+
+    const maxFileSizeBytes = actualMaxFileSizeMB * 1024 * 1024;
     if (file.size > maxFileSizeBytes) {
-      return `File too large. Maximum size is ${maxFileSizeMB}MB.`;
+      return `File too large. Maximum size for ${ext.toUpperCase()} is ${actualMaxFileSizeMB}MB.`;
     }
 
     if (file.size === 0) {
       return "File is empty. Please upload a valid file.";
     }
 
+    // PDF 15 pages validation
+    if (ext === 'pdf') {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+        if (pdfDoc.getPageCount() > 15) {
+          return "PDF files are limited to a maximum of 15 pages.";
+        }
+      } catch (err) {
+        return "Failed to parse PDF file. It might be corrupted.";
+      }
+    }
+
+    // Media duration validation (5 minutes = 300 seconds)
+    if (fileType === 'video' || fileType === 'audio') {
+      try {
+        const duration = await new Promise<number>((resolve, reject) => {
+          const media = document.createElement(fileType);
+          media.preload = 'metadata';
+          media.onloadedmetadata = () => {
+            URL.revokeObjectURL(media.src);
+            resolve(media.duration);
+          };
+          media.onerror = () => reject(new Error("Failed to load media"));
+          media.src = URL.createObjectURL(file);
+        });
+
+        if (duration > 300) {
+          return `${fileType === 'video' ? 'Video' : 'Audio'} files must not exceed 5 minutes.`;
+        }
+      } catch (err) {
+        return `Failed to read ${fileType} duration. It might be corrupted.`;
+      }
+    }
+
     return null;
-  }, [acceptedFormats, acceptedMimeTypes, maxFileSizeMB]);
+  }, [acceptedFormats, acceptedMimeTypes, maxFileSizeMB, fileType]);
 
-  const handleSelectFile = useCallback((file: File) => {
-    if (isUploading || isProcessing) return;
+  const handleSelectFile = useCallback(async (file: File) => {
+    if (isUploading || isProcessing || isValidating) return;
 
-    const validationError = validateFile(file);
+    setIsValidating(true);
+    const validationError = await validateFile(file);
+    setIsValidating(false);
+
     if (validationError) {
       toast.error(validationError, {
         description: (
@@ -122,7 +168,7 @@ export function FileUpload({
                 <li key={f}>{f.toUpperCase()}</li>
               ))}
             </ul>
-            <p className="mt-2">Maximum size: {maxFileSizeMB} MB</p>
+            <p className="mt-2">Maximum size limit depends on file type.</p>
           </div>
         ),
       });
@@ -135,7 +181,7 @@ export function FileUpload({
 
     abortControllerRef.current = new AbortController();
     onFileSelect(file, abortControllerRef.current);
-  }, [validateFile, isUploading, isProcessing, onFileSelect, acceptedFormats, maxFileSizeMB]);
+  }, [validateFile, isUploading, isProcessing, isValidating, onFileSelect, acceptedFormats]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -149,31 +195,31 @@ export function FileUpload({
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    if (!isUploading && !isProcessing && e.dataTransfer.files.length > 0) {
+    if (!isUploading && !isProcessing && !isValidating && e.dataTransfer.files.length > 0) {
       if (e.dataTransfer.files.length > maxFiles) {
         toast.error(`Please upload no more than ${maxFiles} file(s)`);
         return;
       }
       handleSelectFile(e.dataTransfer.files[0]);
     }
-  }, [isUploading, isProcessing, maxFiles, handleSelectFile]);
+  }, [isUploading, isProcessing, isValidating, maxFiles, handleSelectFile]);
 
   const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!isUploading && !isProcessing && e.target.files && e.target.files[0]) {
+    if (!isUploading && !isProcessing && !isValidating && e.target.files && e.target.files[0]) {
       if (e.target.files.length > maxFiles) {
         toast.error(`Please upload no more than ${maxFiles} file(s)`);
         return;
       }
       handleSelectFile(e.target.files[0]);
     }
-  }, [isUploading, isProcessing, maxFiles, handleSelectFile]);
+  }, [isUploading, isProcessing, isValidating, maxFiles, handleSelectFile]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (!isUploading && !isProcessing && (e.key === "Enter" || e.key === " ")) {
+    if (!isUploading && !isProcessing && !isValidating && (e.key === "Enter" || e.key === " ")) {
       e.preventDefault();
       fileInputRef.current?.click();
     }
-  }, [isUploading, isProcessing]);
+  }, [isUploading, isProcessing, isValidating]);
 
   const handleCancel = useCallback(() => {
     if (isUploading || isProcessing) {
@@ -198,17 +244,17 @@ export function FileUpload({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => !isUploading && !isProcessing && fileInputRef.current?.click()}
+        onClick={() => !isUploading && !isProcessing && !isValidating && fileInputRef.current?.click()}
         onKeyDown={handleKeyDown}
         tabIndex={0}
         role="button"
         aria-label="Upload file"
         aria-describedby="supported-formats"
-        aria-disabled={isUploading || isProcessing}
+        aria-disabled={isUploading || isProcessing || isValidating}
         className={`border-2 border-dashed rounded-xl p-5 md:p-8 text-center cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
           isDragging
             ? "border-purple-500 bg-purple-50/50 scale-105 shadow-lg"
-            : isUploading || isProcessing
+            : isUploading || isProcessing || isValidating
             ? "border-gray-200 bg-gray-50 cursor-not-allowed"
             : "border-gray-300 hover:border-purple-400"
         }`}
@@ -219,14 +265,14 @@ export function FileUpload({
           accept={acceptedMimeTypes.join(",")}
           className="hidden"
           onChange={handleFileInputChange}
-          disabled={isUploading || isProcessing}
+          disabled={isUploading || isProcessing || isValidating}
         />
 
-        {isUploading || isProcessing ? (
+        {isUploading || isProcessing || isValidating ? (
           <div className="flex flex-col items-center gap-2">
             <Loader2 size={36} className="animate-spin text-purple-600" />
             <p className="text-sm font-medium text-gray-700">
-              {isProcessing ? processingStage : "Uploading..."}
+              {isValidating ? "Validating file..." : isProcessing ? processingStage : "Uploading..."}
             </p>
             {uploadProgress > 0 && (
               <div className="w-full max-w-xs">

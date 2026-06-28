@@ -9,6 +9,45 @@ const unlink = promisify(fs.unlink);
 
 @Injectable()
 export class FfmpegService {
+  async getMediaDuration(filePath: string): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const ffprobe = spawn('ffprobe', [
+        '-v', 'error',
+        '-show_entries', 'format=duration',
+        '-of', 'default=noprint_wrappers=1:nokey=1',
+        filePath
+      ]);
+
+      let stdout = '';
+      let stderr = '';
+
+      ffprobe.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      ffprobe.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      ffprobe.on('close', (code) => {
+        if (code === 0) {
+          const duration = parseFloat(stdout.trim());
+          if (!isNaN(duration)) {
+            resolve(duration);
+          } else {
+            reject(new InternalServerErrorException('Failed to parse media duration'));
+          }
+        } else {
+          console.error('ffprobe error:', stderr);
+          reject(new InternalServerErrorException('Failed to get media duration. File might be corrupted.'));
+        }
+      });
+
+      ffprobe.on('error', (error) => {
+        reject(new InternalServerErrorException(`ffprobe execution error: ${error.message}`));
+      });
+    });
+  }
   async extractAudioFromVideo(videoPath: string, outputDir: string): Promise<string> {
     const outputWavPath = path.join(outputDir, `${Date.now()}-extracted.wav`);
 

@@ -609,15 +609,15 @@ export function AdminAiQuizGenerator() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Number of Questions <span className="text-red-500">*</span>
                 </label>
-                <select
+                <input
+                  type="number"
+                  min="1"
+                  required
                   value={questionCount}
                   onChange={(e) => setQuestionCount(Number(e.target.value))}
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
-                >
-                  {[5, 10, 15, 20, 25, 50, 100].map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+                  placeholder="e.g. 5"
+                />
               </div>
             </div>
 

@@ -1,12 +1,11 @@
 
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as mammoth from 'mammoth';
 import * as officeparser from 'officeparser';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { PDFParse } = require('pdf-parse');
+// pdf-parse is imported locally in parsePdf
 
 @Injectable()
 export class ParserService {
@@ -29,6 +28,9 @@ export class ParserService {
           throw new InternalServerErrorException(`Unsupported document extension: ${ext}`);
       }
     } catch (error: any) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       console.error('Document parsing error:', error);
       throw new InternalServerErrorException(`Failed to parse document (${ext}): ${error.message || error}`);
     }
@@ -36,10 +38,17 @@ export class ParserService {
 
   private async parsePdf(filePath: string): Promise<string> {
     const dataBuffer = fs.readFileSync(filePath);
-    const uint8Array = new Uint8Array(dataBuffer.buffer, dataBuffer.byteOffset, dataBuffer.byteLength);
-    const parser = new PDFParse(uint8Array);
-    const result = await parser.getText();
-    return result.text;
+    
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pdf = require('pdf-parse');
+    
+    const data = await pdf(dataBuffer);
+    
+    if (data.numpages > 15) {
+      throw new BadRequestException('PDF files are limited to a maximum of 15 pages.');
+    }
+    
+    return data.text;
   }
 
   private async parseDocx(filePath: string): Promise<string> {

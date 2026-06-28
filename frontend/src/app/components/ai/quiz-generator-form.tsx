@@ -18,7 +18,7 @@ export const FILE_UPLOAD_CONFIGS: Record<FileType, FileUploadConfig> = {
   video: {
     acceptedFormats: ["mp4", "mov", "avi", "mkv", "webm"],
     acceptedMimeTypes: ["video/mp4", "video/quicktime", "video/x-msvideo", "video/x-matroska", "video/webm"],
-    maxFileSizeMB: 500,
+    maxFileSizeMB: 250,
   },
   audio: {
     acceptedFormats: ["mp3", "wav", "m4a", "aac", "ogg"],
@@ -35,7 +35,7 @@ export const FILE_UPLOAD_CONFIGS: Record<FileType, FileUploadConfig> = {
       "application/vnd.ms-powerpoint",
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ],
-    maxFileSizeMB: 50,
+    maxFileSizeMB: 15,
   },
 };
 
