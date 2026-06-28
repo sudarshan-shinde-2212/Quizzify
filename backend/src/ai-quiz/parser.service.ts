@@ -39,8 +39,8 @@ export class ParserService {
   private async parsePdf(filePath: string): Promise<string> {
     const dataBuffer = fs.readFileSync(filePath);
     
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const pdf = require('pdf-parse');
+    const pdfModule = require('pdf-parse');
+    const pdf = pdfModule.default || pdfModule;
     
     const data = await pdf(dataBuffer);
     
