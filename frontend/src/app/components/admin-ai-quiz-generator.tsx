@@ -575,7 +575,8 @@ export function AdminAiQuizGenerator() {
           <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm space-y-4">
             <h2 className="text-base font-bold text-gray-900">Quiz Settings</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Row 1: Category | Total Marks | Number of Questions */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
                 <input
@@ -620,7 +621,8 @@ export function AdminAiQuizGenerator() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Row 2: Difficulty | Negative Marks Per Wrong Answer | Duration (min) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Difficulty <span className="text-red-500">*</span></label>
                 <select
@@ -653,22 +655,6 @@ export function AdminAiQuizGenerator() {
                   placeholder="e.g. 0.25"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Quiz Visibility <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={visibility}
-                  onChange={(e) => setVisibility(e.target.value as "public" | "private")}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
-                >
-                  <option value="private">Private (No leaderboard)</option>
-                  <option value="public">Public (Show leaderboard)</option>
-                </select>
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -686,7 +672,22 @@ export function AdminAiQuizGenerator() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Row 3: Quiz Visibility | Start Date | End Date */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Quiz Visibility <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={visibility}
+                  onChange={(e) => setVisibility(e.target.value as "public" | "private")}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
+                >
+                  <option value="private">Private (No leaderboard)</option>
+                  <option value="public">Public (Show leaderboard)</option>
+                </select>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Start Date <span className="text-red-500">*</span>
@@ -699,7 +700,7 @@ export function AdminAiQuizGenerator() {
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   End Date <span className="text-red-500">*</span>
