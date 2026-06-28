@@ -1,12 +1,15 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Groq from 'groq-sdk';
 import { QuizzesService } from '../quizzes/quizzes.service';
 import { QuestionsService } from '../questions/questions.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class AiQuizService {
   private groq: Groq;
+  private readonly logger = new Logger(AiQuizService.name);
 
   constructor(
     private configService: ConfigService,
@@ -16,54 +19,112 @@ export class AiQuizService {
     this.groq = new Groq({ apiKey: this.configService.get<string>('GROQ_API_KEY') });
   }
 
+  // Log AI generation details to NestJS Logger (stdout) for production log aggregators
+  private logAiGeneration(details: {
+    type: string;
+    topicOrLength: string;
+    latencyMs: number;
+    tokensUsed?: number;
+    retries: number;
+    success: boolean;
+    error?: string;
+  }) {
+    this.logger.log(
+      `[AI_GENERATION_METRICS] ${JSON.stringify({
+        timestamp: new Date().toISOString(),
+        ...details,
+      })}`
+    );
+  }
+
   async generateQuiz(topic: string, category: string, difficulty: string, questionCount: number) {
+    const startTime = Date.now();
     const prompt = `Generate a multiple choice quiz about "${topic}".
 Category: ${category}
 Difficulty: ${difficulty}
 Number of questions: ${questionCount}
 
-Return ONLY valid JSON matching this schema exactly, with no markdown formatting or extra text:
+Return ONLY valid JSON matching this schema exactly, with no markdown formatting or extra text. Make sure to generate EXACTLY ${questionCount} questions. Ensure all options are distinct and there are no duplicate questions.
 {
   "title": "A short engaging title for the quiz",
-  "description": "A brief description",
+  "description": "A brief description of what this quiz covers",
   "questions": [
     {
       "question": "The question text?",
       "options": ["First option", "Second option", "Third option", "Fourth option"],
-      "correctAnswer": "The exact string of the correct option",
-      "marks": 1
+      "correctAnswer": "The exact string of the correct option (must match one of the options exactly)",
+      "explanation": "A brief explanation why this answer is correct"
     }
   ]
 }`;
 
-    let jsonResponse: any;
-    for (let attempts = 0; attempts < 3; attempts++) {
+    let lastError: any = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         const response = await this.groq.chat.completions.create({
           messages: [{ role: 'user', content: prompt }],
           model: 'llama-3.3-70b-versatile',
-          temperature: 0.2,
+          temperature: 0.3,
           response_format: { type: "json_object" },
         });
 
         const content = response.choices[0]?.message?.content || '{}';
-        jsonResponse = JSON.parse(content);
+        const jsonResponse = JSON.parse(content);
 
         // Validate basic structure and EXACT question count
-        if (
-          jsonResponse.title && 
-          Array.isArray(jsonResponse.questions) && 
-          jsonResponse.questions.length === Number(questionCount)
-        ) {
-          return jsonResponse;
-        } else if (jsonResponse.questions) {
-          console.warn(`Attempt ${attempts}: AI returned ${jsonResponse.questions.length} questions, expected ${questionCount}. Retrying...`);
+        if (!jsonResponse.title || !jsonResponse.description || !Array.isArray(jsonResponse.questions)) {
+          throw new Error('AI response is missing title, description, or questions array.');
         }
-      } catch (e) {
-        console.error('Groq parsing error on attempt ' + attempts, e);
+
+        if (jsonResponse.questions.length !== Number(questionCount)) {
+          throw new Error(`AI generated ${jsonResponse.questions.length} questions, expected exactly ${questionCount}.`);
+        }
+
+        // Validate that correct answer matches one of the options exactly
+        for (let i = 0; i < jsonResponse.questions.length; i++) {
+          const q = jsonResponse.questions[i];
+          if (!q.options || q.options.length < 2) {
+            throw new Error(`Question ${i + 1} does not have at least 2 options.`);
+          }
+          if (!q.options.includes(q.correctAnswer)) {
+            const matched = q.options.find((opt: string) => opt.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase());
+            if (matched) {
+              q.correctAnswer = matched;
+            } else {
+              throw new Error(`Question ${i + 1} correct answer "${q.correctAnswer}" does not match any of the options.`);
+            }
+          }
+        }
+
+        // Log successful generation
+        this.logAiGeneration({
+          type: 'topic',
+          topicOrLength: topic,
+          latencyMs: Date.now() - startTime,
+          retries: attempt - 1,
+          success: true,
+        });
+
+        return jsonResponse;
+      } catch (e: any) {
+        lastError = e;
+        console.warn(`Topic quiz generation attempt ${attempt} failed:`, e.message || e);
       }
     }
-    throw new InternalServerErrorException(`Failed to generate exactly ${questionCount} questions from AI after multiple attempts.`);
+
+    // Log failed generation
+    this.logAiGeneration({
+      type: 'topic',
+      topicOrLength: topic,
+      latencyMs: Date.now() - startTime,
+      retries: 2,
+      success: false,
+      error: lastError?.message || String(lastError),
+    });
+
+    throw new InternalServerErrorException(
+      `Failed to generate exactly ${questionCount} questions from AI after 3 attempts. Error: ${lastError?.message || lastError}`
+    );
   }
 
   async saveAiQuiz(adminId: string, quizData: any) {

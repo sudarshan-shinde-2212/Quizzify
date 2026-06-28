@@ -2,22 +2,26 @@
 
 import { useState, useRef } from "react";
 import { AdminLayout } from "./admin-sidebar";
-import { apiAdminGenerateAiQuiz, apiAdminCreateQuiz, apiAdminCreateQuestion, apiAdminGenerateAiImage } from "./api";
-import { Loader2, Plus, Trash2, Save, RefreshCw, Sparkles, ChevronRight, Edit3, Image, Upload, Trash2 as Remove, X } from "lucide-react";
+import { apiAdminGenerateAiQuiz, apiAdminCreateQuiz, apiAdminCreateQuestion, apiAdminGenerateAiImage, apiAdminUploadImage } from "./api";
+import { Loader2, Plus, Trash2, Save, RefreshCw, Sparkles, ChevronRight, Edit3, Image, Upload, Trash2 as Remove, X, Video, Mic, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
+import { QuizGeneratorForm, FileType } from "./ai/quiz-generator-form";
+import { toast } from "sonner";
 
 type WorkflowStep = "configure" | "preview" | "save";
+type GeneratorType = "topic" | FileType;
 
-interface GeneratedQuestion {
+export interface GeneratedQuestion {
   question: string;
   imageUrl?: string;
   options: string[];
   correctAnswer: string;
+  explanation?: string;
   marks?: number;
 }
 
-interface GeneratedQuiz {
+export interface GeneratedQuiz {
   title: string;
   description: string;
   questions: GeneratedQuestion[];
@@ -27,9 +31,11 @@ export function AdminAiQuizGenerator() {
   const router = useRouter();
 
   // ── Step 1: Configure ────────────────────────────────────────────────────
+  const [generatorType, setGeneratorType] = useState<GeneratorType>("topic");
   const [topic, setTopic] = useState("");
   const [category, setCategory] = useState("Programming");
   const [difficulty, setDifficulty] = useState("Medium");
+  const [questionType, setQuestionType] = useState("MCQ");
   const [questionCount, setQuestionCount] = useState<number>(5);
   const [totalMarks, setTotalMarks] = useState<number>(10);
   const [negativeMarks, setNegativeMarks] = useState<number>(0);
@@ -43,6 +49,11 @@ export function AdminAiQuizGenerator() {
   const [error, setError] = useState("");
   const [generatedQuiz, setGeneratedQuiz] = useState<GeneratedQuiz | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // File generator state (synced from QuizGeneratorForm)
+  const [fileHasFile, setFileHasFile] = useState(false);
+  const [fileIsGenerating, setFileIsGenerating] = useState(false);
+  
   // Image generation state (per question modal)
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number | null>(null);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
@@ -50,6 +61,10 @@ export function AdminAiQuizGenerator() {
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [generateError, setGenerateError] = useState("");
   const [generatingImage, setGeneratingImage] = useState(false);
+
+  // Single file input for question image upload
+  const imageFileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingImageIndex, setUploadingImageIndex] = useState<number | null>(null);
 
   // ── Total Marks Calculation ───────────────────────────────────────────────────
   const calculatePerQuestionMarks = () => {
@@ -62,7 +77,8 @@ export function AdminAiQuizGenerator() {
   // ── Step 1 → Generate ───────────────────────────────────────────────────────
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!topic.trim()) return;
+    if (loading) return; // Prevent duplicate requests
+    if (!topic.trim()) { setError("Topic is required."); return; }
     if (questionCount < 1) { setError("Number of questions must be at least 1."); return; }
 
     setLoading(true);
@@ -80,27 +96,30 @@ export function AdminAiQuizGenerator() {
 
       for (let i = 0; i < quiz.questions.length; i++) {
         const q = quiz.questions[i];
-        if (!q.options || q.options.length !== 4) {
-          throw new Error(`AI generated ${q.options?.length || 0} options for question ${i + 1}. Expected exactly 4. Please regenerate.`);
+        if (!q.options || q.options.length < 2) {
+          throw new Error(`AI generated question ${i + 1} with insufficient options. Please regenerate.`);
         }
         if (!q.correctAnswer || !q.options.includes(q.correctAnswer)) {
-          throw new Error(`AI generated an invalid correct answer for question ${i + 1}. The correct answer string must exactly match one of the 4 options. Please regenerate.`);
+          throw new Error(`AI generated an invalid correct answer for question ${i + 1}. The correct answer string must exactly match one of the options. Please regenerate.`);
         }
       }
 
-      // Clean up: remove any marks from AI output
+      // Clean up and set
       const cleaned: GeneratedQuiz = {
         ...quiz,
         questions: quiz.questions.map((q: any) => ({
           question: q.question,
           options: q.options,
           correctAnswer: q.correctAnswer,
+          explanation: q.explanation,
         })),
       };
       setGeneratedQuiz(cleaned);
       setStep("preview");
+      toast.success("Quiz generated successfully!");
     } catch (err: any) {
       setError(err.message || "Failed to generate quiz. AI might have returned invalid format.");
+      toast.error("Failed to generate quiz.");
     } finally {
       setLoading(false);
     }
@@ -115,7 +134,7 @@ export function AdminAiQuizGenerator() {
 
   // ── Save to DB ───────────────────────────────────────────────────────────────
   const handleSave = async () => {
-    if (!generatedQuiz) return;
+    if (!generatedQuiz || saving) return;
     setSaving(true);
     setError("");
 
@@ -141,10 +160,10 @@ export function AdminAiQuizGenerator() {
         const correctOptIndex = q.options.indexOf(q.correctAnswer);
         
         if (correctOptIndex === -1) {
-          throw new Error(`Q${i + 1}: The correct answer must exactly match one of the 4 options. Please fix the text.`);
+          throw new Error(`Q${i + 1}: The correct answer must exactly match one of the options. Please fix the text.`);
         }
         
-        const correctOptionLabel = (["A", "B", "C", "D"] as const)[correctOptIndex];
+        const correctOptionLabel = (["A", "B", "C", "D", "E", "F"] as const)[correctOptIndex];
 
         await apiAdminCreateQuestion(newQuiz.id, {
           text: q.question,
@@ -153,14 +172,19 @@ export function AdminAiQuizGenerator() {
           optionB: q.options[1] || "",
           optionC: q.options[2] || "",
           optionD: q.options[3] || "",
-          correctOption: correctOptionLabel,
+          correctOption: correctOptionLabel as any,
           marks: parseFloat(perQuestionMarks.toFixed(2)),
+          negativeMarks: negativeMarks || undefined,
+          difficulty: difficulty,
         });
       }
 
+      toast.success("Quiz saved and published successfully!");
+      setSaving(false);
       router.push("/admin/quizzes");
     } catch (err: any) {
       setError(err.message || "Failed to save quiz");
+      toast.error("Failed to save quiz.");
       setSaving(false);
     }
   };
@@ -176,9 +200,17 @@ export function AdminAiQuizGenerator() {
   const updateOption = (qi: number, oi: number, value: string) => {
     if (!generatedQuiz) return;
     const newQs = [...generatedQuiz.questions];
+    const oldOptionValue = newQs[qi].options[oi];
     const opts = [...newQs[qi].options];
     opts[oi] = value;
-    newQs[qi] = { ...newQs[qi], options: opts };
+    
+    // Sync correctAnswer if it matched the old option value
+    let newCorrectAnswer = newQs[qi].correctAnswer;
+    if (newQs[qi].correctAnswer === oldOptionValue) {
+      newCorrectAnswer = value;
+    }
+    
+    newQs[qi] = { ...newQs[qi], options: opts, correctAnswer: newCorrectAnswer };
     setGeneratedQuiz({ ...generatedQuiz, questions: newQs });
   };
 
@@ -194,6 +226,8 @@ export function AdminAiQuizGenerator() {
   };
 
   const [generatingImageIndex, setGeneratingImageIndex] = useState<number | null>(null);
+  const [generatingAllImages, setGeneratingAllImages] = useState(false);
+  const [generateAllProgress, setGenerateAllProgress] = useState<{ done: number; total: number } | null>(null);
 
   const handleGenerateImage = async (index: number) => {
     if (!generatedQuiz) return;
@@ -202,42 +236,86 @@ export function AdminAiQuizGenerator() {
 
     setGeneratingImageIndex(index);
     try {
-      let prompt = "";
-      if (question.question) {
-        prompt += `A clear, educational diagram or illustration for this quiz question: "${question.question}".`;
-        const optionsText = `Options: A) ${question.options[0]}, B) ${question.options[1]}, C) ${question.options[2]}, D) ${question.options[3]}. The correct answer is "${question.correctAnswer}".`;
-        prompt += ` ${optionsText}`;
-        prompt += ` Simple, professional style, suitable for an online quiz.`;
+      let prompt = `A clear, educational diagram or illustration for this quiz question: "${question.question}".`;
+      if (question.options.length > 0) {
+        prompt += ` Options: ${question.options.map((o, idx) => `${String.fromCharCode(65 + idx)}) ${o}`).join(', ')}.`;
       }
+      prompt += ` Simple, professional style, suitable for an online quiz.`;
+      
       const result = await apiAdminGenerateAiImage(prompt);
       const newQuestions = [...generatedQuiz.questions];
       newQuestions[index] = { ...newQuestions[index], imageUrl: result.imageUrl };
       setGeneratedQuiz({ ...generatedQuiz, questions: newQuestions });
+      toast.success("Image generated successfully!");
     } catch (err) {
       console.error("Failed to generate image", err);
+      toast.error("Failed to generate image.");
     } finally {
       setGeneratingImageIndex(null);
     }
   };
 
-  // File and image management
-  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const handleGenerateAllImages = async () => {
+    if (!generatedQuiz || generatingAllImages) return;
+    const questions = generatedQuiz.questions;
+    const total = questions.length;
+    setGeneratingAllImages(true);
+    setGenerateAllProgress({ done: 0, total });
 
-  const handleFileUpload = (index: number, file: File) => {
+    // Work on a mutable copy so each iteration has the latest imageUrls
+    let updatedQuestions = [...questions];
+
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      // Skip questions that already have an image or have no text
+      if (q.imageUrl || !q.question.trim()) {
+        setGenerateAllProgress({ done: i + 1, total });
+        continue;
+      }
+      try {
+        let prompt = `A clear, educational diagram or illustration for this quiz question: "${q.question}".`;
+        if (q.options.length > 0) {
+          prompt += ` Options: ${q.options.map((o, idx) => `${String.fromCharCode(65 + idx)}) ${o}`).join(', ')}.`;
+        }
+        prompt += ` Simple, professional style, suitable for an online quiz.`;
+
+        const result = await apiAdminGenerateAiImage(prompt);
+        updatedQuestions[i] = { ...updatedQuestions[i], imageUrl: result.imageUrl };
+        // Update quiz state after each image so user sees live progress
+        setGeneratedQuiz(prev => prev ? { ...prev, questions: [...updatedQuestions] } : prev);
+      } catch (err) {
+        console.error(`Failed to generate image for Q${i + 1}`, err);
+        toast.error(`Failed to generate image for Q${i + 1}. Skipping.`);
+      }
+      setGenerateAllProgress({ done: i + 1, total });
+    }
+
+    setGeneratingAllImages(false);
+    setGenerateAllProgress(null);
+    toast.success("All images generated!");
+  };
+
+  // Image Upload and Drop handlers
+  const handleFileUpload = async (index: number, file: File) => {
     if (!generatedQuiz) return;
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-      alert("Only PNG, JPG, JPEG, and WEBP files are allowed.");
+      toast.error("Only PNG, JPG, JPEG, and WEBP files are allowed.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
+
+    setUploadingImageIndex(index);
+    try {
+      const result = await apiAdminUploadImage(file);
       const newQs = [...generatedQuiz.questions];
-      newQs[index] = { ...newQs[index], imageUrl: dataUrl };
+      newQs[index] = { ...newQs[index], imageUrl: result.imageUrl };
       setGeneratedQuiz({ ...generatedQuiz, questions: newQs });
-    };
-    reader.readAsDataURL(file);
+      toast.success("Image uploaded successfully!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload image.");
+    } finally {
+      setUploadingImageIndex(null);
+    }
   };
 
   const handleDrop = (e: React.DragEvent, index: number) => {
@@ -254,23 +332,21 @@ export function AdminAiQuizGenerator() {
     }
   };
 
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
-    if (e.target.files && e.target.files.length > 0 && generatedQuiz) {
-      handleFileUpload(index, e.target.files[0]);
-    }
+  const triggerFileInput = (index: number) => {
+    setActiveQuestionIndex(index);
+    imageFileInputRef.current?.click();
   };
 
   // Modal image generation functions
   const openGenerateModal = (index: number) => {
     if (!generatedQuiz) return;
     const question = generatedQuiz.questions[index];
-    let prompt = "";
-    if (question.question) {
-      prompt += `A clear, educational diagram or illustration for this quiz question: "${question.question}".`;
-      const optionsText = `Options: A) ${question.options[0]}, B) ${question.options[1]}, C) ${question.options[2]}, D) ${question.options[3]}. The correct answer is "${question.correctAnswer}".`;
-      prompt += ` ${optionsText}`;
-      prompt += ` Simple, professional style, suitable for an online quiz.`;
+    let prompt = `A clear, educational diagram or illustration for this quiz question: "${question.question}".`;
+    if (question.options.length > 0) {
+      prompt += ` Options: ${question.options.map((o, idx) => `${String.fromCharCode(65 + idx)}) ${o}`).join(', ')}.`;
     }
+    prompt += ` Simple, professional style, suitable for an online quiz.`;
+    
     setActiveQuestionIndex(index);
     setGeneratePrompt(prompt);
     setGeneratedImageUrl(null);
@@ -326,10 +402,23 @@ export function AdminAiQuizGenerator() {
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <AdminLayout>
+      {/* Hidden file input for question image uploading */}
+      <input
+        ref={imageFileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/jpg,image/webp"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0] && activeQuestionIndex !== null) {
+            handleFileUpload(activeQuestionIndex, e.target.files[0]);
+          }
+        }}
+        className="hidden"
+      />
+
       {/* Header with breadcrumb */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
-          <button onClick={() => router.push("/admin/quizzes")} className="hover:text-black">Quizzes</button>
+          <button onClick={() => router.push("/admin/quizzes")} className="hover:text-black transition-colors">Quizzes</button>
           <ChevronRight size={12} />
           <span className="text-black font-medium">AI Quiz Generator</span>
         </div>
@@ -361,68 +450,146 @@ export function AdminAiQuizGenerator() {
 
       {/* ── Step 1: Configure ─────────────────────────────────────────────────── */}
       {step === "configure" && (
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm max-w-2xl">
-          <form onSubmit={handleGenerate} className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium text-gray-700">Topic <span className="text-red-500">*</span></label>
-                <span className="text-[10px] text-gray-400">{topic.length}/100</span>
-              </div>
-              <input
-                required
-                maxLength={100}
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="e.g. Next.js Routing, World War 2, Python Data Types"
-                className="w-full px-3 py-2.5 border rounded-lg focus:border-black outline-none"
-              />
-            </div>
+        <div className="space-y-6 max-w-4xl">
+          {/* Generator Type Selection */}
+          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+            <h2 className="text-base font-bold mb-4">Select Generator Type</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <button
+                type="button"
+                onClick={() => setGeneratorType("topic")}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  generatorType === "topic" ? "border-purple-600 bg-purple-50" : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <Sparkles className={`w-6 h-6 ${generatorType === "topic" ? "text-purple-600" : "text-gray-400"}`} />
+                  <span className="font-medium text-gray-900">AI Topic Quiz</span>
+                </div>
+                <p className="text-xs text-gray-500">Generate quiz from a text topic</p>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setGeneratorType("video")}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  generatorType === "video" ? "border-purple-600 bg-purple-50" : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <Video className={`w-6 h-6 ${generatorType === "video" ? "text-purple-600" : "text-gray-400"}`} />
+                  <span className="font-medium text-gray-900">Video Quiz</span>
+                </div>
+                <p className="text-xs text-gray-500">Generate quiz from a video file</p>
+              </button>
 
-            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setGeneratorType("audio")}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  generatorType === "audio" ? "border-purple-600 bg-purple-50" : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <Mic className={`w-6 h-6 ${generatorType === "audio" ? "text-purple-600" : "text-gray-400"}`} />
+                  <span className="font-medium text-gray-900">Audio Quiz</span>
+                </div>
+                <p className="text-xs text-gray-500">Generate quiz from an audio file</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setGeneratorType("document")}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  generatorType === "document" ? "border-purple-600 bg-purple-50" : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <FileText className={`w-6 h-6 ${generatorType === "document" ? "text-purple-600" : "text-gray-400"}`} />
+                  <span className="font-medium text-gray-900">Document Quiz</span>
+                </div>
+                <p className="text-xs text-gray-500">Generate quiz from a document file</p>
+              </button>
+            </div>
+          </div>
+
+          {/* Generator-specific content */}
+          <AnimatePresence mode="wait">
+            {generatorType === "topic" ? (
+              <motion.div
+                key="topic"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm"
+              >
+                <form onSubmit={handleGenerate} className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-medium text-gray-700">Topic <span className="text-red-500">*</span></label>
+                      <span className="text-[10px] text-gray-400">{topic.length}/100</span>
+                    </div>
+                    <input
+                      required
+                      maxLength={100}
+                      value={topic}
+                      onChange={(e) => setTopic(e.target.value)}
+                      placeholder="e.g. Next.js Routing, World War 2, Python Data Types"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
+                    />
+                  </div>
+
+                  {error && <p className="text-red-500 text-sm bg-red-50 p-2.5 rounded-lg border border-red-100">{error}</p>}
+                </form>
+              </motion.div>
+            ) : (
+              <motion.div
+                key={generatorType}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm"
+              >
+                <QuizGeneratorForm
+                  fileType={generatorType as FileType}
+                  onQuizGenerated={(quiz) => {
+                    setGeneratedQuiz(quiz);
+                    setStep("preview");
+                  }}
+                  onBack={() => setGeneratorType("topic")}
+                  numQuestions={questionCount}
+                  setNumQuestions={setQuestionCount}
+                  difficulty={difficulty}
+                  setDifficulty={setDifficulty}
+                  questionType={questionType}
+                  setQuestionType={setQuestionType}
+                  onFileStateChange={(hasFile, isGen) => {
+                    setFileHasFile(hasFile);
+                    setFileIsGenerating(isGen);
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Quiz Settings */}
+          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm space-y-4">
+            <h2 className="text-base font-bold text-gray-900">Quiz Settings</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
                 <input
                   required
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3 py-2.5 border rounded-lg focus:border-black outline-none"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
                   placeholder="e.g. Programming, Science"
                 />
               </div>
+              
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Difficulty <span className="text-red-500">*</span></label>
-                <select
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                  className="w-full px-3 py-2.5 border rounded-lg focus:border-black outline-none"
-                >
-                  <option>Easy</option>
-                  <option>Medium</option>
-                  <option>Hard</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Number of Questions <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={questionCount}
-                  onChange={(e) => setQuestionCount(Math.floor(Number(e.target.value)))}
-                  className="w-full px-3 py-2.5 border rounded-lg focus:border-black outline-none"
-                  placeholder="e.g. 10"
-                />
-                <p className="text-[10px] text-gray-400 mt-1">Any positive integer (10, 20, 50…)</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Total Marks <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Total Marks <span className="text-red-500">*</span></label>
                 <input
                   type="number"
                   min="0.5"
@@ -430,67 +597,94 @@ export function AdminAiQuizGenerator() {
                   required
                   value={totalMarks}
                   onChange={(e) => setTotalMarks(Number(e.target.value))}
-                  className="w-full px-3 py-2.5 border rounded-lg focus:border-black outline-none"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
                   placeholder="e.g. 10, 20, 50"
                 />
                 <p className="text-[10px] text-gray-400 mt-1">
                   Marks per question = {totalMarks} ÷ {questionCount} = {Number((totalMarks / questionCount).toFixed(1))}
                 </p>
               </div>
-            </div>
 
-            {/* Negative Marks field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Negative Marks Per Wrong Answer
-                <span className="ml-1 text-gray-400 font-normal text-xs">(Optional)</span>
-              </label>
-              <input
-                id="ai-quiz-negative-marks"
-                type="number"
-                min={0}
-                max={99.99}
-                step={0.01}
-                value={negativeMarks}
-                onChange={(e) => {
-                  const v = parseFloat(e.target.value);
-                  setNegativeMarks(isNaN(v) ? 0 : Math.max(0, parseFloat(v.toFixed(2))));
-                }}
-                className="w-full px-3 py-2.5 border rounded-lg focus:border-black outline-none"
-                placeholder="e.g. 0.25"
-                aria-label="Negative marks deducted per wrong answer"
-              />
-              <p className="text-[10px] text-gray-400 mt-1">
-                Marks deducted for each incorrect answer. Use 0 to disable negative marking.
-              </p>
-            </div>
-
-            {/* Date & Duration row */}
-            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Start Date <span className="text-red-500">*</span>
+                  Number of Questions <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="date"
-                  required
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2.5 border rounded-lg focus:border-black outline-none"
-                />
+                <select
+                  value={questionCount}
+                  onChange={(e) => setQuestionCount(Number(e.target.value))}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
+                >
+                  {[5, 10, 15, 20, 25, 50, 100].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Difficulty <span className="text-red-500">*</span></label>
+                <select
+                  value={difficulty}
+                  onChange={(e) => setDifficulty(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
+                >
+                  <option>Easy</option>
+                  <option>Medium</option>
+                  <option>Hard</option>
+                  <option>Mixed</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Question Type <span className="text-red-500">*</span></label>
+                <select
+                  value={questionType}
+                  onChange={(e) => setQuestionType(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
+                >
+                  <option value="MCQ">MCQ</option>
+                  <option value="True/False">True/False</option>
+                  <option value="Fill in the Blanks">Fill in the Blanks</option>
+                  <option value="Mixed">Mixed</option>
+                </select>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  End Date <span className="text-red-500">*</span>
+                  Negative Marks Per Wrong Answer
                 </label>
                 <input
-                  type="date"
-                  required
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2.5 border rounded-lg focus:border-black outline-none"
+                  type="number"
+                  min={0}
+                  max={99.99}
+                  step={0.01}
+                  value={negativeMarks}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    setNegativeMarks(isNaN(v) ? 0 : Math.max(0, parseFloat(v.toFixed(2))));
+                  }}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
+                  placeholder="e.g. 0.25"
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Quiz Visibility <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={visibility}
+                  onChange={(e) => setVisibility(e.target.value as "public" | "private")}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
+                >
+                  <option value="private">Private (No leaderboard)</option>
+                  <option value="public">Public (Show leaderboard)</option>
+                </select>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Duration (min) <span className="text-red-500">*</span>
@@ -501,39 +695,67 @@ export function AdminAiQuizGenerator() {
                   required
                   value={durationInMinutes}
                   onChange={(e) => setDurationInMinutes(Math.floor(Number(e.target.value)))}
-                  className="w-full px-3 py-2.5 border rounded-lg focus:border-black outline-none"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
                   placeholder="e.g. 30"
                 />
               </div>
             </div>
 
-            {/* Visibility */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Quiz Visibility <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={visibility}
-                onChange={(e) => setVisibility(e.target.value as "public" | "private")}
-                className="w-full px-3 py-2.5 border rounded-lg focus:border-black outline-none"
-              >
-                <option value="private">Private (No leaderboard)</option>
-                <option value="public">Public (Show leaderboard)</option>
-              </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Start Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  End Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:border-black outline-none"
+                />
+              </div>
             </div>
+          </div>
 
-            {error && <p className="text-red-500 text-sm bg-red-50 p-2.5 rounded-lg border border-red-100">{error}</p>}
-
+          {/* Generate Quiz Button */}
+          {generatorType === "topic" ? (
             <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 bg-black text-white rounded-lg flex justify-center items-center gap-2 hover:bg-gray-900 transition-colors disabled:opacity-50"
+              onClick={handleGenerate as any}
+              disabled={loading || !topic.trim()}
+              className="w-full py-3 bg-black text-white rounded-xl flex justify-center items-center gap-2 hover:bg-gray-900 transition-colors disabled:opacity-50 font-medium text-sm"
             >
               {loading && <Loader2 className="animate-spin" size={16} />}
               <Sparkles size={16} />
               {loading ? "Generating Quiz…" : "Generate Quiz"}
             </button>
-          </form>
+          ) : (
+            <button
+              id="file-generate-quiz-btn"
+              disabled={!fileHasFile || fileIsGenerating}
+              onClick={() => {
+                const btn = document.getElementById("quiz-generator-form-trigger") as HTMLButtonElement | null;
+                btn?.click();
+              }}
+              className="w-full py-3 bg-black text-white rounded-xl flex justify-center items-center gap-2 hover:bg-gray-900 transition-colors disabled:opacity-50 font-medium text-sm"
+            >
+              {fileIsGenerating && <Loader2 className="animate-spin" size={16} />}
+              <Sparkles size={16} />
+              {fileIsGenerating ? "Generating Quiz…" : "Generate Quiz"}
+            </button>
+          )}
         </div>
       )}
 
@@ -541,7 +763,7 @@ export function AdminAiQuizGenerator() {
       {step === "preview" && generatedQuiz && (
         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
           {/* Action bar */}
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
             <div>
               <h2 className="text-base font-bold flex items-center gap-2">
                 <Edit3 size={16} className="text-gray-500" />
@@ -551,18 +773,37 @@ export function AdminAiQuizGenerator() {
                 {generatedQuiz.questions.length} questions · {computedTotalMarks} total marks
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={handleRegenerate}
-                disabled={saving}
-                className="flex items-center gap-1.5 px-4 py-2 border rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50"
+                disabled={saving || generatingAllImages}
+                className="flex items-center justify-center gap-1.5 px-4 py-2 border rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50"
               >
                 <RefreshCw size={14} /> Regenerate
               </button>
               <button
+                onClick={handleGenerateAllImages}
+                disabled={saving || generatingAllImages}
+                className="flex items-center justify-center gap-1.5 px-4 py-2 border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg text-sm disabled:opacity-50 transition-colors"
+              >
+                {generatingAllImages ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    {generateAllProgress
+                      ? `Generating ${generateAllProgress.done}/${generateAllProgress.total}…`
+                      : "Generating…"}
+                  </>
+                ) : (
+                  <>
+                    <Image size={14} />
+                    Generate Images for All
+                  </>
+                )}
+              </button>
+              <button
                 onClick={() => setStep("save")}
-                disabled={saving || generatedQuiz.questions.length === 0}
-                className="flex items-center gap-1.5 px-4 py-2 bg-black text-white rounded-lg text-sm hover:bg-gray-900 disabled:opacity-50"
+                disabled={saving || generatingAllImages || generatedQuiz.questions.length === 0}
+                className="flex items-center justify-center gap-1.5 px-4 py-2 bg-black text-white rounded-lg text-sm hover:bg-gray-900 disabled:opacity-50"
               >
                 <Save size={14} /> Proceed to Save
               </button>
@@ -614,107 +855,109 @@ export function AdminAiQuizGenerator() {
             </div>
 
             {generatedQuiz.questions.map((q, i) => (
-          <div key={i} className="border border-gray-100 p-4 rounded-xl relative bg-gray-50/40" onPaste={(e) => handlePaste(e, i)}>
-            <div className="flex items-start justify-between mb-3">
-              <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Q{i + 1}</span>
-              <button
-                onClick={() => removeQuestion(i)}
-                className="text-gray-400 hover:text-red-500 transition-colors"
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
-
-            {/* Question text */}
-            <label className="block text-xs font-medium mb-1 text-gray-600">Question Text <span className="text-red-500">*</span></label>
-            <input
-              required
-              value={q.question}
-              onChange={(e) => updateQuestion(i, { question: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg mb-3 text-sm outline-none focus:border-black"
-            />
-
-            {/* Image Section */}
-            <div className="mb-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-medium text-gray-700">Question Image (Optional)</label>
-                <button
-                  type="button"
-                  onClick={() => openGenerateModal(i)}
-                  className="flex items-center gap-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 px-2 py-1 rounded-lg"
-                >
-                  <Image size={12} />
-                  Generate Image
-                </button>
-              </div>
-
-              {!q.imageUrl ? (
-                <div
-                  onDragOver={(e) => { e.preventDefault(); }}
-                  onDrop={(e) => handleDrop(e, i)}
-                  onClick={() => fileInputRefs.current[i]?.click()}
-                  className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all hover:border-purple-400 bg-gray-50"
-                >
-                  <input
-                    ref={(el) => fileInputRefs.current[i] = el}
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg,image/webp"
-                    onChange={(e) => handleFileInputChange(e, i)}
-                    className="hidden"
-                  />
-                  <Upload size={28} className="mx-auto text-gray-400 mb-2" />
-                  <p className="text-sm font-medium text-gray-700 mb-1">
-                    Drag and drop or click to upload
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Supports PNG, JPG, JPEG, WEBP • Paste image from clipboard
-                  </p>
+              <div key={i} className="border border-gray-100 p-4 rounded-xl relative bg-gray-50/40" onPaste={(e) => handlePaste(e, i)}>
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Q{i + 1}</span>
+                  <button
+                    onClick={() => removeQuestion(i)}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
-              ) : (
-                <div className="border border-gray-200 rounded-xl p-3">
-                  <img
-                    src={q.imageUrl}
-                    alt="Question preview"
-                    className="max-h-48 max-w-full object-contain mx-auto rounded-lg mb-3"
-                  />
-                  <div className="flex gap-3">
+
+                {/* Question text */}
+                <label className="block text-xs font-medium mb-1 text-gray-600">Question Text <span className="text-red-500">*</span></label>
+                <input
+                  required
+                  value={q.question}
+                  onChange={(e) => updateQuestion(i, { question: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg mb-3 text-sm outline-none focus:border-black"
+                />
+
+                {/* Image Section */}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-medium text-gray-700">Question Image (Optional)</label>
                     <button
                       type="button"
-                      onClick={() => fileInputRefs.current[i]?.click()}
-                      className="flex-1 text-sm font-medium text-purple-600 hover:text-purple-700 border border-purple-200 rounded-lg px-3 py-2"
+                      onClick={() => openGenerateModal(i)}
+                      className="flex items-center gap-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 px-2 py-1 rounded-lg"
                     >
-                      Replace Image
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => updateQuestion(i, { imageUrl: "" })}
-                      className="flex-1 text-sm font-medium text-red-600 hover:text-red-700 border border-red-200 rounded-lg px-3 py-2 flex items-center justify-center gap-1"
-                    >
-                      <Remove size={14} /> Remove
+                      <Image size={12} />
+                      Generate Image
                     </button>
                   </div>
-                </div>
-              )}
 
-              {/* Image URL Input as alternative */}
-              <div className="mt-3">
-                <p className="text-xs text-gray-500 mb-1">Or paste image URL:</p>
-                <input
-                  type="url"
-                  value={q.imageUrl || ""}
-                  onChange={(e) => updateQuestion(i, { imageUrl: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-black"
-                  placeholder="https://example.com/image.png"
-                />
-              </div>
-            </div>
+                  {!q.imageUrl ? (
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); }}
+                      onDrop={(e) => handleDrop(e, i)}
+                      onClick={() => triggerFileInput(i)}
+                      className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all hover:border-purple-400 bg-gray-50 flex flex-col items-center justify-center min-h-[120px]"
+                    >
+                      {uploadingImageIndex === i ? (
+                        <div className="flex flex-col items-center gap-1">
+                          <Loader2 className="animate-spin text-purple-600" size={24} />
+                          <p className="text-xs text-gray-500">Uploading image to server...</p>
+                        </div>
+                      ) : (
+                        <>
+                          <Upload size={28} className="mx-auto text-gray-400 mb-2" />
+                          <p className="text-sm font-medium text-gray-700 mb-1">
+                            Drag and drop or click to upload
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Supports PNG, JPG, JPEG, WEBP • Paste image from clipboard
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="border border-gray-200 rounded-xl p-3 bg-white">
+                      <img
+                        src={q.imageUrl}
+                        alt="Question preview"
+                        className="max-h-48 max-w-full object-contain mx-auto rounded-lg mb-3"
+                      />
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => triggerFileInput(i)}
+                          className="flex-1 text-sm font-medium text-purple-600 hover:text-purple-700 border border-purple-200 rounded-lg px-3 py-2"
+                        >
+                          Replace Image
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateQuestion(i, { imageUrl: "" })}
+                          className="flex-1 text-sm font-medium text-red-600 hover:text-red-700 border border-red-200 rounded-lg px-3 py-2 flex items-center justify-center gap-1"
+                        >
+                          <Remove size={14} /> Remove
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Image URL Input as alternative */}
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-500 mb-1">Or paste image URL:</p>
+                    <input
+                      type="url"
+                      value={q.imageUrl || ""}
+                      onChange={(e) => updateQuestion(i, { imageUrl: e.target.value })}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-black"
+                      placeholder="https://example.com/image.png"
+                    />
+                  </div>
+                </div>
 
                 {/* Options */}
-                <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
                   {q.options.map((opt, oi) => (
                     <div key={oi}>
                       <label className="block text-xs font-medium mb-0.5 text-gray-500">
-                        Option {["A", "B", "C", "D"][oi]} <span className="text-red-500">*</span>
+                        Option {["A", "B", "C", "D", "E", "F"][oi]} <span className="text-red-500">*</span>
                       </label>
                       <input
                         required
@@ -726,18 +969,32 @@ export function AdminAiQuizGenerator() {
                   ))}
                 </div>
 
-                {/* Correct answer */}
-                <div className="flex-1">
-                  <label className="block text-xs font-medium mb-0.5 text-green-600">Correct Answer <span className="text-red-500">*</span></label>
-                  <select
-                    value={q.correctAnswer}
-                    onChange={(e) => updateQuestion(i, { correctAnswer: e.target.value })}
-                    className="w-full px-2 py-1.5 border border-green-200 rounded-md text-sm outline-none focus:border-green-400"
-                  >
-                    {q.options.map((opt, oi) => (
-                      <option key={oi} value={opt}>{opt || `Option ${oi + 1}`}</option>
-                    ))}
-                  </select>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {/* Correct answer */}
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium mb-0.5 text-green-600">Correct Answer <span className="text-red-500">*</span></label>
+                    <select
+                      value={q.correctAnswer}
+                      onChange={(e) => updateQuestion(i, { correctAnswer: e.target.value })}
+                      className="w-full px-2 py-1.5 border border-green-200 rounded-md text-sm outline-none focus:border-green-400"
+                    >
+                      <option value="" disabled>Select correct option</option>
+                      {q.options.map((opt, oi) => (
+                        <option key={oi} value={opt}>{opt || `Option ${["A", "B", "C", "D", "E", "F"][oi]}`}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Explanation */}
+                  <div className="flex-[2]">
+                    <label className="block text-xs font-medium mb-0.5 text-gray-600">Explanation (Optional)</label>
+                    <input
+                      value={q.explanation || ""}
+                      onChange={(e) => updateQuestion(i, { explanation: e.target.value })}
+                      placeholder="Why is this answer correct?"
+                      className="w-full px-2 py-1.5 border rounded-md text-sm outline-none focus:border-black"
+                    />
+                  </div>
                 </div>
               </div>
             ))}
@@ -822,7 +1079,7 @@ export function AdminAiQuizGenerator() {
                 )}
 
                 {generatedImageUrl && (
-                  <div className="border border-gray-200 rounded-xl p-3">
+                  <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
                     <img
                       src={generatedImageUrl}
                       alt="Generated preview"

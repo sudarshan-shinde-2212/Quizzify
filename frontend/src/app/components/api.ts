@@ -638,6 +638,32 @@ export async function apiAdminAiChat(
   });
 }
 
+export async function apiAdminUploadImage(file: File): Promise<{ imageUrl: string }> {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE_URL}/admin/ai-image/upload`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    let message = `Upload failed: ${res.status}`;
+    try {
+      const body = await res.json();
+      message = body?.message ?? message;
+    } catch {}
+    throw new Error(message);
+  }
+
+  return res.json();
+}
+
 export async function apiAdminGenerateAiQuiz(data: {
   topic: string;
   category: string;

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "./components/auth-context";
+import { Toaster } from "sonner";
 import "../styles/theme.css";
 import "../styles/tailwind.css";
 
@@ -22,6 +23,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
         </AuthProvider>
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   );

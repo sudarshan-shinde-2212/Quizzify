@@ -3,10 +3,22 @@ import { AiQuizService } from './ai-quiz.service';
 import { AiQuizController } from './ai-quiz.controller';
 import { QuizzesModule } from '../quizzes/quizzes.module';
 import { QuestionsModule } from '../questions/questions.module';
+import { FfmpegService } from './ffmpeg.service';
+import { WhisperService } from './whisper.service';
+import { ParserService } from './parser.service';
+import { AiContentGeneratorService } from './ai-content-generator.service';
+import { QuizFileProcessorService } from './quiz-file-processor.service';
 
 @Module({
   imports: [QuizzesModule, QuestionsModule],
-  providers: [AiQuizService],
+  providers: [
+    AiQuizService,
+    FfmpegService,
+    WhisperService,
+    ParserService,
+    AiContentGeneratorService,
+    QuizFileProcessorService,
+  ],
   controllers: [AiQuizController],
 })
 export class AiQuizModule {}

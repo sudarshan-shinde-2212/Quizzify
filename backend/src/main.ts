@@ -5,10 +5,16 @@ import { AppModule } from './app.module';
 import { AuthService } from './auth/auth.service';
 import { ConfigService } from '@nestjs/config';
 
+import * as express from 'express';
+import * as path from 'path';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bodyParser: false, // Disable default body parser
   });
+
+  // Serve uploads folder statically
+  app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
   // Add custom body parser with larger limits
   app.use(json({ limit: '50mb' }));
