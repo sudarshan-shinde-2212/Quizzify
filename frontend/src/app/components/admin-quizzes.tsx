@@ -686,13 +686,13 @@ export function AdminQuizzes() {
           <Loader2 className="animate-spin text-black mb-2" size={24} />
           <p className="text-sm text-gray-500">Loading quizzes list…</p>
         </div>
-      ) : quizzes.length === 0 ? (
+      ) : Array.isArray(quizzes) && quizzes.length === 0 ? (
         <div className="bg-white border border-gray-100 rounded-xl py-16 text-center text-gray-400">
           No quizzes found. Click Create Quiz to get started.
         </div>
       ) : (
         <div className="space-y-3">
-          {quizzes.map((quiz, i) => {
+          {(Array.isArray(quizzes) ? quizzes : []).map((quiz, i) => {
             const status = getQuizStatus(quiz);
             const color = statusColors[status] || "bg-gray-50 text-gray-500 border-gray-200";
 

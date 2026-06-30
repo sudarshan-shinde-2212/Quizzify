@@ -8,6 +8,8 @@ import { WhisperService } from './whisper.service';
 import { ParserService } from './parser.service';
 import { AiContentGeneratorService } from './ai-content-generator.service';
 import { QuizFileProcessorService } from './quiz-file-processor.service';
+import { VisionOcrService } from './vision-ocr.service';
+import { KnowledgeFusionService } from './knowledge-fusion.service';
 
 @Module({
   imports: [QuizzesModule, QuestionsModule],
@@ -18,6 +20,8 @@ import { QuizFileProcessorService } from './quiz-file-processor.service';
     ParserService,
     AiContentGeneratorService,
     QuizFileProcessorService,
+    VisionOcrService,
+    KnowledgeFusionService,
   ],
   controllers: [AiQuizController],
 })

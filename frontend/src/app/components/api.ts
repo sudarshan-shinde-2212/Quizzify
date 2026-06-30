@@ -4,7 +4,7 @@
 // In production set NEXT_PUBLIC_API_BASE_URL to your deployed backend URL
 // ---------------------------------------------------------------------------
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 // ── Session & Storage Keys ───────────────────────────────────────────────────
 
@@ -300,12 +300,12 @@ export async function apiAdminLogin(
 export function startGoogleOAuth() {
   const backendUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  
+
   const url = new URL(`${backendUrl}/auth/google`);
   if (origin) {
     url.searchParams.set('state', origin);
   }
-  
+
   window.location.href = url.toString();
 }
 
@@ -659,7 +659,7 @@ export async function apiAdminUploadImage(file: File): Promise<{ imageUrl: strin
     try {
       const body = await res.json();
       message = body?.message ?? message;
-    } catch {}
+    } catch { }
     throw new Error(message);
   }
 

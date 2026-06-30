@@ -6,7 +6,7 @@ import {
 } from "../../services/ai-quiz-generator";
 import { GeneratedQuiz } from "../admin-ai-quiz-generator";
 
-export type FileType = "video" | "audio" | "document";
+export type FileType = "video" | "audio" | "document" | "image";
 
 interface FileUploadConfig {
   acceptedFormats: string[];
@@ -35,6 +35,11 @@ export const FILE_UPLOAD_CONFIGS: Record<FileType, FileUploadConfig> = {
       "application/vnd.ms-powerpoint",
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ],
+    maxFileSizeMB: 15,
+  },
+  image: {
+    acceptedFormats: ["jpg", "jpeg", "png", "webp"],
+    acceptedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
     maxFileSizeMB: 15,
   },
 };
@@ -116,6 +121,7 @@ export function QuizGeneratorForm({
   const getEstimatedTime = () => {
     if (fileType === "video") return "Estimated time: 1-3 minutes (depends on video length for audio extraction & transcription)";
     if (fileType === "audio") return "Estimated time: 1-2 minutes (depends on audio length for transcription)";
+    if (fileType === "image") return "Estimated time: 20-60 seconds (visual analysis + OCR)";
     return "Estimated time: 15-30 seconds";
   };
 
@@ -172,7 +178,7 @@ export function QuizGeneratorForm({
       </div>
 
       <FileUpload
-        fileType={fileType}
+        fileType={fileType as any}
         acceptedFormats={uploadConfig.acceptedFormats}
         acceptedMimeTypes={uploadConfig.acceptedMimeTypes}
         maxFileSizeMB={uploadConfig.maxFileSizeMB}

@@ -1,15 +1,14 @@
-
 import { Injectable, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as mammoth from 'mammoth';
 import * as officeparser from 'officeparser';
 
-// pdf-parse is imported locally in parsePdf
+const pdfParse = require('pdf-parse');
 
 @Injectable()
 export class ParserService {
-  async parseDocument(filePath: string, fileType: string): Promise<string> {
+  async parseDocument(filePath: string, fileType?: string): Promise<string> {
     const ext = path.extname(filePath).toLowerCase();
 
     try {
@@ -38,23 +37,19 @@ export class ParserService {
 
   private async parsePdf(filePath: string): Promise<string> {
     const dataBuffer = fs.readFileSync(filePath);
-    
-    const { PDFParse } = require('pdf-parse');
-    const parser = new PDFParse({ data: dataBuffer });
-    
     try {
-      const info = await parser.getInfo();
+      const data = await pdfParse(dataBuffer);
       
-      if (info.total > 15) {
+      if (data.numpages > 15) {
         throw new BadRequestException('PDF files are limited to a maximum of 15 pages.');
       }
       
-      const data = await parser.getText();
-      return data.text;
-    } finally {
-      if (parser && typeof parser.destroy === 'function') {
-        await parser.destroy();
+      return data.text || '';
+    } catch (err: any) {
+      if (err instanceof BadRequestException) {
+        throw err;
       }
+      throw new InternalServerErrorException(`Failed to parse PDF file: ${err.message || err}`);
     }
   }
 

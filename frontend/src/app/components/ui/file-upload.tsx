@@ -9,6 +9,7 @@ import {
   FileText,
   File,
   LucideIcon,
+  Image as ImageIcon,
 } from "lucide-react";
 
 // Assuming your project uses sonner for toast notifications
@@ -29,12 +30,13 @@ interface FileUploadProps {
   processingStage?: string;
   error?: string;
   placeholder?: string;
-  fileType: "video" | "audio" | "document";
+  fileType: "video" | "audio" | "document" | "image";
 }
 
-const getFileTypeIcon = (type: "video" | "audio" | "document", ext?: string): LucideIcon => {
+const getFileTypeIcon = (type: "video" | "audio" | "document" | "image", ext?: string): LucideIcon => {
   if (type === "video") return Video;
   if (type === "audio") return Mic;
+  if (type === "image") return ImageIcon;
 
   const docIconMap: Record<string, LucideIcon> = {
     pdf: FileText,

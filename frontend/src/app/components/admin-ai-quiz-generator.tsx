@@ -455,7 +455,7 @@ export function AdminAiQuizGenerator() {
           {/* Generator Type Selection */}
           <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
             <h2 className="text-base font-bold mb-4">Select Generator Type</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <button
                 type="button"
                 onClick={() => setGeneratorType("topic")}
@@ -510,6 +510,20 @@ export function AdminAiQuizGenerator() {
                   <span className="font-medium text-gray-900">Document Quiz</span>
                 </div>
                 <p className="text-xs text-gray-500">Generate quiz from a document file</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setGeneratorType("image")}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  generatorType === "image" ? "border-purple-600 bg-purple-50" : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <Image className={`w-6 h-6 ${generatorType === "image" ? "text-purple-600" : "text-gray-400"}`} />
+                  <span className="font-medium text-gray-900">Image Quiz</span>
+                </div>
+                <p className="text-xs text-gray-500">Generate quiz from images or screenshots</p>
               </button>
             </div>
           </div>

@@ -6,6 +6,7 @@ export enum FileType {
   VIDEO = 'video',
   AUDIO = 'audio',
   DOCUMENT = 'document',
+  IMAGE = 'image',
 }
 
 export class GenerateQuizFromFileDto {

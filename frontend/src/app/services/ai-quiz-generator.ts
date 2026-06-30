@@ -22,7 +22,7 @@ export const GeneratedQuizSchema = z.object({
 export type GeneratedQuestion = z.infer<typeof GeneratedQuestionSchema>;
 export type GeneratedQuiz = z.infer<typeof GeneratedQuizSchema>;
 
-export type FileType = "video" | "audio" | "document";
+export type FileType = "video" | "audio" | "document" | "image";
 export type Difficulty = "Easy" | "Medium" | "Hard" | "Mixed";
 
 export interface AIQuizGeneratorParams {
@@ -45,7 +45,7 @@ export class AIQuizGeneratorService {
       onProgress,
     } = params;
 
-    onProgress?.("Uploading file...", 10);
+    onProgress?.("Uploading file...", 5);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -61,8 +61,7 @@ export class AIQuizGeneratorService {
       }
 
       console.log('Sending request to:', `${BASE_URL}/admin/generate-quiz-from-file`);
-      console.log('FormData entries:', [...formData.entries()]);
-
+      
       const response = await fetch(`${BASE_URL}/admin/generate-quiz-from-file`, {
         method: "POST",
         body: formData,
@@ -71,27 +70,82 @@ export class AIQuizGeneratorService {
       });
 
       console.log('Response status:', response.status, response.statusText);
-      onProgress?.("Processing file...", 40);
 
       if (!response.ok) {
         let errorDetail = '';
         try {
           const errorJson = await response.json();
-          console.log('Error response JSON:', errorJson);
-          errorDetail = JSON.stringify(errorJson);
+          errorDetail = errorJson.message || JSON.stringify(errorJson);
         } catch {
           errorDetail = await response.text();
-          console.log('Error response text:', errorDetail);
         }
-        throw new Error(`Failed to generate quiz: ${response.statusText} - ${errorDetail}`);
+        throw new Error(errorDetail || response.statusText);
       }
 
-      onProgress?.("Generating questions...", 70);
-      const data = await response.json();
-      console.log('Response data:', data);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let quizData: any = null;
 
-      onProgress?.("Validating quiz...", 90);
-      const validatedQuiz = GeneratedQuizSchema.parse(data);
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || ""; // Keep the last incomplete block in buffer
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const chunk = JSON.parse(line);
+              if (chunk.error) {
+                throw new Error(chunk.error);
+              }
+              if (chunk.stage && chunk.progress !== undefined) {
+                onProgress?.(chunk.stage, chunk.progress);
+              }
+              if (chunk.quiz) {
+                quizData = chunk.quiz;
+              }
+            } catch (err: any) {
+              if (err.message && (err.message.includes("Failed") || err.message.includes("error") || err.message.includes("limit") || err.message.includes("large") || err.message.includes("Empty") || err.message.includes("Unreadable") || err.message.includes("Unsupport")) ) {
+                throw err;
+              }
+              // Ignore JSON parse errors for split chunk lines
+            }
+          }
+        }
+
+        // Process leftover buffer
+        if (buffer.trim()) {
+          try {
+            const chunk = JSON.parse(buffer);
+            if (chunk.error) {
+              throw new Error(chunk.error);
+            }
+            if (chunk.quiz) {
+              quizData = chunk.quiz;
+            }
+          } catch (err: any) {
+            if (err.message && (err.message.includes("Failed") || err.message.includes("limit") || err.message.includes("large") || err.message.includes("Unreadable"))) {
+              throw err;
+            }
+          }
+        }
+      } else {
+        // Fallback for environment without body stream reader
+        const fallbackData = await response.json();
+        quizData = fallbackData.quiz;
+      }
+
+      if (!quizData) {
+        throw new Error("Failed to extract quiz content from response stream");
+      }
+
+      onProgress?.("Validating quiz...", 95);
+      const validatedQuiz = GeneratedQuizSchema.parse(quizData);
 
       onProgress?.("Quiz ready!", 100);
       return validatedQuiz;

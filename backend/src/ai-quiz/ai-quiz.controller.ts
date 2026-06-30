@@ -1,8 +1,9 @@
-import { Controller, Post, Body, UseGuards, Req, UploadedFile, UseInterceptors, BadRequestException, OnModuleInit } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req, Res, UploadedFile, UseInterceptors, BadRequestException, OnModuleInit } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import * as path from 'path';
 import * as fs from 'fs';
+import { Response } from 'express';
 import { AiQuizService } from './ai-quiz.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -17,6 +18,7 @@ import { ConfigService } from '@nestjs/config';
 const ACCEPTED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
 const ACCEPTED_AUDIO_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.aac', '.ogg'];
 const ACCEPTED_DOCUMENT_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt', '.ppt', '.pptx'];
+const ACCEPTED_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp'];
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
 @Controller('admin')
@@ -148,7 +150,8 @@ export class AiQuizController implements OnModuleInit {
       const allAcceptedExtensions = [
         ...ACCEPTED_VIDEO_EXTENSIONS,
         ...ACCEPTED_AUDIO_EXTENSIONS,
-        ...ACCEPTED_DOCUMENT_EXTENSIONS
+        ...ACCEPTED_DOCUMENT_EXTENSIONS,
+        ...ACCEPTED_IMAGE_EXTENSIONS
       ];
       
       if (allAcceptedExtensions.includes(ext)) {
@@ -160,13 +163,23 @@ export class AiQuizController implements OnModuleInit {
   }))
   async generateQuizFromFile(
     @Req() req: any,
+    @Res() res: Response,
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: GenerateQuizFromFileDto,
   ) {
-    this.checkRateLimit(req.user.id);
+    try {
+      this.checkRateLimit(req.user.id);
+    } catch (rateLimitErr: any) {
+      if (file) {
+        try { fs.unlinkSync(file.path); } catch {}
+      }
+      res.status(400).json({ message: rateLimitErr.message });
+      return;
+    }
     
     if (!file) {
-      throw new BadRequestException('No file uploaded');
+      res.status(400).json({ message: 'No file uploaded' });
+      return;
     }
     
     const ext = path.extname(file.originalname).toLowerCase();
@@ -177,21 +190,25 @@ export class AiQuizController implements OnModuleInit {
       validFileType = ACCEPTED_AUDIO_EXTENSIONS.includes(ext);
     } else if (dto.fileType === 'document') {
       validFileType = ACCEPTED_DOCUMENT_EXTENSIONS.includes(ext);
+    } else if (dto.fileType === 'image') {
+      validFileType = ACCEPTED_IMAGE_EXTENSIONS.includes(ext);
     }
     
     if (!validFileType) {
       try {
         await fs.promises.unlink(file.path);
       } catch {}
-      throw new BadRequestException('File extension does not match declared file type');
+      res.status(400).json({ message: 'File extension does not match declared file type' });
+      return;
     }
 
-    let actualMaxFileSizeMB = 50; // default for unknown doc
+    let actualMaxFileSizeMB = 50; // default
     if (ext === '.docx') actualMaxFileSizeMB = 15;
     else if (ext === '.txt') actualMaxFileSizeMB = 5;
     else if (ext === '.pdf') actualMaxFileSizeMB = 15;
-    else if (['.mp4', '.mov', '.avi', '.mkv', '.webm'].includes(ext)) actualMaxFileSizeMB = 250;
-    else if (['.mp3', '.wav', '.m4a', '.aac', '.ogg'].includes(ext)) actualMaxFileSizeMB = 100;
+    else if (ACCEPTED_IMAGE_EXTENSIONS.includes(ext)) actualMaxFileSizeMB = 15;
+    else if (ACCEPTED_VIDEO_EXTENSIONS.includes(ext)) actualMaxFileSizeMB = 250;
+    else if (ACCEPTED_AUDIO_EXTENSIONS.includes(ext)) actualMaxFileSizeMB = 100;
     
     const maxFileSizeBytes = actualMaxFileSizeMB * 1024 * 1024;
     
@@ -199,15 +216,36 @@ export class AiQuizController implements OnModuleInit {
       try {
         await fs.promises.unlink(file.path);
       } catch {}
-      throw new BadRequestException(`File too large. Maximum size for ${ext.toUpperCase().replace('.', '')} is ${actualMaxFileSizeMB}MB.`);
+      res.status(400).json({ message: `File too large. Maximum size for ${ext.toUpperCase().replace('.', '')} is ${actualMaxFileSizeMB}MB.` });
+      return;
     }
     
-    return this.quizFileProcessorService.generateQuizFromFile({
-      filePath: file.path,
-      fileType: dto.fileType,
-      difficulty: dto.difficulty,
-      questionCount: dto.questionCount,
-      language: dto.language,
-    });
+    // Set headers for line-delimited JSON stream
+    res.setHeader('Content-Type', 'application/x-ndjson');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    const writeChunk = (chunkObj: any) => {
+      res.write(JSON.stringify(chunkObj) + '\n');
+    };
+
+    try {
+      const quiz = await this.quizFileProcessorService.generateQuizFromFile({
+        filePath: file.path,
+        fileType: dto.fileType as any,
+        difficulty: dto.difficulty,
+        questionCount: dto.questionCount,
+        language: dto.language,
+        onProgress: (stage, progress) => {
+          writeChunk({ stage, progress });
+        },
+      });
+
+      writeChunk({ stage: 'Quiz ready!', progress: 100, quiz });
+      res.end();
+    } catch (err: any) {
+      console.error('generateQuizFromFile error:', err);
+      writeChunk({ error: err.message || 'An error occurred during processing.' });
+      res.end();
+    }
   }
 }

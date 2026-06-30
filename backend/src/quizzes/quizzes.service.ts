@@ -229,7 +229,7 @@ export class QuizzesService {
     // Get all published quizzes first
     const allPublishedQuizzes = await this.quizRepo.find({
       where: { isPublished: true },
-      order: { startDate: 'ASC' },
+      order: { createdAt: 'DESC', id: 'DESC' },
     });
     // Filter active ones using IST timezone logic
     return allPublishedQuizzes.filter(quiz => this.isQuizActive(quiz));
