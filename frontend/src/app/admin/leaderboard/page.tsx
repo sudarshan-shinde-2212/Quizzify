@@ -2,14 +2,14 @@
 
 import { AdminGuard } from "../../components/guards";
 import { AdminLayout } from "../../components/admin-sidebar";
-import { AdminLeaderboard } from "./components/AdminLeaderboard";
+import { Leaderboard } from "../../components/leaderboard";
 
 export default function Page() {
   return (
     <AdminGuard>
       <AdminLayout>
-        <div className="max-w-7xl mx-auto p-6 bg-white min-h-screen">
-          <AdminLeaderboard />
+        <div className="max-w-4xl mx-auto">
+          <Leaderboard />
         </div>
       </AdminLayout>
     </AdminGuard>

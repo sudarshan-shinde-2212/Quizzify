@@ -66,6 +66,7 @@ export class LeaderboardService {
     });
 
     const transformedData = Array.from(firstAttempts.values()).map((res) => ({
+      studentId: res.studentId,
       studentName: res.student.fullName || 'Anonymous',
       score: res.score as number,
       percentage: res.percentage as number,

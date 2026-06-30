@@ -222,6 +222,7 @@ export interface QuizResultsItem {
 
 export interface LeaderboardEntry {
   rank: number;
+  studentId: string;
   studentName: string;
   score: number | null;
   percentage: number | null;

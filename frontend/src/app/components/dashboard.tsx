@@ -153,7 +153,7 @@ export function Dashboard() {
           <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
             Available Assessments
           </h2>
-          <div className="relative w-full md:w-[650px]">
+          <div className="relative w-full md:flex-1 md:max-w-xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
             <input
               type="text"

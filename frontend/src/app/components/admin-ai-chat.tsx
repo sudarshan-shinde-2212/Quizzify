@@ -78,7 +78,7 @@ export function AdminAiChat() {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="absolute bottom-16 right-0 w-96 h-[500px] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
+        <div className="absolute bottom-16 right-0 w-[calc(100vw-3rem)] sm:w-96 h-[500px] max-h-[calc(100vh-8rem)] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
           {/* Header */}
           <div className="p-4 border-b border-gray-200 flex items-center gap-2 bg-gray-50">
             <Bot size={20} className="text-black" />

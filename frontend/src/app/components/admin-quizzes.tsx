@@ -242,7 +242,7 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
           </div>
 
           {/* Row 4: Start Date | End Date */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Start Date <span className="text-red-500">*</span></label>
               <input
@@ -266,7 +266,7 @@ function QuizFormModal({ quiz, onClose, onRefresh }: QuizFormModalProps) {
           </div>
 
           {/* Row 5: Duration | Total Marks | No. of Questions */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Duration (min) <span className="text-red-500">*</span></label>
               <input
@@ -702,28 +702,30 @@ export function AdminQuizzes() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
-                className="bg-white border border-gray-100 rounded-xl p-5 flex items-start justify-between gap-4"
+                className="bg-white border border-gray-100 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                <div className="flex-1 min-w-0 w-full">
+                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
                     <h3 className="text-sm font-semibold text-black">{quiz.title}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full border ${color}`}>
-                      {status.toUpperCase()}
-                    </span>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full border cursor-pointer hover:opacity-80 transition-opacity ${
-                        quiz.visibility === "public"
-                          ? "bg-green-50 text-green-700 border-green-200"
-                          : "bg-gray-100 text-gray-600 border-gray-200"
-                      }`}
-                      onClick={() => handleToggleVisibility(quiz)}
-                      title="Click to toggle visibility"
-                    >
-                      {quiz.visibility === "public" ? "PUBLIC" : "PRIVATE"}
-                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full border ${color}`}>
+                        {status.toUpperCase()}
+                      </span>
+                      <span
+                        className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full border cursor-pointer hover:opacity-80 transition-opacity ${
+                          quiz.visibility === "public"
+                            ? "bg-green-50 text-green-700 border-green-200"
+                            : "bg-gray-100 text-gray-600 border-gray-200"
+                        }`}
+                        onClick={() => handleToggleVisibility(quiz)}
+                        title="Click to toggle visibility"
+                      >
+                        {quiz.visibility === "public" ? "PUBLIC" : "PRIVATE"}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 mb-3 line-clamp-1">{quiz.description}</p>
-                  <div className="flex gap-4">
+                  <p className="text-xs text-gray-500 mb-3 line-clamp-2 sm:line-clamp-1">{quiz.description}</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-2">
                     <span className="text-xs text-gray-400 flex items-center gap-1"><Clock size={11} /> {quiz.durationInMinutes}m</span>
                     <span className="text-xs text-gray-400 flex items-center gap-1"><Trophy size={11} /> {quiz.totalMarks} marks</span>
                     <span className="text-xs text-gray-400 flex items-center gap-1"><FileQuestion size={11} /> {quiz.questionCount} Qs</span>
@@ -735,46 +737,46 @@ export function AdminQuizzes() {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex flex-wrap items-center gap-1 shrink-0 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-50">
                   <button
                     onClick={(e) => handleOpenAnalytics(quiz, e)}
                     title="View Quiz Analytics"
-                    className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors min-h-[40px] flex-1 sm:flex-none flex justify-center items-center"
                   >
                     <BarChart2 size={15} />
                   </button>
                   <button
                     onClick={(e) => openQuizSettings(quiz, e)}
                     title="Quiz Settings"
-                    className="p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded-lg transition-colors min-h-[40px] flex-1 sm:flex-none flex justify-center items-center"
                   >
                     <Settings size={15} />
                   </button>
                   <button
                     onClick={() => setPublishConfirm(quiz)}
                     title={quiz.isPublished ? "Unpublish Quiz (set to draft)" : "Publish Quiz"}
-                    className="p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded-lg transition-colors min-h-[40px] flex-1 sm:flex-none flex justify-center items-center"
                   >
                     {quiz.isPublished ? <PowerOff size={15} /> : <Play size={15} />}
                   </button>
                   <button
                     onClick={() => router.push(`/admin/questions?quizId=${quiz.id}`)}
                     title="Manage Questions"
-                    className="p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded-lg transition-colors min-h-[40px] flex-1 sm:flex-none flex justify-center items-center"
                   >
                     <Eye size={15} />
                   </button>
                   <button
                     onClick={() => openEdit(quiz)}
                     title="Edit Settings"
-                    className="p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded-lg transition-colors min-h-[40px] flex-1 sm:flex-none flex justify-center items-center"
                   >
                     <Edit2 size={15} />
                   </button>
                   <button
                     onClick={() => setDeleteQuizId(quiz.id)}
                     title="Delete Quiz"
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[40px] flex-1 sm:flex-none flex justify-center items-center"
                   >
                     <Trash2 size={15} />
                   </button>
@@ -795,170 +797,186 @@ export function AdminQuizzes() {
       <AnimatePresence>
         {selectedQuizId && (
           <Sheet open={!!selectedQuizId} onOpenChange={(open) => !open && setSelectedQuizId(null)}>
-            <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
-              <SheetHeader className="mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <button
-                    onClick={() => setSelectedQuizId(null)}
-                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <SheetTitle className="text-xl font-bold">Quiz Analytics</SheetTitle>
-                </div>
-                <SheetDescription>Detailed performance and participation insights</SheetDescription>
-              </SheetHeader>
-
-              {loadingAnalytics ? (
-                <div className="py-20 flex flex-col items-center justify-center">
-                  <Loader2 className="animate-spin text-black mb-2" size={24} />
-                  <p className="text-sm text-gray-500">Loading quiz analytics…</p>
-                </div>
-              ) : quizStats ? (
-                <>
-                  {/* Overview Stats */}
-                  <div className="bg-gray-50 rounded-xl p-6 mb-6">
-                    <h3 className="text-sm font-semibold text-gray-800 mb-4">Quiz Overview</h3>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <p className="text-xs text-gray-500">Quiz Name</p>
-                        <p className="text-sm font-medium text-black">{quizStats.overview.quizName}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Total Questions</p>
-                        <p className="text-sm font-medium text-black">{quizStats.overview.totalQuestions}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Published</p>
-                        <p className="text-sm font-medium text-black">{quizStats.overview.publishedStatus ? "Yes" : "No"}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Creation Date</p>
-                        <p className="text-sm font-medium text-black">{formatDateTime(quizStats.overview.creationDate)}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3 mb-4">
-                      <div className="bg-white rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Users size={16} className="text-gray-500" />
-                          <p className="text-xs text-gray-500">Students Attempted</p>
-                        </div>
-                        <p className="text-2xl font-bold text-black">{quizStats.participation.totalStudentsAttempted}</p>
-                      </div>
-                      <div className="bg-white rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <BarChart2 size={16} className="text-gray-500" />
-                          <p className="text-xs text-gray-500">Total Attempts</p>
-                        </div>
-                        <p className="text-2xl font-bold text-black">{quizStats.participation.totalAttempts}</p>
-                      </div>
-                      <div className="bg-white rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <CheckCircle2 size={16} className="text-gray-500" />
-                          <p className="text-xs text-gray-500">Completion Rate</p>
-                        </div>
-                        <p className="text-2xl font-bold text-black">{quizStats.participation.completionRate}%</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="bg-white rounded-lg p-4">
-                        <p className="text-xs text-gray-500 mb-1">Average Score</p>
-                        <p className="text-2xl font-bold text-blue-600">{quizStats.performance.averageScore}%</p>
-                      </div>
-                      <div className="bg-white rounded-lg p-4">
-                        <p className="text-xs text-gray-500 mb-1">Highest Score</p>
-                        <p className="text-2xl font-bold text-green-600">{quizStats.performance.highestScore}%</p>
-                      </div>
-                      <div className="bg-white rounded-lg p-4">
-                        <p className="text-xs text-gray-500 mb-1">Lowest Score</p>
-                        <p className="text-2xl font-bold text-red-600">{quizStats.performance.lowestScore}%</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 mt-3">
-                      <div className="bg-white rounded-lg p-4">
-                        <p className="text-xs text-gray-500 mb-1">Pass Count</p>
-                        <p className="text-2xl font-bold text-green-600">{quizStats.performance.passCount}</p>
-                        <p className="text-xs text-gray-400 mt-1">{quizStats.performance.passPercentage}% pass rate</p>
-                      </div>
-                      <div className="bg-white rounded-lg p-4">
-                        <p className="text-xs text-gray-500 mb-1">Fail Count</p>
-                        <p className="text-2xl font-bold text-red-600">{quizStats.performance.failCount}</p>
-                      </div>
-                    </div>
+            <SheetContent side="right" className="w-full sm:max-w-xl md:max-w-3xl h-full flex flex-col p-0 gap-0">
+              {/* Sticky Header */}
+              <div className="p-6 border-b border-gray-100 bg-white shrink-0">
+                <SheetHeader className="mb-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <button
+                      onClick={() => setSelectedQuizId(null)}
+                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <SheetTitle className="text-xl font-bold">Quiz Analytics</SheetTitle>
                   </div>
+                  <SheetDescription>Detailed performance and participation insights</SheetDescription>
+                </SheetHeader>
+              </div>
 
-                  {/* Student Results */}
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-black">Student Results</h3>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setResultsSortBy(resultsSortBy === "date" ? "score" : "date")}
-                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                        >
-                          {resultsSortBy === "date" ? <Calendar size={14} /> : <Trophy size={14} />}
-                          {resultsSortBy === "date" ? "Date" : "Score"}
-                        </button>
-                        <button
-                          onClick={() => {
-                            const newSortOrder = resultsSortOrder === "DESC" ? "ASC" : "DESC";
-                            setResultsSortOrder(newSortOrder);
-                          }}
-                          className="flex items-center justify-center w-8 h-8 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                        >
-                          {resultsSortOrder === "DESC" ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
-                        </button>
-                        <div className="relative">
-                          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                          <input
-                            type="text"
-                            placeholder="Search students..."
-                            value={resultsSearch}
-                            onChange={(e) => setResultsSearch(e.target.value)}
-                            className="pl-10 pr-3 py-2 text-xs text-black placeholder-gray-500 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all"
-                          />
+              {/* Scrollable Content Container */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+                {loadingAnalytics ? (
+                  <div className="py-20 flex flex-col items-center justify-center">
+                    <Loader2 className="animate-spin text-black mb-2" size={24} />
+                    <p className="text-sm text-gray-500">Loading quiz analytics…</p>
+                  </div>
+                ) : quizStats ? (
+                  <>
+                    {/* Overview Stats */}
+                    <div className="bg-gray-50 rounded-xl p-4 sm:p-6">
+                      <h3 className="text-sm font-semibold text-gray-800 mb-4">Quiz Overview</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        <div>
+                          <p className="text-xs text-gray-500">Quiz Name</p>
+                          <p className="text-sm font-medium text-black">{quizStats.overview.quizName}</p>
                         </div>
-                        <button
-                          onClick={exportToCSV}
-                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                        >
-                          <Download size={14} />
-                          Export CSV
-                        </button>
+                        <div>
+                          <p className="text-xs text-gray-500">Total Questions</p>
+                          <p className="text-sm font-medium text-black">{quizStats.overview.totalQuestions}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Published</p>
+                          <p className="text-sm font-medium text-black">{quizStats.overview.publishedStatus ? "Yes" : "No"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Creation Date</p>
+                          <p className="text-sm font-medium text-black">{formatDateTime(quizStats.overview.creationDate)}</p>
+                        </div>
                       </div>
-                    </div>
 
-                    {quizResults.length === 0 ? (
-                      <div className="bg-white border border-gray-100 rounded-xl py-16 text-center text-sm text-gray-400">
-                        No student results yet
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {quizResults.map((result, idx) => (
-                          <div key={idx} className="bg-white border border-gray-100 rounded-xl p-5">
-                            <div className="flex items-center justify-between mb-3">
-                              <div>
-                                <p className="font-medium text-black">{result.studentName}</p>
-                                <p className="text-xs text-gray-500">{result.email}</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-lg font-bold text-black">{result.percentage}%</p>
-                                <p className="text-xs text-gray-500">Score: {result.score}</p>
-                              </div>
-                            </div>
-                            <p className="text-xs text-gray-400">
-                              Attempted: {formatDateTime(result.attemptDate)}
-                            </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                        <div className="bg-white rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Users size={16} className="text-gray-500" />
+                            <p className="text-xs text-gray-500">Students Attempted</p>
                           </div>
-                        ))}
+                          <p className="text-2xl font-bold text-black">{quizStats.participation.totalStudentsAttempted}</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <BarChart2 size={16} className="text-gray-500" />
+                            <p className="text-xs text-gray-500">Total Attempts</p>
+                          </div>
+                          <p className="text-2xl font-bold text-black">{quizStats.participation.totalAttempts}</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <CheckCircle2 size={16} className="text-gray-500" />
+                            <p className="text-xs text-gray-500">Completion Rate</p>
+                          </div>
+                          <p className="text-2xl font-bold text-black">{quizStats.participation.completionRate}%</p>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </>
-              ) : null}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="bg-white rounded-lg p-4">
+                          <p className="text-xs text-gray-500 mb-1">Average Score</p>
+                          <p className="text-2xl font-bold text-blue-600">{quizStats.performance.averageScore}%</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-4">
+                          <p className="text-xs text-gray-500 mb-1">Highest Score</p>
+                          <p className="text-2xl font-bold text-green-600">{quizStats.performance.highestScore}%</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-4">
+                          <p className="text-xs text-gray-500 mb-1">Lowest Score</p>
+                          <p className="text-2xl font-bold text-red-600">{quizStats.performance.lowestScore}%</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                        <div className="bg-white rounded-lg p-4">
+                          <p className="text-xs text-gray-500 mb-1">Pass Count</p>
+                          <p className="text-2xl font-bold text-green-600">{quizStats.performance.passCount}</p>
+                          <p className="text-xs text-gray-400 mt-1">{quizStats.performance.passPercentage}% pass rate</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-4">
+                          <p className="text-xs text-gray-500 mb-1">Fail Count</p>
+                          <p className="text-2xl font-bold text-red-600">{quizStats.performance.failCount}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Student Results List */}
+                    <div>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                        <h3 className="text-sm font-semibold text-black">Student Results</h3>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            onClick={() => setResultsSortBy(resultsSortBy === "date" ? "score" : "date")}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                          >
+                            {resultsSortBy === "date" ? <Calendar size={14} /> : <Trophy size={14} />}
+                            {resultsSortBy === "date" ? "Date" : "Score"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              const newSortOrder = resultsSortOrder === "DESC" ? "ASC" : "DESC";
+                              setResultsSortOrder(newSortOrder);
+                            }}
+                            className="flex items-center justify-center w-8 h-8 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                          >
+                            {resultsSortOrder === "DESC" ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
+                          </button>
+                          <div className="relative flex-1 sm:flex-none sm:w-44">
+                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                            <input
+                              type="text"
+                              placeholder="Search..."
+                              value={resultsSearch}
+                              onChange={(e) => setResultsSearch(e.target.value)}
+                              className="w-full pl-9 pr-3 py-1.5 text-xs text-black placeholder-gray-500 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all"
+                            />
+                          </div>
+                          <button
+                            onClick={exportToCSV}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                          >
+                            <Download size={14} />
+                            Export
+                          </button>
+                        </div>
+                      </div>
+
+                      {quizResults.length === 0 ? (
+                        <div className="bg-white border border-gray-100 rounded-xl py-12 text-center text-xs text-gray-400">
+                          No student results yet
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {quizResults.map((result, idx) => (
+                            <div key={idx} className="bg-white border border-gray-100 rounded-xl p-4">
+                              <div className="flex items-start justify-between gap-4 mb-3">
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-black text-sm truncate">{result.studentName}</p>
+                                  <p className="text-xs text-gray-400 truncate">{result.email}</p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-sm font-bold text-black">{result.percentage}%</p>
+                                  <p className="text-xs text-gray-500">Score: {result.score}</p>
+                                </div>
+                              </div>
+                              <p className="text-xs text-gray-400">
+                                Attempted: {formatDateTime(result.attemptDate)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : null}
+              </div>
+
+              {/* Sticky Footer */}
+              <div className="p-4 border-t border-gray-100 bg-white shrink-0 flex justify-end">
+                <button
+                  onClick={() => setSelectedQuizId(null)}
+                  className="w-full sm:w-auto min-h-[44px] flex items-center justify-center px-6 py-2 bg-black hover:bg-gray-900 text-white rounded-xl text-sm font-semibold transition-colors"
+                >
+                  Close Analytics
+                </button>
+              </div>
             </SheetContent>
           </Sheet>
         )}
@@ -968,158 +986,171 @@ export function AdminQuizzes() {
       <AnimatePresence>
         {settingsQuizId && (
           <Sheet open={!!settingsQuizId} onOpenChange={(open) => !open && setSettingsQuizId(null)}>
-            <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
-              <SheetHeader className="mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <button
-                    onClick={() => setSettingsQuizId(null)}
-                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <SheetTitle className="text-xl font-bold">Quiz Settings</SheetTitle>
-                </div>
-                <SheetDescription>Customize quiz-specific settings</SheetDescription>
-              </SheetHeader>
-
-              {loadingSettings ? (
-                <div className="py-20 flex flex-col items-center justify-center">
-                  <Loader2 className="animate-spin text-black mb-2" size={24} />
-                  <p className="text-sm text-gray-500">Loading quiz settings…</p>
-                </div>
-              ) : quizSettings ? (
-                <div className="space-y-6">
-                  {/* Allow Retakes */}
-                  <div className="bg-gray-50 rounded-xl p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-semibold text-black">Allow Retakes</h3>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Let students attempt the quiz multiple times
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setQuizSettings({ 
-                          ...quizSettings, 
-                          allowRetakes: !quizSettings.allowRetakes, 
-                          maxRetakes: !quizSettings.allowRetakes ? 0 : (quizSettings.maxRetakes || 1) 
-                        })}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${
-                          quizSettings.allowRetakes ? "bg-black" : "bg-gray-300"
-                        }`}
-                      >
-                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                          quizSettings.allowRetakes ? "translate-x-6" : "translate-x-0"
-                        }`} />
-                      </button>
-                    </div>
+            <SheetContent side="right" className="w-full sm:max-w-md h-full flex flex-col p-0 gap-0">
+              {/* Sticky Header */}
+              <div className="p-6 border-b border-gray-100 bg-white shrink-0">
+                <SheetHeader className="mb-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <button
+                      onClick={() => setSettingsQuizId(null)}
+                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <SheetTitle className="text-xl font-bold">Quiz Settings</SheetTitle>
                   </div>
+                  <SheetDescription>Customize quiz-specific settings</SheetDescription>
+                </SheetHeader>
+              </div>
 
-                  {/* Max Retakes */}
-                  {quizSettings.allowRetakes && (
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+                {loadingSettings ? (
+                  <div className="py-20 flex flex-col items-center justify-center">
+                    <Loader2 className="animate-spin text-black mb-2" size={24} />
+                    <p className="text-sm text-gray-500">Loading quiz settings…</p>
+                  </div>
+                ) : quizSettings ? (
+                  <div className="space-y-6">
+                    {/* Allow Retakes */}
                     <div className="bg-gray-50 rounded-xl p-5">
-                      <div>
-                        <h3 className="text-sm font-semibold text-black">Maximum Retakes</h3>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Number of additional attempts allowed after the first attempt
-                        </p>
-                        <input
-                          type="number"
-                          min="1"
-                          value={quizSettings.maxRetakes || 1}
-                          onChange={(e) => setQuizSettings({ ...quizSettings, maxRetakes: Math.max(1, parseInt(e.target.value) || 1) })}
-                          className="mt-3 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20"
-                        />
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-semibold text-black">Allow Retakes</h3>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Let students attempt the quiz multiple times
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setQuizSettings({ 
+                            ...quizSettings, 
+                            allowRetakes: !quizSettings.allowRetakes, 
+                            maxRetakes: !quizSettings.allowRetakes ? 0 : (quizSettings.maxRetakes || 1) 
+                          })}
+                          className={`w-12 h-6 rounded-full transition-colors relative ${
+                            quizSettings.allowRetakes ? "bg-black" : "bg-gray-300"
+                          }`}
+                        >
+                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                            quizSettings.allowRetakes ? "translate-x-6" : "translate-x-0"
+                          }`} />
+                        </button>
                       </div>
                     </div>
-                  )}
 
-
-
-                  {/* Shuffle Questions */}
-                  <div className="bg-gray-50 rounded-xl p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-semibold text-black">Shuffle Questions</h3>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Randomize question order for each student
-                        </p>
+                    {/* Max Retakes */}
+                    {quizSettings.allowRetakes && (
+                      <div className="bg-gray-50 rounded-xl p-5">
+                        <div>
+                          <h3 className="text-sm font-semibold text-black">Maximum Retakes</h3>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Number of additional attempts allowed after the first attempt
+                          </p>
+                          <input
+                            type="number"
+                            min="1"
+                            value={quizSettings.maxRetakes || 1}
+                            onChange={(e) => setQuizSettings({ ...quizSettings, maxRetakes: Math.max(1, parseInt(e.target.value) || 1) })}
+                            className="mt-3 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20"
+                          />
+                        </div>
                       </div>
-                      <button
-                        onClick={() => setQuizSettings({ ...quizSettings, shuffleQuestions: !quizSettings.shuffleQuestions })}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${
-                          quizSettings.shuffleQuestions ? "bg-black" : "bg-gray-300"
-                        }`}
-                      >
-                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                          quizSettings.shuffleQuestions ? "translate-x-6" : "translate-x-0"
-                        }`} />
-                      </button>
+                    )}
+
+                    {/* Shuffle Questions */}
+                    <div className="bg-gray-50 rounded-xl p-5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-semibold text-black">Shuffle Questions</h3>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Randomize question order for each student
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setQuizSettings({ ...quizSettings, shuffleQuestions: !quizSettings.shuffleQuestions })}
+                          className={`w-12 h-6 rounded-full transition-colors relative ${
+                            quizSettings.shuffleQuestions ? "bg-black" : "bg-gray-300"
+                          }`}
+                        >
+                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                            quizSettings.shuffleQuestions ? "translate-x-6" : "translate-x-0"
+                          }`} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Hide Result Details */}
+                    <div className="bg-gray-50 rounded-xl p-5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-semibold text-black">Hide Result Details</h3>
+                          <p className="text-xs text-gray-500 mt-1">
+                            When enabled, students will not be able to view their score, percentage, or pass/fail result after completing the quiz
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setQuizSettings({ ...quizSettings, hideResultDetails: !quizSettings.hideResultDetails })}
+                          className={`w-12 h-6 rounded-full transition-colors relative ${
+                            quizSettings.hideResultDetails ? "bg-black" : "bg-gray-300"
+                          }`}
+                        >
+                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                            quizSettings.hideResultDetails ? "translate-x-6" : "translate-x-0"
+                          }`} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Allow Review After Submission */}
+                    <div className="bg-gray-50 rounded-xl p-5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-semibold text-black">Allow Review After Submission</h3>
+                          <p className="text-xs text-gray-500 mt-1">
+                            When enabled, students will be able to review their answers and see the correct answers after submitting the quiz
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setQuizSettings({ ...quizSettings, allowReviewAfterSubmission: !quizSettings.allowReviewAfterSubmission })}
+                          className={`w-12 h-6 rounded-full transition-colors relative ${
+                            quizSettings.allowReviewAfterSubmission ? "bg-black" : "bg-gray-300"
+                          }`}
+                        >
+                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                            quizSettings.allowReviewAfterSubmission ? "translate-x-6" : "translate-x-0"
+                          }`} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Helper Text */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                      <p className="text-xs text-blue-800">
+                        Retakes are for practice only. Leaderboard rankings are based solely on the first valid attempt.
+                      </p>
                     </div>
                   </div>
+                ) : null}
+              </div>
 
-                  {/* Hide Result Details */}
-                  <div className="bg-gray-50 rounded-xl p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-semibold text-black">Hide Result Details</h3>
-                        <p className="text-xs text-gray-500 mt-1">
-                          When enabled, students will not be able to view their score, percentage, or pass/fail result after completing the quiz
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setQuizSettings({ ...quizSettings, hideResultDetails: !quizSettings.hideResultDetails })}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${
-                          quizSettings.hideResultDetails ? "bg-black" : "bg-gray-300"
-                        }`}
-                      >
-                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                          quizSettings.hideResultDetails ? "translate-x-6" : "translate-x-0"
-                        }`} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Allow Review After Submission */}
-                  <div className="bg-gray-50 rounded-xl p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-semibold text-black">Allow Review After Submission</h3>
-                        <p className="text-xs text-gray-500 mt-1">
-                          When enabled, students will be able to review their answers and see the correct answers after submitting the quiz
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setQuizSettings({ ...quizSettings, allowReviewAfterSubmission: !quizSettings.allowReviewAfterSubmission })}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${
-                          quizSettings.allowReviewAfterSubmission ? "bg-black" : "bg-gray-300"
-                        }`}
-                      >
-                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                          quizSettings.allowReviewAfterSubmission ? "translate-x-6" : "translate-x-0"
-                        }`} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Helper Text */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                    <p className="text-xs text-blue-800">
-                      Retakes are for practice only. Leaderboard rankings are based solely on the first valid attempt.
-                    </p>
-                  </div>
-
-                  {/* Save Button */}
-                  <button
-                    onClick={saveQuizSettings}
-                    disabled={savingSettings}
-                    className="w-full py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-900 flex items-center justify-center gap-1.5 disabled:opacity-50"
-                  >
-                    {savingSettings && <Loader2 size={15} className="animate-spin" />}
-                    Save Settings
-                  </button>
-                </div>
-              ) : null}
+              {/* Sticky Footer */}
+              <div className="p-4 border-t border-gray-100 bg-white shrink-0 flex gap-3">
+                <button
+                  onClick={() => setSettingsQuizId(null)}
+                  disabled={savingSettings}
+                  className="flex-1 min-h-[44px] py-2 px-4 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveQuizSettings}
+                  disabled={savingSettings}
+                  className="flex-1 min-h-[44px] py-2 px-4 bg-black text-white rounded-xl text-sm font-semibold hover:bg-gray-900 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {savingSettings && <Loader2 size={15} className="animate-spin" />}
+                  Save Settings
+                </button>
+              </div>
             </SheetContent>
           </Sheet>
         )}

@@ -591,10 +591,10 @@ export function QuizPage() {
           <button
             onClick={validateAndTrySubmit}
             disabled={submitting || answeredCount !== questions.length}
-            className="flex items-center gap-1.5 text-sm px-5 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-1.5 text-sm px-4 sm:px-5 py-2.5 min-h-[44px] bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-            Submit
+            <span className="hidden xs:inline">Submit</span>
           </button>
         </div>
       </header>
@@ -659,11 +659,18 @@ export function QuizPage() {
               </div>
             </div>
 
-            {/* Mobile Question Navigator */}
+            {/* Mobile Question Navigator – horizontal scroll */}
             <div className="lg:hidden mb-5">
               <div className="bg-white border border-gray-100 rounded-xl p-4">
-                <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wide">Questions</p>
-                <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Questions</p>
+                  <div className="flex items-center gap-3 text-xs text-gray-400">
+                    <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-green-100 border border-green-200" />Done</span>
+                    <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-amber-100 border border-amber-200" />Marked</span>
+                    <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-red-50 border border-red-300" />Skip</span>
+                  </div>
+                </div>
+                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
                   {questions.map((q, i) => {
                     const status = getQuestionStatus(q.id);
                     const isUnanswered = status === "unanswered";
@@ -671,7 +678,7 @@ export function QuizPage() {
                       <button
                         key={q.id}
                         onClick={() => setCurrentQ(i)}
-                        className={`w-7 h-7 text-xs font-medium rounded-md transition-all ${
+                        className={`flex-shrink-0 w-9 h-9 text-xs font-medium rounded-lg transition-all ${
                           i === currentQ
                             ? "bg-black text-white"
                             : status === "answered"

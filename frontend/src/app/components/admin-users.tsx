@@ -142,12 +142,12 @@ export function AdminUsers() {
       </div>
 
       {/* Local Search (for users page only) */}
-      <div className="relative mb-6">
+      <div className="relative mb-6 w-full md:flex-1 md:max-w-xl">
         <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full md:w-[500px] pl-12 pr-4 py-3 text-black placeholder-gray-500 bg-white border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all"
+          className="w-full pl-12 pr-4 py-3 text-black placeholder-gray-500 bg-white border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all"
           placeholder="Search students, emails..."
         />
       </div>
@@ -245,14 +245,12 @@ export function AdminUsers() {
             ))}
           </div>
         </>
-      )}
-
-      {/* User Details Sheet */}
+      )}      {/* User Details Sheet */}
       <AnimatePresence>
         {selectedUserId && (
           <Sheet open={!!selectedUserId} onOpenChange={(open) => !open && setSelectedUserId(null)}>
-            <SheetContent side="right" className="w-full sm:w-3/4 md:max-w-2xl overflow-y-auto p-0">
-              <SheetHeader className="mb-0 p-4 border-b border-gray-100">
+            <SheetContent side="right" className="w-full sm:max-w-2xl lg:max-w-4xl p-0 flex flex-col h-full gap-0 overflow-hidden">
+              <SheetHeader className="mb-0 p-4 border-b border-gray-100 shrink-0 bg-white">
                 <div className="flex items-center gap-2 mb-1">
                   <button
                     onClick={() => setSelectedUserId(null)}
@@ -265,7 +263,7 @@ export function AdminUsers() {
                 <SheetDescription>Complete profile and quiz history</SheetDescription>
               </SheetHeader>
 
-              <div className="p-6">
+              <div className="flex-1 overflow-y-auto p-6 min-h-0">
                 {loadingDetails ? (
                   <div className="py-20 flex flex-col items-center justify-center">
                     <Loader2 className="animate-spin text-black mb-2" size={24} />
@@ -321,9 +319,9 @@ export function AdminUsers() {
 
                     {/* Exam History */}
                     <div>
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                         <h3 className="text-lg font-semibold text-black">Exam History</h3>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <button
                             onClick={() => setHistorySortBy(historySortBy === "date" ? "score" : "date")}
                             className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
@@ -340,16 +338,16 @@ export function AdminUsers() {
                           >
                             {historySortOrder === "DESC" ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
                           </button>
-                          <div className="relative">
+                          <div className="relative flex-1 sm:flex-initial">
                             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                             <input
                               type="text"
                               placeholder="Search quizzes..."
                               value={historySearch}
                               onChange={(e) => setHistorySearch(e.target.value)}
-                              className="pl-10 pr-3 py-2 text-xs text-black placeholder-gray-500 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all"
+                              className="w-full sm:w-auto pl-10 pr-3 py-2 text-xs text-black placeholder-gray-500 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all"
                             />
-                        </div>
+                          </div>
                         </div>
                       </div>
 
@@ -361,8 +359,8 @@ export function AdminUsers() {
                         ) : (
                           userHistory.map((item, idx) => (
                             <div key={item.id} className="bg-white border border-gray-100 rounded-xl p-5">
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                                <div className="flex flex-wrap items-center gap-2">
                                   <h4 className="font-medium text-black">{item.quizName}</h4>
                                   <span className="text-xs px-2 py-1 bg-gray-100 rounded-full">
                                     Attempt {item.attemptNumber}
@@ -373,7 +371,7 @@ export function AdminUsers() {
                                     </span>
                                   )}
                                 </div>
-                                <span className={`text-xs px-2.5 py-1 rounded-full border ${getStatusColor(item.status)}`}>
+                                <span className={`self-start sm:self-auto text-xs px-2.5 py-1 rounded-full border ${getStatusColor(item.status)}`}>
                                   {item.status}
                                 </span>
                               </div>

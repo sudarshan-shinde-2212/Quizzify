@@ -63,7 +63,7 @@ export function HistoryPage() {
   return (
     <UserLayout>
       <div className="flex items-center mb-6">
-        <div className="relative w-full md:w-[600px]">
+        <div className="relative w-full md:flex-1 md:max-w-xl">
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
           <input
             type="text"
